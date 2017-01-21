@@ -1,0 +1,3 @@
+[submodule "libbash"]
+	path = libbash
+	url = https://github.com/pruje/libbash.sh.git
