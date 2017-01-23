@@ -146,11 +146,13 @@ print_help() {
 			lb_print "Warning: This feature does not auto-detect renamed or moved files."
 			lb_print "         To restore a moved/deleted file, ."
 			lb_print "\nOptions:"
-			lb_print "  -d, --date DATE    restore file at backup DATE (YYYY-MM-DD-HHMMSS)"
-			lb_print "                     by default it restores the last available backup"
-			lb_print "  -p, --path FILE    path of the original file (if file has been moved/renamed)"
-			lb_print "  -f, --force        force restore; do not display confirmation"
-			lb_print "  -h, --help         print help"
+			lb_print "  -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			lb_print "                   by default it restores the last available backup"
+			lb_print "  -p, --path FILE  path of the original file (if file has been moved/renamed)"
+			lb_print "  --directory      path to restore is a directory (not necessary if path exists)"
+			lb_print "                   If deleted or moved, indicate that the chosen path is a directory."
+			lb_print "  -f, --force      force restore; do not display confirmation"
+			lb_print "  -h, --help       print help"
 			;;
 		config)
 			lb_print "Command usage: $1 [OPTIONS]"
@@ -1414,6 +1416,7 @@ backup() {
 		fi
 	fi
 
+	# if keep limit to 0, we are in mirror mode
 	if [ $keep_limit == 0 ] ; then
 		mirror_mode=true
 	fi
@@ -1439,6 +1442,7 @@ backup() {
 		mkdir "$dest"
 	fi
 
+	# if failed to move or to create
 	if [ $? != 0 ] ; then
 		lb_display --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 4
@@ -1883,12 +1887,14 @@ history_file() {
 # Args: [OPTIONS] [PATH]
 restore() {
 
+	# default options
 	backupdate="latest"
 	filepath=""
 	file_history=()
 	forcemode=false
 	choose_file=false
 	interactive=true
+	directorymode=false
 
 	# get options
 	while true ; do
@@ -1901,6 +1907,10 @@ restore() {
 			-p|--path)
 				filepath="$2"
 				shift 2
+				;;
+			--directory)
+				directorymode=true
+				shift
 				;;
 			-f|--force)
 				forcemode=true
@@ -1932,12 +1942,38 @@ restore() {
 
 	# if no file specified, go to interactive mode
 	if [ $# == 0 ] ; then
-		if ! lbg_choose_file -t "Choose a file to restore" ; then
-			return $?
+
+		if ! $directorymode ; then
+			# choose type of file to restore (file/directory)
+			if ! lbg_choose_option -d 1 -l "Choose a restore mode:" "Restore an existing file" "Restore an existing directory" ; then
+				return 1
+			fi
+
+			# directory mode
+			if [ "$lbg_choose_option" == "2" ] ; then
+				directorymode=true
+			fi
 		fi
 
-		file="$lbg_choose_file"
+		# choose a directory
+		if $directorymode ; then
+			if ! lbg_choose_directory -t "Choose a directory to restore" ; then
+				return $?
+			fi
+
+			# get path to restore
+			file="$lbg_choose_directory"
+		else
+			# choose a file
+			if ! lbg_choose_file -t "Choose a file to restore" ; then
+				return $?
+			fi
+
+			# get path to restore
+			file="$lbg_choose_file"
+		fi
 	else
+		# get specified path
 		file="$*"
 	fi
 
@@ -1945,6 +1981,14 @@ restore() {
 
 	# get backup full path
 	backup_file_path="$(get_backup_filepath "$file")"
+	if [ -z "$backup_file_path" ] ; then
+		return 1
+	fi
+
+	# if directory, change destination path
+	if [ -d "$file" ] || $directorymode ; then
+		file="$(dirname "$file")/"
+	fi
 
 	# get all backups
 	backups=($(get_backups))
@@ -2003,8 +2047,13 @@ restore() {
 	fi
 
 	lb_print "Restore file from backup $backupdate..."
+
+	# prepare rsync command
 	cmd=(rsync -aHv --progress --human-readable --delete --exclude-from "$config_excludes" "$backup_destination/$backupdate/$backup_file_path" "$file")
+
 	lb_display_debug "Executing: ${cmd[@]}"
+
+	# execute rsync
 	"${cmd[@]}"
 
 	if lb_result ; then
