@@ -23,11 +23,13 @@ backup_destination=""
 success=()
 warnings=()
 errors=()
+report_details=""
 default_verbose_level="INFO"
 default_log_level="INFO"
 destination_network=false
 backuplock=""
 current_timestamp=$(date +%s)
+current_date=$(date '+%Y-%m-%d at %H:%M:%S')
 
 
 ############################
@@ -1060,10 +1062,13 @@ clean_exit() {
 
 	# send email report
 	if $email_report_if_error ; then
-		# is email recipient is set
+
+		# if email recipient is set
 		if [ -n "$email_recipient" ] ; then
-			# if report or error,
+
+			# if report or error, send email
 			if $email_report || [ $lb_exitcode != 0 ] ; then
+
 				# email options
 				email_opts=()
 				if [ -n "$email_sender" ] ; then
@@ -1079,11 +1084,22 @@ clean_exit() {
 					email_content+="A backup succeeded on $(hostname)."
 				else
 					email_subject+="Backup failed on $(hostname)"
-					email_content+="A backup failed on $(hostname)."
+					email_content+="A backup failed on $(hostname) (exit code: $lb_exitcode)"
 				fi
 
-				email_content+="\n\n"
+				email_content+="\n\nBackup started on $current_date\n$(report_duration)\n\n"
 
+				# error report
+				if [ $lb_exitcode != 0 ] ; then
+					report_user="$user"
+					if [ -z "$report_user"] ; then
+						report_user="$(whoami)"
+					fi
+
+					email_content+="User: $report_user\n$report_details\n\n"
+				fi
+
+				# if logs are kept,
 				email_logs=false
 				if $logs_save ; then
 					email_logs=true
@@ -1094,8 +1110,10 @@ clean_exit() {
 				fi
 
 				if $email_logs ; then
-					email_content+="See the log file for more details.\n"
+					email_content+="See the log file for more details.\n\n"
 				fi
+
+				email_content+="Regards,\ntime2backup"
 
 				# send email
 				if ! lb_email "${email_opts[@]}"-s "$email_subject" "$email_recipient" "$email_report_content" ; then
@@ -1103,6 +1121,7 @@ clean_exit() {
 				fi
 			fi
 		else
+			# email not sent
 			lb_log_error "Email recipient not set, do not send email report."
 		fi
 	fi
@@ -1251,9 +1270,13 @@ backup() {
 
 	# get current date
 	current_timestamp=$(date +%s)
+	current_date=$(date '+%Y-%m-%d at %H:%M:%S')
+
+	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
+	backupdate=$(date +%Y-%m-%d-%H%M%S)
 
 	lb_display --log "time2backup\n"
-	lb_display --log "Backup started on $(date '+%Y-%m-%d at %H:%M:%S')\n"
+	lb_display --log "Backup started on $current_date\n"
 
 	# get sources to backup
 	get_sources
@@ -1270,9 +1293,6 @@ backup() {
 	if ! test_destination ; then
 		clean_exit 4
 	fi
-
-	# set backup directory with current date
-	backupdate=$(date +%Y-%m-%d-%H%M%S)
 
 	# create destination if not exists
 	mkdir -p "$backup_destination" &> /dev/null
@@ -1727,15 +1747,15 @@ backup() {
 		lb_display --log "Backup finished with some errors. Check report below and check log files for more details.\n"
 
 		if [ ${#success[@]} -gt 0 ] ; then
-			lb_display --log "Success: (${#success[@]}/$nbsrc)"
+			report_details+="Success: (${#success[@]}/$nbsrc)\n"
 			for ((i=0; i<${#success[@]}; i++)) ; do
-				lb_display --log "   - ${success[$i]}"
+				report_details+="   - ${success[$i]}\n"
 			done
 		fi
 		if [ ${#warnings[@]} -gt 0 ] ; then
-			lb_display --log "Warnings: (${#warnings[@]}/$nbsrc)"
+			report_details+="Warnings: (${#warnings[@]}/$nbsrc)\n"
 			for ((i=0; i<${#warnings[@]}; i++)) ; do
-				lb_display --log "   - ${warnings[$i]}"
+				report_details+="   - ${warnings[$i]}\n"
 			done
 
 			if $notifications ; then
@@ -1743,15 +1763,17 @@ backup() {
 			fi
 		fi
 		if [ ${#errors[@]} -gt 0 ] ; then
-			lb_display --log "Errors: (${#errors[@]}/$nbsrc)"
+			report_details+="Errors: (${#errors[@]}/$nbsrc)\n"
 			for ((i=0; i<${#errors[@]}; i++)) ; do
-				lb_display --log "   - ${errors[$i]}"
+				report_details+="   - ${errors[$i]}\n"
 			done
 
 			if $notifications ; then
 				lbg_notify "Backup finished with some errors. Check report and check log files for more details.\n$(report_duration)"
 			fi
 		fi
+
+		lb_display --log "$report_details"
 	fi
 
 	# if there was only errors, delete backup directory
