@@ -921,7 +921,7 @@ first_run() {
 		return 2
 	fi
 
-	if lbg_yesno "Do you want to perform your first backup now?" ; then
+	if lbg_yesno -y "Do you want to perform your first backup now?" ; then
 		backup
 	else
 		lbg_display_info "time2backup is ready!"
@@ -958,23 +958,35 @@ edit_config() {
 
 	# headless mode
 	if [ -n "$set_config" ] ; then
-		conf_param="$(echo "$set_config" | cut -d= -f1)"
 
+		# get parameter + value
+		conf_param="$(echo "$set_config" | cut -d= -f1)"
 		conf_value="$(echo "$set_config" | sed 's/\//\\\//g')"
 
+		# get config line
 		config_line=$(cat "$edit_file" | grep -n "^[# ]*$conf_param=" | cut -d: -f1)
+
+		# if found, change line
 		if [ -n "$config_line" ] ; then
 			sed -i'~' "${config_line}s/.*/$conf_value/" "$edit_file"
 		else
+			# if not found, append to file
 			echo "$conf_value" >> "$edit_file"
 		fi
 	else
+		# editor
 		all_editors=()
 
 		# open file with graphical editor
 		if ! $custom_editor ; then
 			if ! $consolemode ; then
-				all_editors=("${gui_editors[@]}")
+				if [ "$(lbg_get_gui)" != "console" ] ; then
+					if [ "$(lb_detect_os)" == "macOS" ] ; then
+						all_editors+=(open)
+					else
+						all_editors+=(xdg-open)
+					fi
+				fi
 			fi
 
 			all_editors+=("${editors[@]}")
