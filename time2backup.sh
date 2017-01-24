@@ -154,7 +154,6 @@ print_help() {
 			lb_print "\nOptions:"
 			lb_print "  -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
 			lb_print "                   by default it restores the last available backup"
-			lb_print "  -p, --path FILE  path of the original file (if file has been moved/renamed)"
 			lb_print "  --directory      path to restore is a directory (not necessary if path exists)"
 			lb_print "                   If deleted or moved, indicate that the chosen path is a directory."
 			lb_print "  -f, --force      force restore; do not display confirmation"
@@ -183,8 +182,8 @@ print_help() {
 		*)
 			lb_print "Commands:"
 			lb_print "    backup     perform a backup (default)"
-			lb_print "    history    displays backup history of a file or directory"
 			lb_print "    restore    restore a backup of a file or directory"
+			lb_print "    history    displays backup history of a file or directory"
 			lb_print "    config     edit configuration"
 			lb_print "    install    install time2backup"
 			lb_print "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
@@ -873,9 +872,6 @@ first_run() {
 
 	# install
 	install
-
-	# TODO: choose other type of destination
-	# lbg_choose_option -d 1 "Choose a destination type:" "Local partition / External disk drive" "SSH remote server" "SMB share" "FTP server"
 
 	# get external disk
 	if lbg_choose_directory -t "Choose a destination for backups" ; then
@@ -1843,6 +1839,8 @@ backup() {
 # Get history/versions of a file
 # Args: [OPTIONS] PATH
 history_file() {
+
+	# default options and variables
 	file_history=()
 	quietmode=false
 
@@ -1871,6 +1869,7 @@ history_file() {
 		esac
 	done
 
+	# usage errors
 	if [ $# == 0 ] ; then
 		print_help history
 		return 1
@@ -1886,20 +1885,22 @@ history_file() {
 		return 4
 	fi
 
+	# get file
 	file="$*"
 
+	# get backup versions of this file
 	backup_history=$(get_backup_history $opts"$file")
 
-	if [ $? != 0 ] ; then
+	if [ -z "$backup_history" ] ; then
 		lb_error "No backup found for '$file'!"
-		return 1
+		return 2
 	fi
 
 	if ! $quietmode ; then
 		lb_print "$file: ${#file_history[@]} backups"
 	fi
 
-	# TODO: test
+	# print backup versions
 	for b in ${backup_history[@]} ; do
 		lb_print $b
 	done
@@ -1912,12 +1913,12 @@ restore() {
 
 	# default options
 	backupdate="latest"
-	filepath=""
 	file_history=()
 	forcemode=false
 	choose_file=false
 	interactive=true
 	directorymode=false
+	restore_moved=false
 
 	# get options
 	while true ; do
@@ -1925,10 +1926,6 @@ restore() {
 			-d|--date)
 				backupdate="$2"
 				interactive=false
-				shift 2
-				;;
-			-p|--path)
-				filepath="$2"
 				shift 2
 				;;
 			--directory)
@@ -1966,21 +1963,40 @@ restore() {
 	# if no file specified, go to interactive mode
 	if [ $# == 0 ] ; then
 
-		if ! $directorymode ; then
-			# choose type of file to restore (file/directory)
-			if ! lbg_choose_option -d 1 -l "Choose a restore mode:" "Restore an existing file" "Restore an existing directory" ; then
-				return 1
-			fi
-
-			# directory mode
-			if [ "$lbg_choose_option" == "2" ] ; then
-				directorymode=true
-			fi
+		# choose type of file to restore (file/directory)
+		if ! lbg_choose_option -d 1 -l "What do you want to restore?" "An existing file" "An existing directory" "A renamed/moved/deleted file" "A renamed/moved/deleted directory" ; then
+			return 1
 		fi
+
+		# directory mode
+		case "$lbg_choose_option" in
+			1)
+				# restore a file
+				:
+				;;
+			2)
+				# restore a directory
+				directorymode=true
+				;;
+			3)
+				# restore a moved file
+				starting_path="$backup_destination"
+				restore_moved=true
+				;;
+			4)
+				# restore a moved directory
+				starting_path="$backup_destination"
+				directorymode=true
+				restore_moved=true
+				;;
+			*)
+				return 1
+				;;
+		esac
 
 		# choose a directory
 		if $directorymode ; then
-			if ! lbg_choose_directory -t "Choose a directory to restore" ; then
+			if ! lbg_choose_directory -t "Choose a directory to restore" "$starting_path" ; then
 				return $?
 			fi
 
@@ -1988,29 +2004,70 @@ restore() {
 			file="$lbg_choose_directory"
 		else
 			# choose a file
-			if ! lbg_choose_file -t "Choose a file to restore" ; then
+			if ! lbg_choose_file -t "Choose a file to restore" "$starting_path" ; then
 				return $?
 			fi
 
 			# get path to restore
 			file="$lbg_choose_file"
 		fi
+
+		if $restore_moved ; then
+			lb_display_debug "Compare $file != $backup_destination*"
+			if [[ "$file" != "$backup_destination"* ]] ; then
+				lb_error "Path is not a backup! Cancel."
+				return 1
+			fi
+
+			# remove destination path prefix
+			file="${file#$backup_destination}"
+			# remove slashes
+			if [ "${file:0:1}" == "/" ] ; then
+				file="${file:1}"
+			fi
+
+			# get backup date
+			backupdate="$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)"
+			if [ -z "$backupdate" ] ; then
+				lb_error "Path is not correct"
+				return 1
+			fi
+
+			interactive=false
+
+			# remove backup date path prefix
+			file="${file#$backupdate}"
+
+			# check if it is a file backup
+			# TODO: add SSH/network support
+			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
+				lb_error "Restoring ssh/network files is not supported yet."
+				return 2
+			fi
+
+			# absolute path of destination
+			file="${file:6}"
+		fi
 	else
 		# get specified path
 		file="$*"
+	fi
+
+	# if directory, change destination path
+	if [ -d "$file" ] || $directorymode ; then
+		dest="$(dirname "$file")/"
+	else
+		dest="$file"
 	fi
 
 	lb_display_debug "File to restore: $file"
 
 	# get backup full path
 	backup_file_path="$(get_backup_filepath "$file")"
+
+	# if error, exit
 	if [ -z "$backup_file_path" ] ; then
 		return 1
-	fi
-
-	# if directory, change destination path
-	if [ -d "$file" ] || $directorymode ; then
-		file="$(dirname "$file")/"
 	fi
 
 	# get all backups
@@ -2035,7 +2092,7 @@ restore() {
 			if [ "$backupdate" != "latest" ] ; then
 				# if date was specified, error
 				if [ "$backupdate" == "$backup" ] ; then
-					lbg_display_error "No backups available for this file at this date!\nRun the following command to show available backup for this file:$lb_current_script history $file"
+					lbg_display_error "No backups available for this file at this date!\nRun the following command to show available backup for this file: $lb_current_script history $file"
 					return 2
 				fi
 			fi
@@ -2062,6 +2119,8 @@ restore() {
 		backupdate=${file_history[0]}
 	fi
 
+	src="$backup_destination/$backupdate/$backup_file_path"
+
 	# confirm action
 	if ! $forcemode ; then
 		if ! lbg_yesno "You will restore the file '$file' to backup $(get_backupdate $backupdate).\nAre your sure?" ; then
@@ -2072,7 +2131,7 @@ restore() {
 	lb_print "Restore file from backup $backupdate..."
 
 	# prepare rsync command
-	cmd=(rsync -aHv --progress --human-readable --delete --exclude-from "$config_excludes" "$backup_destination/$backupdate/$backup_file_path" "$file")
+	cmd=(rsync -aHv --progress --human-readable --delete --exclude-from "$config_excludes" "$src" "$dest")
 
 	lb_display_debug "Executing: ${cmd[@]}"
 
