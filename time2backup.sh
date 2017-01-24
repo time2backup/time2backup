@@ -50,11 +50,12 @@ backup_disk_uuid=""
 
 compression=false
 
-clean_old_backups=true
 planned=false
 frequency="daily"
 
 keep_limit=-1
+clean_old_backups=true
+clean_keep=0
 
 logs_save=false
 keep_logs_if_error=true
@@ -418,6 +419,21 @@ load_config() {
 		configok=false
 	fi
 
+	# test integer values
+	if ! lb_is_integer $keep_limit ; then
+		lb_error "keep_limit must be an integer!"
+		configok=false
+	fi
+	if ! lb_is_integer $clean_keep ; then
+		lb_error "clean_keep must be an integer!"
+		configok=false
+	fi
+
+	# correct bad values
+	if [ $clean_keep -lt 0 ] ; then
+		clean_keep=0
+	fi
+
 	if ! $configok ; then
 		lb_error "\nThere are errors in your configuration."
 		lb_error "Please edit your configuration with 'config' command or manually."
@@ -638,6 +654,8 @@ rotate_backups() {
 	# if limit reached
 	if [ $nbold -gt $keep_limit ] ; then
 		lb_display --log "Cleaning old backups..."
+		lb_display_debug "Clean to keep $keep_limit/$nbold"
+
 		old_backups=(${old_backups[@]:0:$(($nbold - $keep_limit))})
 
 		# remove backups from older to newer
@@ -1688,11 +1706,18 @@ backup() {
 
 				# get all backups list
 				old_backups=($(get_backups))
-				# avoid infinite loop
+				# avoid infinite loop and always keep one current backup
 				if [ ${#old_backups[@]} -le 1 ] ; then
 					break
 				fi
-				keep_limit=$((${#old_backups[@]} - 1))
+
+				# set keep limit to
+				keep_limit=$((${#old_backups[@]} - 1 - $clean_keep))
+
+				if [ $keep_limit -le 1 ] ; then
+					break
+				fi
+
 				rotate_backups
 			else
 				# if no cleanup, continue to be stopped after
@@ -1797,13 +1822,6 @@ backup() {
 		fi
 
 		lb_display --log "$report_details"
-	fi
-
-	# if there was only errors, delete backup directory
-	if [ ${#errors[@]} == $nbsrc ] ; then
-		lb_display_debug --log "There was only errors; deleting backup destination."
-		rm -rf "$dest" &> /dev/null
-		lb_result --log -l DEBUG
 	fi
 
 	# execute custom after backup script
@@ -1960,11 +1978,21 @@ restore() {
 		return 4
 	fi
 
+	if ! test_hardlinks ; then
+		hard_links=false
+	fi
+
 	# if no file specified, go to interactive mode
 	if [ $# == 0 ] ; then
 
+		restore_opts=("An existing file" "A renamed/moved/deleted file")
+
+		if $hard_links ; then
+			restore_opts+=("An existing directory" "A renamed/moved/deleted directory")
+		fi
+
 		# choose type of file to restore (file/directory)
-		if ! lbg_choose_option -d 1 -l "What do you want to restore?" "An existing file" "An existing directory" "A renamed/moved/deleted file" "A renamed/moved/deleted directory" ; then
+		if ! lbg_choose_option -d 1 -l "What do you want to restore?" "${restore_opts[@]}" ; then
 			return 1
 		fi
 
@@ -1975,13 +2003,13 @@ restore() {
 				:
 				;;
 			2)
-				# restore a directory
-				directorymode=true
-				;;
-			3)
 				# restore a moved file
 				starting_path="$backup_destination"
 				restore_moved=true
+				;;
+			3)
+				# restore a directory
+				directorymode=true
 				;;
 			4)
 				# restore a moved directory
@@ -2055,6 +2083,11 @@ restore() {
 
 	# if directory, change destination path
 	if [ -d "$file" ] || $directorymode ; then
+		if ! $hard_links ; then
+			lb_error "You cannot restore directories in trash mode!"
+			return 5
+		fi
+
 		dest="$(dirname "$file")/"
 	else
 		dest="$file"
