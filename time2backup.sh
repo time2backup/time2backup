@@ -10,6 +10,12 @@
 #                                                      #
 ########################################################
 
+################################
+#                              #
+#  Version 1.0.0 (2017-01-24)  #
+#                              #
+################################
+
 
 ###########################
 #  VARIABLES DECLARATION  #
@@ -187,12 +193,6 @@ print_help() {
 }
 
 
-# Print version of the program
-print_version() {
-	echo $version
-}
-
-
 # Get absolute path of a file/directory
 getabspath() {
 	echo $(cd "$(dirname "$1")" && pwd)/"$(basename "$1")"
@@ -203,6 +203,7 @@ getabspath() {
 # e.g. getrelpath /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
 getrelpath() {
+
 	local dir_src="$1"
 	local dir_dest="$2"
 	local abs_dir_src="$(getabspath "$dir_src")"
@@ -255,11 +256,15 @@ getrelpath() {
 }
 
 
-# get backup type to know if a backup source is a file or a protocol like ssh, smb, ...
+# Get backup type to check if a backup source is a file or a protocol like ssh, smb, ...
+# Args: path/source
+# Return: type of source
 get_backup_type() {
+
 	f="$*"
 	p=$(echo "$f" | cut -d: -f1)
 
+	# get protocol
 	case $p in
 		ssh|fish)
 			# double check protocol
@@ -316,6 +321,7 @@ get_backup_history() {
 		esac
 	done
 
+	# usage error
 	if [ $# == 0 ] ; then
 		return 1
 	fi
@@ -326,7 +332,7 @@ get_backup_history() {
 		return 2
 	fi
 
-	# get file
+	# get path
 	file="$*"
 	abs_file="$(get_backup_filepath "$file")"
 	if [ $? != 0 ] ; then
@@ -362,6 +368,7 @@ get_backup_history() {
 		fi
 	done
 
+	# return file versions
 	if [ ${#file_history[@]} -gt 0 ] ; then
 		for b in ${file_history[@]} ; do
 			echo $b
@@ -425,16 +432,19 @@ load_config() {
 
 # Get disk UUID
 check_disk() {
+
+	# if UUID not set, return error
 	if [ -z "$backup_disk_uuid" ] ; then
 		return 255
 	fi
 
-	if [ "$(uname)" == "Darwin" ] ; then
+	# macOS is not supported
+	if [ "$(lb_detect_os)" == "macOS" ] ; then
 		lb_error "macOS not supported yet"
 		return 2
 	fi
 
-	# return if exists
+	# test if UUID exists (disk plugged)
 	ls /dev/disk/by-uuid/ | grep "$backup_disk_uuid" &> /dev/null
 }
 
@@ -792,8 +802,11 @@ test_space() {
 }
 
 
+# Delete empty directories recursively
+# Usage: clean_empty_directories PATH
 clean_empty_directories() {
 
+	# usage error
 	if [ $# == 0 ] ; then
 		return 1
 	fi
@@ -803,16 +816,12 @@ clean_empty_directories() {
 		return
 	fi
 
+	# get directory path
 	d="$*"
-
-	# if not a directory, get parent
-	if ! [ -d "$d" ] ; then
-		d="$(dirname "$d")"
-	fi
 
 	# delete empty directories recursively
 	while true ; do
-		# if still not a directory, error
+		# if is not a directory, error
 		if ! [ -d "$d" ] ; then
 			return 1
 		fi
@@ -822,24 +831,26 @@ clean_empty_directories() {
 			return 2
 		fi
 
-		# security check: don't delete whole destination
+		# security check: do not delete destination path
 		if [ "$(dirname "$d")" == "$(dirname "$destination")" ] ; then
 			return
 		fi
 
-		# delete empty directory
+		# if directory is empty,
 		if lb_dir_is_empty "$d" ; then
+
 			lb_display_debug "Deleting empty backup: $d"
 
+			# delete directory
 			rmdir "$d" &> /dev/null
 			if [ $? == 0 ] ; then
-				# set parent directory
+				# go to parent directory and continue loop
 				d="$(dirname "$d")"
 				continue
 			fi
 		fi
 
-		# quit loop
+		# if not empty, quit loop
 		return
 	done
 }
@@ -2272,7 +2283,7 @@ while true ; do
 			shift
 			;;
 		-V|--version)
-			print_version
+			echo $version
 			exit
 			;;
 		-h|--help)
