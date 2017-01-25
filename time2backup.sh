@@ -117,7 +117,7 @@ lb_current_script_name="time2backup"
 ###############
 
 # Print help for users in console
-# Args: command (if empty, print global help)
+# Usage: print_help [COMMAND] (if empty, print global help)
 print_help() {
 	lb_print "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	lb_print "\nGlobal options:"
@@ -194,6 +194,7 @@ print_help() {
 
 
 # Get absolute path of a file/directory
+# Usage: getabspath PATH
 getabspath() {
 	echo $(cd "$(dirname "$1")" && pwd)/"$(basename "$1")"
 }
@@ -202,6 +203,7 @@ getabspath() {
 # Get relative path to reach second path from a first one
 # e.g. getrelpath /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
+# Usage: getrelpath SOURCE_PATH DESTINATION_PATH
 getrelpath() {
 
 	local dir_src="$1"
@@ -257,24 +259,24 @@ getrelpath() {
 
 
 # Get backup type to check if a backup source is a file or a protocol like ssh, smb, ...
-# Args: path/source
-# Return: type of source
+# Usage: get_backup_type SOURCE_URL
+# Return: type of source (files/ssh)
 get_backup_type() {
 
-	f="$*"
-	p=$(echo "$f" | cut -d: -f1)
+	url="$*"
+	protocol=$(echo "$url" | cut -d: -f1)
 
 	# get protocol
-	case $p in
+	case "$protocol" in
 		ssh|fish)
 			# double check protocol
-			echo "$f" | grep -E "^$p://" &> /dev/null
+			echo "$url" | grep -E "^$protocol://" &> /dev/null
 			if [ $? == 0 ] ; then
 				# special case of fish = ssh
-				if [ "$p" == "fish" ] ; then
+				if [ "$protocol" == "fish" ] ; then
 					echo "ssh"
 				else
-					echo "$p"
+					echo "$protocol"
 				fi
 				return
 			fi
@@ -288,10 +290,13 @@ get_backup_type() {
 
 # Get readable backup date
 # e.g. 2017-01-01-093000 -> 2017-01-01 09:30:00
+# Usage: get_backupdate YYYY-MM-DD-HHMMSS
 get_backupdate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
-	echo $1 | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" &> /dev/null
+	echo "$1" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" &> /dev/null
+
+	# if not good format, return error
 	if [ $? != 0 ] ; then
 		return 1
 	fi
@@ -301,8 +306,15 @@ get_backupdate() {
 }
 
 
-# Get backup history of a file/folder
-# Args: [OPTIONS] PATH
+# Get backup history of a file
+# Usage: get_backup_history [OPTIONS] PATH
+# Options:
+#   -a, --all  return all versions (including same)
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: no backups found
+#   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
 
 	file_history=()
@@ -335,7 +347,7 @@ get_backup_history() {
 	# get path
 	file="$*"
 	abs_file="$(get_backup_path "$file")"
-	if [ $? != 0 ] ; then
+	if [ -z "$abs_file" ] ; then
 		return 3
 	fi
 
@@ -380,7 +392,10 @@ get_backup_history() {
 
 
 # Create configuration files in user config
+# Usage: create_config
+# Exit codes: 0 if OK, 1 if cannot create config directory
 create_config() {
+
 	# create config directory
 	# default: ~/.config/time2backup
 	mkdir -p "$config_directory" &> /dev/null
@@ -397,6 +412,11 @@ create_config() {
 
 
 # Load configuration file
+# Usage: load_config
+# Exit codes:
+#   0: OK
+#   1: cannot open config
+#   2: there are errors in config
 load_config() {
 
 	configok=true
@@ -437,7 +457,7 @@ load_config() {
 	if ! $configok ; then
 		lb_error "\nThere are errors in your configuration."
 		lb_error "Please edit your configuration with 'config' command or manually."
-		return 1
+		return 2
 	fi
 
 	# set backup destination
@@ -512,7 +532,10 @@ mount_destination() {
 
 # Unmount destination
 # Usage: unmount_destination
-# Exit codes: 0: OK, 1: umount error, 2: rmdir mountpoint error
+# Exit codes:
+#   0: OK
+#   1: umount error
+#   2: cannot delete mountpoint
 unmount_destination() {
 
 	lb_display --log "Unmount destination..."
@@ -590,7 +613,12 @@ get_backup_path() {
 }
 
 
-# Test if backup destination is hard link compatible
+# Test if backup destination support hard links
+# Usage: test_hardlinks
+# Exit codes:
+#   0: destination supports hard links
+#   1: cannot get filesystem type
+#   2: destination does not support hard links
 test_hardlinks() {
 
 	# filesystems that does not support hard links
@@ -598,7 +626,7 @@ test_hardlinks() {
 
 	# get destination filesystem
 	dest_fstype="$(lb_df_fstype "$destination")"
-	if [ $? != 0 ] ; then
+	if [ -z "$dest_fstype" ] ; then
 		return 1
 	fi
 
@@ -936,7 +964,7 @@ config_wizard() {
 			lb_error "Could not find disk UUID of destination."
 		fi
 	else
-		lb_display_debug "Error in choose directory (exit code: $?)."
+		lb_display_debug "Error or cancel in choose directory (exit code: $?)."
 	fi
 
 	# activate recurrent backups
@@ -991,15 +1019,15 @@ first_run() {
 	load_config &> /dev/null
 
 	# install time2backup (create links)
-	install
+	t2b_install
 
 	# config wizard
 	config_wizard
 
 	# edit config
 	if lbg_yesno "Do you want to edit the configuration files?" ; then
-		config
-		config -s
+		t2b_config
+		t2b_config -s
 	else
 		if ! $firstconfig_ok ; then
 			return 2
@@ -1013,7 +1041,7 @@ first_run() {
 	fi
 
 	if lbg_yesno -y "Do you want to perform your first backup now?" ; then
-		backup
+		t2b_backup
 	else
 		lbg_display_info "time2backup is ready!"
 	fi
@@ -1065,11 +1093,13 @@ edit_config() {
 			echo "$conf_value" >> "$edit_file"
 		fi
 	else
-		# editor
+		# config editor mode
 		all_editors=()
 
-		# open file with graphical editor
+		# if no custom editor,
 		if ! $custom_editor ; then
+
+			# open file with graphical editor
 			if ! $consolemode ; then
 				if [ "$(lbg_get_gui)" != "console" ] ; then
 					if [ "$(lb_detect_os)" == "macOS" ] ; then
@@ -1080,6 +1110,7 @@ edit_config() {
 				fi
 			fi
 
+			# add console editors
 			all_editors+=("${editors[@]}")
 		fi
 
@@ -1322,13 +1353,13 @@ choose_operation() {
 	# run backup or restore
 	case $lbg_choose_option in
 		1)
-			backup
+			t2b_backup
 			;;
 		2)
-			restore
+			t2b_restore
 			;;
 		3)
-			config
+			t2b_config
 			;;
 		*)
 			# bad choice
@@ -1342,8 +1373,9 @@ choose_operation() {
 #  COMMAND FUNCTIONS  #
 #######################
 
-# Backup command
-backup() {
+# Perform backup
+# Usage: t2b_backup [OPTIONS]
+t2b_backup() {
 
 	# default values and options
 	planned_backup=false
@@ -1930,8 +1962,8 @@ backup() {
 
 
 # Get history/versions of a file
-# Args: [OPTIONS] PATH
-history_file() {
+# Usage: t2b_history [OPTIONS] PATH
+t2b_history() {
 
 	# default options and variables
 	file_history=()
@@ -2001,8 +2033,8 @@ history_file() {
 
 
 # Restore a file
-# Args: [OPTIONS] [PATH]
-restore() {
+# Usage: t2b_restore [OPTIONS] [PATH]
+t2b_restore() {
 
 	# default options
 	backupdate="latest"
@@ -2260,8 +2292,8 @@ restore() {
 
 
 # Configure time2backup
-# Edit config files
-config() {
+# Usage: t2b_config [OPTIONS]
+t2b_config() {
 
 	# default values
 	file="$config_file"
@@ -2355,7 +2387,8 @@ config() {
 
 # Install time2backup
 # Create a link to execute time2backup easely and create default configuration
-install() {
+# Usage: t2b_install [OPTIONS]
+t2b_install() {
 	reset_config=false
 
 	# get options
@@ -2545,23 +2578,23 @@ fi
 case $1 in
 	backup)
 		shift
-		backup $*
+		t2b_backup $*
 		;;
 	history)
 		shift
-		history_file $*
+		t2b_history $*
 		;;
 	restore)
 		shift
-		restore $*
+		t2b_restore $*
 		;;
 	config)
 		shift
-		config $*
+		t2b_config $*
 		;;
 	install)
 		shift
-		install $*
+		t2b_install $*
 		;;
 	"")
 		choose_operation
