@@ -334,7 +334,7 @@ get_backup_history() {
 
 	# get path
 	file="$*"
-	abs_file="$(get_backup_filepath "$file")"
+	abs_file="$(get_backup_path "$file")"
 	if [ $? != 0 ] ; then
 		return 3
 	fi
@@ -386,7 +386,7 @@ create_config() {
 	mkdir -p "$config_directory" &> /dev/null
 	if [ $? != 0 ] ; then
 		lb_error "Cannot create config directory. Please verify your access rights or home path."
-		return 2
+		return 1
 	fi
 
 	# copy config samples from current directory
@@ -445,55 +445,79 @@ load_config() {
 }
 
 
-# Get disk UUID
-check_disk() {
+# Mount destination
+# Usage: mount_destination
+# Exit codes:
+#   0: mount OK
+#   1: mount error
+#   2: disk not available
+#   3: cannot create mount point
+#   4: command not supported
+#   5: no disk UUID set in config
+mount_destination() {
 
 	# if UUID not set, return error
 	if [ -z "$backup_disk_uuid" ] ; then
-		return 255
+		return 5
 	fi
 
+	lb_display --log "Mount disk..."
+
 	# macOS is not supported
+	# this is not supposed to happen because macOS always mount disks
 	if [ "$(lb_detect_os)" == "macOS" ] ; then
-		lb_error "macOS not supported yet"
-		return 2
+		lb_display_error --log "macOS not supported yet"
+		return 4
 	fi
 
 	# test if UUID exists (disk plugged)
 	ls /dev/disk/by-uuid/ | grep "$backup_disk_uuid" &> /dev/null
-}
-
-
-# Mount destination
-mount_disk() {
-	if ! check_disk ; then
-		lb_error "Disk not available."
-		return 1
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Disk not available."
+		return 2
 	fi
 
+	# create mountpoint
 	if ! [ -d "$destination" ] ; then
-		mkdir "$destination" &> /dev/null
+
+		mkdir "$destination" 2>> "$logfile"
+
+		# if failed, try in sudo mode
 		if [ $? != 0 ] ; then
-			lb_error "Cannot create mount point."
-			return 2
+			lb_display_debug --log "...Failed! Try with sudo..."
+			sudo mkdir "$destination" 2>> "$logfile"
+
+			if [ $? != 0 ] ; then
+				lb_display --log "...Failed!"
+				return 3
+			fi
 		fi
 	fi
 
-	mount "/dev/disk/by-uuid/$backup_disk_uuid" "$destination" &> /dev/null
+	# mount disk
+	mount "/dev/disk/by-uuid/$backup_disk_uuid" "$destination" 2>> "$logfile"
+
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_error "Cannot mount destination."
-		return 3
+		lb_display_debug --log "...Failed! Try with sudo..."
+		sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$destination" 2>> "$logfile"
+
+		if [ $? != 0 ] ; then
+			lb_display --log "...Failed!"
+			return 1
+		fi
 	fi
 }
 
 
 # Unmount destination
-unmount_disk() {
+# Usage: unmount_destination
+# Exit codes: 0: OK, 1: umount error, 2: rmdir mountpoint error
+unmount_destination() {
 
 	lb_display --log "Unmount destination..."
-
 	umount "$destination" &> /dev/null
+
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
 		lb_display_debug --log "...Failed! Try with sudo..."
@@ -507,6 +531,7 @@ unmount_disk() {
 
 	lb_display_debug --log "Delete mount point..."
 	rmdir "$destination" &> /dev/null
+
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
 		lb_display_debug --log "...Failed! Try with sudo..."
@@ -520,7 +545,10 @@ unmount_disk() {
 }
 
 
-get_backup_filepath() {
+# Get path of a file backup
+# Usage: get_backup_path PATH
+# Return: backup path
+get_backup_path() {
 
 	# get file
 	f="$*"
@@ -528,15 +556,17 @@ get_backup_filepath() {
 	# if absolute path (first character is a /)
 	if [ "${f:0:1}" == "/" ] ; then
 		# return file path
-		echo "/files/$f"
+		echo "/files$f"
 		return
 	fi
 
 	# if not absolute path, check protocols
 	case $(get_backup_type "$f") in
 		ssh)
-			# return /ssh/user@hostname/path/to/file
-			echo $f | awk -F ':' '{printf $1 "/" $2 "/"; for(i=3;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
+			# transform ssh://user@hostname:/path/to/file -> /ssh/user@hostname/path/to/file
+			# command: split by colon to ssh/user@hostname/,
+			# then print path with no loose of colons and delete the last colon
+			echo "$f" | awk -F ':' '{printf $1 "/" $2 "/"; for(i=3;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
 			return
 			;;
 	esac
@@ -744,7 +774,7 @@ test_destination() {
 		# if automount
 		if $mount ; then
 			# mount disk
-			if mount_disk ; then
+			if mount_destination ; then
 				destok=true
 				# if unmount not set, default behaviour
 				if [ -z "$unmount" ] ; then
@@ -882,7 +912,7 @@ first_run() {
 
 	# create configuration
 	if ! create_config ; then
-		return $?
+		return 3
 	fi
 
 	# load configuration; don't care of errors
@@ -1077,7 +1107,7 @@ clean_exit() {
 		lb_exitcode=$1
 	fi
 
-	lb_display_debug "Clean exit."
+	lb_display_debug --log "Clean exit."
 
 	# delete lock
 	lb_display_debug "Deleting lock..."
@@ -1089,8 +1119,8 @@ clean_exit() {
 	# unmount destination
 	if [ -n "$unmount" ] ; then
 		if $unmount ; then
-			if ! unmount_disk ; then
-				lb_error "Cannot unmount."
+			if ! unmount_destination ; then
+				lbg_display_error --log "Can not unmount destination!"
 			fi
 		fi
 	fi
@@ -1314,17 +1344,15 @@ backup() {
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
 	backupdate=$(date +%Y-%m-%d-%H%M%S)
 
-	lb_display --log "time2backup\n"
-	lb_display --log "Backup started on $current_date\n"
-
 	# get sources to backup
 	get_sources
 
-	# number of sources to backup
+	# get number of sources to backup
 	nbsrc=${#sources[@]}
 
+	# is no sources, exit
 	if [ $nbsrc == 0 ] ; then
-		lb_display_error --log "Nothing to backup!"
+		lb_display_warning "Nothing to backup!"
 		clean_exit 3
 	fi
 
@@ -1336,22 +1364,22 @@ backup() {
 	# create destination if not exists
 	mkdir -p "$backup_destination" &> /dev/null
 	if [ $? != 0 ] ; then
-		lb_display_error --log "Could not create destination at $backup_destination. Please verify your access rights."
-		clean_exit 4
+		lb_display_error "Could not create destination at $backup_destination. Please verify your access rights."
+		exit 4
 	fi
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
-		lb_error "You have no write access on $backup_destination directory. Please verify your access rights."
-		clean_exit 4
+		lb_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
+		exit 4
 	fi
 
 	# test if a backup is running
 	ls "$backup_destination/.lock_"* &> /dev/null
 	if [ $? == 0 ] ; then
-		lb_error "A backup is already running."
-		clean_exit 10
+		lb_error "A backup is already running. Abording."
+		exit 10
 	fi
 
 	# create lock to avoid duplicates
@@ -1377,8 +1405,9 @@ backup() {
 			# TODO: add macOS support (date -d is not same option)
 			lastbackup_timestamp=$(date -d "$lastbackup_date" +%s)
 
-			if [ $? != 0 ] ; then
+			if [ -z "$lastbackup_timestamp" ] ; then
 				lb_display_error "Error in last backup timestamp."
+				lb_display_debug "Continue backup..."
 			else
 				# convert frequency in seconds
 				case "$frequency" in
@@ -1406,7 +1435,7 @@ backup() {
 						clean_exit
 					fi
 				else
-					lb_error "Last backup is more recent than today. Are you a time traveller?"
+					lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
 				fi
 			fi
 		fi
@@ -1430,6 +1459,10 @@ backup() {
 		lb_error "Cannot create log file $logfile. Please verify your access rights."
 		clean_exit 4
 	fi
+
+	lb_display --log "time2backup\n"
+	lb_display --log "Backup started on $current_date\n"
+
 
 	# execute before backup command/script
 	if [ ${#exec_before[@]} -gt 0 ] ; then
@@ -1537,7 +1570,7 @@ backup() {
 				source_network=true
 				# do not include protocol
 				abs_src="${src:6}"
-				path_dest="$(get_backup_filepath "$src")"
+				path_dest="$(get_backup_path "$src")"
 				;;
 			*)
 				# file or directory
@@ -1573,7 +1606,7 @@ backup() {
 					continue
 				fi
 
-				path_dest="$(get_backup_filepath "$abs_src")"
+				path_dest="$(get_backup_path "$abs_src")"
 				;;
 		esac
 
@@ -1763,7 +1796,6 @@ backup() {
 				# critical errors that caused backup to fail
 				errors+=("$src (backup failed; code: $res)")
 				lb_exitcode=6
-				clean_empty_directories "$finaldest"
 				;;
 			*)
 				# considering any other rsync error as not critical
@@ -1777,6 +1809,9 @@ backup() {
 		if ! $hard_links ; then
 			clean_empty_directories "$trash"
 		fi
+
+		# clean empty backup if error
+		clean_empty_directories "$finaldest"
 	done
 
 	# final report
@@ -2096,7 +2131,7 @@ restore() {
 	lb_display_debug "File to restore: $file"
 
 	# get backup full path
-	backup_file_path="$(get_backup_filepath "$file")"
+	backup_file_path="$(get_backup_path "$file")"
 
 	# if error, exit
 	if [ -z "$backup_file_path" ] ; then
@@ -2290,7 +2325,7 @@ install() {
 		rm -f "$config_directory/time2backup.conf"
 
 		if ! create_config ; then
-			return $?
+			return 3
 		fi
 	fi
 
@@ -2308,9 +2343,7 @@ install() {
 	fi
 
 	# delete old link if exists
-	if [ -e "$cmd_alias" ] ; then
-		rm -f "$cmd_alias"
-	fi
+	rm -f "$cmd_alias"
 
 	# create link
 	ln -s "$current_script" "$cmd_alias" &> /dev/null
