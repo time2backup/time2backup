@@ -32,7 +32,7 @@ errors=()
 report_details=""
 default_verbose_level="INFO"
 default_log_level="INFO"
-backuplock=""
+backup_lock=""
 current_timestamp=$(date +%s)
 current_date=$(date '+%Y-%m-%d at %H:%M:%S')
 
@@ -194,22 +194,22 @@ print_help() {
 
 
 # Get absolute path of a file/directory
-# Usage: getabspath PATH
-getabspath() {
+# Usage: get_absolute_path PATH
+get_absolute_path() {
 	echo $(cd "$(dirname "$1")" && pwd)/"$(basename "$1")"
 }
 
 
 # Get relative path to reach second path from a first one
-# e.g. getrelpath /home/user/my/first/path /home/user/my/second/path
+# e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
-# Usage: getrelpath SOURCE_PATH DESTINATION_PATH
-getrelpath() {
+# Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
+get_relative_path() {
 
 	local dir_src="$1"
 	local dir_dest="$2"
-	local abs_dir_src="$(getabspath "$dir_src")"
-	local abs_dir_dest="$(getabspath "$dir_dest")"
+	local abs_dir_src="$(get_absolute_path "$dir_src")"
+	local abs_dir_dest="$(get_absolute_path "$dir_dest")"
 	local abs_test_dir=""
 	local abs_common_path=""
 	local newpath="./"
@@ -290,8 +290,8 @@ get_backup_type() {
 
 # Get readable backup date
 # e.g. 2017-01-01-093000 -> 2017-01-01 09:30:00
-# Usage: get_backupdate YYYY-MM-DD-HHMMSS
-get_backupdate() {
+# Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
+get_backup_fulldate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
 	echo "$1" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" &> /dev/null
@@ -598,11 +598,11 @@ get_backup_path() {
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$f" ] ; then
-		echo "/files/$(getabspath "$f")"
+		echo "/files/$(get_absolute_path "$f")"
 	else
 		parent_dir="$(dirname "$f")"
 		if [ -d "$parent_dir" ] ; then
-			echo "/files/$(getabspath "$parent_dir")/$(basename "$f")"
+			echo "/files/$(get_absolute_path "$parent_dir")/$(basename "$f")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -793,6 +793,7 @@ install_config() {
 
 # Test if destination is reachable
 test_destination() {
+
 	destok=false
 
 	# test backup destination directory
@@ -1049,21 +1050,37 @@ first_run() {
 
 
 # Edit configuration
+# Usage: edit_config [OPTIONS] CONFIG_FILE
+# Options:
+#   -e, --editor COMMAND  set editor
+#   --set "param=value"   set a config parameter in headless mode (no editor)
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: failed to open/save configuration
+#   3: no editor found to open configuration file
 edit_config() {
-	# defines a default editors
+
+	# default values
 	editors=(nano vim vi)
 	custom_editor=false
 	set_config=""
 
 	# get options
 	while true ; do
-		case $1 in
+		case "$1" in
 			-e|--editor)
+				if lb_test_arguments -eq 0 $2 ; then
+					return 1
+				fi
 				editors=("$2")
 				custom_editor=true
 				shift 2
 				;;
 			--set)
+				if lb_test_arguments -eq 0 $2 ; then
+					return 1
+				fi
 				set_config="$2"
 				shift 2
 				;;
@@ -1073,7 +1090,12 @@ edit_config() {
 		esac
 	done
 
-	edit_file="$1"
+	# test config file
+	if lb_test_arguments -eq 0 $* ; then
+		return 1
+	fi
+
+	edit_file="$*"
 
 	# headless mode
 	if [ -n "$set_config" ] ; then
@@ -1137,7 +1159,7 @@ edit_config() {
 				lb_print "Please edit $edit_file manually."
 			fi
 
-			return 2
+			return 3
 		fi
 	fi
 
@@ -1152,16 +1174,30 @@ edit_config() {
 # Exit on cancel
 cancel_exit() {
 
-	cancel_report="Backup cancelled at $(date +%H:%M:%S)\n$(report_duration)"
-
 	lb_display --log
 	lb_display_info --log "Cancelled. Exiting..."
 
+	# display notification
 	if $notifications ; then
-		lbg_notify "$cancel_report"
+		lbg_notify "Backup cancelled at $(date +%H:%M:%S)\n$(report_duration)"
 	fi
 
+	# exit with cancel code
 	clean_exit 11
+}
+
+
+# Delete backup lock
+# Usage: remove_lock
+release_lock() {
+
+	lb_display_debug "Deleting lock..."
+
+	rm -f "$backup_lock" &> /dev/null
+	if [ $? != 0 ] ; then
+		lbg_display_critical --log "Could not remove lock. Please delete it manually or further backups will fail!"
+		return 1
+	fi
 }
 
 
@@ -1176,12 +1212,8 @@ clean_exit() {
 
 	lb_display_debug --log "Clean exit."
 
-	# delete lock
-	lb_display_debug "Deleting lock..."
-	rm -f "$backuplock" &> /dev/null
-	if [ $? != 0 ] ; then
-		lbg_display_critical --log "Could not remove lock. Please delete it manually or further backups will fail!"
-	fi
+	# delete backup lock
+	release_lock
 
 	# unmount destination
 	if [ -n "$unmount" ] ; then
@@ -1327,9 +1359,10 @@ haltpc() {
 		return 1
 	fi
 
-	lb_print "\nShutdown in 10 seconds. Press Ctrl-C to abord."
+	# countdown before halt
+	lb_print "\nYour computer will halt in 10 seconds. Press Ctrl-C to cancel."
 	for ((i=10; i>=0; i--)) ; do
-		lb_print -n "$i "
+		echo -n "$i "
 		sleep 1
 	done
 
@@ -1342,7 +1375,7 @@ haltpc() {
 }
 
 
-# Choose a basic operation backup/restore
+# Choose an operation to execute (time2backup commands)
 choose_operation() {
 
 	# display choice
@@ -1350,7 +1383,7 @@ choose_operation() {
 		return 1
 	fi
 
-	# run backup or restore
+	# run command
 	case $lbg_choose_option in
 		1)
 			t2b_backup
@@ -1405,7 +1438,7 @@ t2b_backup() {
 
 	# load and test configuration
 	if ! load_config ; then
-		return 3
+		return 2
 	fi
 
 	# get current date
@@ -1413,7 +1446,7 @@ t2b_backup() {
 	current_date=$(date '+%Y-%m-%d at %H:%M:%S')
 
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backupdate=$(date +%Y-%m-%d-%H%M%S)
+	backup_date=$(date +%Y-%m-%d-%H%M%S)
 
 	# get sources to backup
 	get_sources
@@ -1424,38 +1457,43 @@ t2b_backup() {
 	# is no sources, exit
 	if [ $nbsrc == 0 ] ; then
 		lb_display_warning "Nothing to backup!"
-		clean_exit 3
+		return 3
 	fi
 
 	# test if destination exists
 	if ! test_destination ; then
-		clean_exit 4
+		return 4
 	fi
 
 	# create destination if not exists
 	mkdir -p "$backup_destination" &> /dev/null
 	if [ $? != 0 ] ; then
 		lb_display_error "Could not create destination at $backup_destination. Please verify your access rights."
-		exit 4
+		return 4
 	fi
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
 		lb_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
-		exit 4
+		return 4
 	fi
 
 	# test if a backup is running
 	ls "$backup_destination/.lock_"* &> /dev/null
 	if [ $? == 0 ] ; then
 		lb_error "A backup is already running. Abording."
-		exit 10
+
+		# delete backup lock
+		release_lock
+
+		# exit
+		return 10
 	fi
 
 	# create lock to avoid duplicates
-	backuplock="$backup_destination/.lock_$backupdate"
-	touch "$backuplock"
+	backup_lock="$backup_destination/.lock_$backup_date"
+	touch "$backup_lock"
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
@@ -1467,16 +1505,16 @@ t2b_backup() {
 	if $planned_backup ; then
 
 		# get last backup date
-		lastbackup_date=$(get_backupdate ${backups[-1]})
+		last_backup_date=$(get_backup_fulldate ${backups[-1]})
 
 		# if not found, continue; if found, check frequency
-		if [ -n "$lastbackup_date" ] ; then
+		if [ -n "$last_backup_date" ] ; then
 
 			# get last backup timestamp
 			# TODO: add macOS support (date -d is not same option)
-			lastbackup_timestamp=$(date -d "$lastbackup_date" +%s)
+			last_backup_timestamp=$(date -d "$last_backup_date" +%s)
 
-			if [ -z "$lastbackup_timestamp" ] ; then
+			if [ -z "$last_backup_timestamp" ] ; then
 				lb_display_error "Error in last backup timestamp."
 				lb_display_debug "Continue backup..."
 			else
@@ -1497,11 +1535,11 @@ t2b_backup() {
 				esac
 
 				# test if delay is passed
-				test_timestamp=$(($current_timestamp - $lastbackup_timestamp))
+				test_timestamp=$(($current_timestamp - $last_backup_timestamp))
 
 				if [ $test_timestamp -gt 0 ] ; then
 					if [ $test_timestamp -le $seconds_offset ] ; then
-						lb_display_debug "Last backup was done at $lastbackup_date"
+						lb_display_debug "Last backup was done at $last_backup_date"
 						lb_display_info "Planned backup: no need to backup."
 						clean_exit
 					fi
@@ -1516,7 +1554,7 @@ t2b_backup() {
 	if [ -z "$logs_directory" ] ; then
 		logs_directory="$backup_destination/logs"
 	fi
-	logfile="$logs_directory/time2backup_$backupdate.log"
+	logfile="$logs_directory/time2backup_$backup_date.log"
 
 	# create logs directory
 	mkdir -p "$logs_directory"
@@ -1568,16 +1606,16 @@ t2b_backup() {
 	fi
 
 	# get last backup
-	lastbackup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
+	last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
 
 	# set new backup directory
-	dest="$backup_destination/$backupdate"
+	dest="$backup_destination/$backup_date"
 
 	lb_display --log "Prepare backup..."
 
 	# if mirror mode and there is an old backup, move last backup to current directory
-	if $mirror_mode && [ -e "$backup_destination/$lastbackup" ] ; then
-		mv "$backup_destination/$lastbackup" "$dest"
+	if $mirror_mode && [ -e "$backup_destination/$last_backup" ] ; then
+		mv "$backup_destination/$last_backup" "$dest"
 	else
 		# create destination
 		mkdir "$dest"
@@ -1665,7 +1703,7 @@ t2b_backup() {
 				fi
 
 				# get absolute path for source
-				abs_src="$(getabspath "$src")"
+				abs_src="$(get_absolute_path "$src")"
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
@@ -1693,7 +1731,7 @@ t2b_backup() {
 		# starting at last but not current (array length - 2)
 		lastcleanbackup=""
 
-		if [ -n "$lastbackup" ] ; then
+		if [ -n "$last_backup" ] ; then
 			# find the last successfull backup
 			old_backups=($(get_backups))
 			for ((b=${#old_backups[@]}-2; b>=0; b--)) ; do
@@ -1742,8 +1780,7 @@ t2b_backup() {
 				# if destination supports hard links, use incremental with hard links system
 				if $hard_links ; then
 					# revision folder
-					lb_display_debug getrelpath "$finaldest" "$backup_destination"
-					linkdest="$(getrelpath "$finaldest" "$backup_destination")"
+					linkdest="$(get_relative_path "$finaldest" "$backup_destination")"
 					if [ -e "$linkdest" ] ; then
 						cmd+=(--link-dest="$(dirname "$linkdest/$lastcleanbackup/$path_dest")")
 					fi
@@ -2037,7 +2074,7 @@ t2b_history() {
 t2b_restore() {
 
 	# default options
-	backupdate="latest"
+	backup_date="latest"
 	file_history=()
 	forcemode=false
 	choose_file=false
@@ -2049,7 +2086,7 @@ t2b_restore() {
 	while true ; do
 		case $1 in
 			-d|--date)
-				backupdate="$2"
+				backup_date="$2"
 				interactive=false
 				shift 2
 				;;
@@ -2162,8 +2199,8 @@ t2b_restore() {
 			fi
 
 			# get backup date
-			backupdate="$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)"
-			if [ -z "$backupdate" ] ; then
+			backup_date="$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)"
+			if [ -z "$backup_date" ] ; then
 				lb_error "Path is not correct"
 				return 1
 			fi
@@ -2171,7 +2208,7 @@ t2b_restore() {
 			interactive=false
 
 			# remove backup date path prefix
-			file="${file#$backupdate}"
+			file="${file#$backup_date}"
 
 			# check if it is a file backup
 			# TODO: add SSH/network support
@@ -2229,9 +2266,9 @@ t2b_restore() {
 			lb_display_debug "Found backup: ${backups[$j]}"
 		else
 			# if no backup at this date,
-			if [ "$backupdate" != "latest" ] ; then
+			if [ "$backup_date" != "latest" ] ; then
 				# if date was specified, error
-				if [ "$backupdate" == "$backup" ] ; then
+				if [ "$backup_date" == "$backup" ] ; then
 					lbg_display_error "No backups available for this file at this date!\nRun the following command to show available backup for this file: $lb_current_script history $file"
 					return 2
 				fi
@@ -2248,27 +2285,27 @@ t2b_restore() {
 	# if interactive mode, prompt user to choose a backup date
 	if $interactive ; then
 		if lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}" ; then
-			backupdate=${file_history[$(($lbg_choose_option - 1))]}
+			backup_date=${file_history[$(($lbg_choose_option - 1))]}
 		else
 			return 1
 		fi
 	fi
 
 	# if no backup date specified, use most recent
-	if [ "$backupdate" == "latest" ] ; then
-		backupdate=${file_history[0]}
+	if [ "$backup_date" == "latest" ] ; then
+		backup_date=${file_history[0]}
 	fi
 
-	src="$backup_destination/$backupdate/$backup_file_path"
+	src="$backup_destination/$backup_date/$backup_file_path"
 
 	# confirm action
 	if ! $forcemode ; then
-		if ! lbg_yesno "You will restore the file '$file' to backup $(get_backupdate $backupdate).\nAre your sure?" ; then
+		if ! lbg_yesno "You will restore the file '$file' to backup $(get_backup_fulldate $backup_date).\nAre your sure?" ; then
 			exit
 		fi
 	fi
 
-	lb_print "Restore file from backup $backupdate..."
+	lb_print "Restore file from backup $backup_date..."
 
 	# prepare rsync command
 	cmd=(rsync -aHv --progress --human-readable --delete --exclude-from "$config_excludes" "$src" "$dest")
@@ -2575,7 +2612,7 @@ if ! [ -f "$config_file" ] ; then
 fi
 
 # command operations
-case $1 in
+case "$1" in
 	backup)
 		shift
 		t2b_backup $*
