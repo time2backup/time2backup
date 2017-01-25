@@ -32,7 +32,6 @@ errors=()
 report_details=""
 default_verbose_level="INFO"
 default_log_level="INFO"
-destination_network=false
 backuplock=""
 current_timestamp=$(date +%s)
 current_date=$(date '+%Y-%m-%d at %H:%M:%S')
@@ -48,7 +47,7 @@ debugmode=false
 mount=false
 backup_disk_uuid=""
 
-compression=false
+network_compression=false
 
 recurrent=false
 frequency="daily"
@@ -856,11 +855,6 @@ clean_empty_directories() {
 	# usage error
 	if [ $# == 0 ] ; then
 		return 1
-	fi
-
-	# do not delete network directories
-	if $destination_network ; then
-		return
 	fi
 
 	# get directory path
@@ -1722,13 +1716,14 @@ backup() {
 			cmd+=(--exclude-from="$abs_src/.rsyncignore")
 		fi
 
+		# add ssh options
 		if $source_ssh ; then
 			cmd+=(-e "ssh $ssh_options")
+		fi
 
-			# enable compression
-			if $compression ; then
-				cmd+=(-z)
-			fi
+		# enable network compression
+		if $network_compression ; then
+			cmd+=(-z)
 		fi
 
 		# add source and destination
