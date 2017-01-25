@@ -12,7 +12,7 @@
 
 ################################
 #                              #
-#  Version 1.0.0 (2017-01-24)  #
+#  Version 1.0.0 (2017-01-25)  #
 #                              #
 ################################
 
@@ -21,7 +21,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-beta.2"
+version="1.0.0-beta.3"
 
 user=""
 sources=()
@@ -169,6 +169,7 @@ print_help() {
 			lb_print "                    display configuration without comments"
 			lb_print "  -t, --test        test configuration; do not edit"
 			lb_print "  -a, --apply       apply configuration; do not edit"
+			lb_print "  -w, --wizard      display configuration wizard instead of edit"
 			lb_print "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
 			lb_print "  -h, --help        print help"
 			;;
@@ -897,26 +898,18 @@ clean_empty_directories() {
 }
 
 
-# First run wizard
-first_run() {
-	# confirm install
-	if ! lbg_yesno -y "Do you want to install time2backup?\nChoose no if you want to install manually." ; then
-		return
+# config wizard
+config_wizard() {
+
+	# set default destination directory
+	if [ -d "$destination" ] ; then
+		start_path="$destination"
+	else
+		start_path="$lb_current_path"
 	fi
-
-	# create configuration
-	if ! create_config ; then
-		return 3
-	fi
-
-	# load configuration; don't care of errors
-	load_config &> /dev/null
-
-	# install
-	install
 
 	# get external disk
-	if lbg_choose_directory -t "Choose a destination for backups" ; then
+	if lbg_choose_directory -t "Choose a destination for backups" "$start_path" ; then
 
 		lb_display_debug "Choosed directory: $lbg_choose_directory"
 
@@ -943,7 +936,7 @@ first_run() {
 			lb_error "Could not find disk UUID of destination."
 		fi
 	else
-		lb_display_debug "Error in choose directory."
+		lb_display_debug "Error in choose directory (exit code: $?)."
 	fi
 
 	# activate recurrent backups
@@ -979,6 +972,29 @@ first_run() {
 		firstconfig_ok=false
 		lbg_display_error "There are errors in your configuration. Please correct it in configuration files."
 	fi
+}
+
+
+# First run wizard
+first_run() {
+	# confirm install
+	if ! lbg_yesno -y "Do you want to install time2backup?\nChoose no if you want to install manually." ; then
+		return
+	fi
+
+	# create configuration
+	if ! create_config ; then
+		return 3
+	fi
+
+	# load configuration; don't care of errors
+	load_config &> /dev/null
+
+	# install time2backup (create links)
+	install
+
+	# config wizard
+	config_wizard
 
 	# edit config
 	if lbg_yesno "Do you want to edit the configuration files?" ; then
@@ -1299,7 +1315,7 @@ haltpc() {
 choose_operation() {
 
 	# display choice
-	if ! lbg_choose_option -d 1 -l "Choose an operation:" "Backup files" "Restore a file" ; then
+	if ! lbg_choose_option -d 1 -l "Choose an operation:" "Backup files" "Restore a file" "Configure time2backup" ; then
 		return 1
 	fi
 
@@ -1310,6 +1326,9 @@ choose_operation() {
 			;;
 		2)
 			restore
+			;;
+		3)
+			config
 			;;
 		*)
 			# bad choice
@@ -2243,11 +2262,13 @@ restore() {
 # Configure time2backup
 # Edit config files
 config() {
+
+	# default values
 	file="$config_file"
 	op_config="edit"
 	show_sources=false
 
-	# get help option
+	# get options
 	# following other options to edit_config() function
 	while true ; do
 		case $1 in
@@ -2272,6 +2293,10 @@ config() {
 				op_config="apply"
 				shift
 				;;
+			-w|--wizard)
+				op_config="wizard"
+				shift
+				;;
 			-h|--help)
 				print_help config
 				return
@@ -2288,19 +2313,32 @@ config() {
 
 	# special operations: show and test
 	case "$op_config" in
+		wizard)
+			load_config
+
+			# run config wizard
+			if config_wizard ; then
+				install_config
+			fi
+			;;
 		show)
 			# get sources is a special case to print list without comments
 			# read sources.conf file line by line
 			while read line ; do
 				if ! is_comment -n $line ; then
-					echo $line
+					echo "$line"
 				fi
 			done < "$file"
 			;;
 		test)
+			# load and test configuration
 			lb_print "Testing configuration..."
 			load_config
 			lb_result
+			;;
+		apply)
+			# apply configuration
+			install_config
 			;;
 		*)
 			# edit configuration
@@ -2310,6 +2348,8 @@ config() {
 			fi
 			;;
 	esac
+
+	return $?
 }
 
 
