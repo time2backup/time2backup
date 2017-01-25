@@ -46,6 +46,11 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS]
 ### Exit codes
 - 0: Everthing is OK
 - 1: Usage error
+- 2: Config error
+- 3: No sources to backup
+- 4: Destination backup not plugged in
+- 10: A backup is already running
+- 11: Backup was cancelled by user
 
 ---------------------------------------------------------------
 ## restore
@@ -62,5 +67,31 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS]
 ```
 
 ### Exit codes
-- 0: Everthing is OK
+- 0: File has been restored
 - 1: Usage error
+- 2: Config error
+- 3: No backups available
+- 4: Backup device not reachable
+- 5: Restore failed
+- 6: Operation not permitted
+
+---------------------------------------------------------------
+## history
+Print history versions of a file or directory.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
+```
+
+### Options
+```
+-h, --help  Print help
+```
+
+### Exit codes
+- 0: History printed
+- 1: Usage error
+- 2: Config error
+- 3: No backup found for the file
+- 4: Backup device not reachable

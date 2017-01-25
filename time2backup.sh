@@ -2000,6 +2000,16 @@ t2b_backup() {
 
 # Get history/versions of a file
 # Usage: t2b_history [OPTIONS] PATH
+# Options:
+#   -a, --all    print all versions (including duplicates)
+#   -q, --quiet  quiet mode: print only backup dates
+#   -h, --help   print help
+# Exit codes:
+#   0: history printed
+#   1: usage error
+#   2: config error
+#   3: no backup found for path
+#   4: backup device not reachable
 t2b_history() {
 
 	# default options and variables
@@ -2039,7 +2049,7 @@ t2b_history() {
 
 	# load and test configuration
 	if ! load_config ; then
-		return 3
+		return 2
 	fi
 
 	# test backup destination
@@ -2055,7 +2065,7 @@ t2b_history() {
 
 	if [ -z "$backup_history" ] ; then
 		lb_error "No backup found for '$file'!"
-		return 2
+		return 3
 	fi
 
 	if ! $quietmode ; then
@@ -2114,7 +2124,7 @@ t2b_restore() {
 
 	# load and test configuration
 	if ! load_config ; then
-		return 3
+		return 2
 	fi
 
 	# test backup destination
@@ -2137,7 +2147,8 @@ t2b_restore() {
 
 		# choose type of file to restore (file/directory)
 		if ! lbg_choose_option -d 1 -l "What do you want to restore?" "${restore_opts[@]}" ; then
-			return 1
+			# cancelled
+			return
 		fi
 
 		# directory mode
@@ -2169,7 +2180,8 @@ t2b_restore() {
 		# choose a directory
 		if $directorymode ; then
 			if ! lbg_choose_directory -t "Choose a directory to restore" "$starting_path" ; then
-				return $?
+				# cancelled
+				return
 			fi
 
 			# get path to restore
@@ -2177,15 +2189,18 @@ t2b_restore() {
 		else
 			# choose a file
 			if ! lbg_choose_file -t "Choose a file to restore" "$starting_path" ; then
-				return $?
+				# cancelled
+				return
 			fi
 
 			# get path to restore
 			file="$lbg_choose_file"
 		fi
 
+		# restore a moved file
 		if $restore_moved ; then
-			lb_display_debug "Compare $file != $backup_destination*"
+
+			# test if path to restore is stored in the backup directory
 			if [[ "$file" != "$backup_destination"* ]] ; then
 				lb_error "Path is not a backup! Cancel."
 				return 1
@@ -2214,7 +2229,7 @@ t2b_restore() {
 			# TODO: add SSH/network support
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
 				lb_error "Restoring ssh/network files is not supported yet."
-				return 2
+				return 6
 			fi
 
 			# absolute path of destination
@@ -2229,7 +2244,7 @@ t2b_restore() {
 	if [ -d "$file" ] || $directorymode ; then
 		if ! $hard_links ; then
 			lb_error "You cannot restore directories in trash mode!"
-			return 5
+			return 6
 		fi
 
 		dest="$(dirname "$file")/"
@@ -2251,7 +2266,7 @@ t2b_restore() {
 	backups=($(get_backups))
 	if [ ${#backups[@]} == 0 ] ; then
 		lbg_display_error "No backups on destination."
-		return 1
+		return 3
 	fi
 
 	# find last backup of the file
@@ -2270,7 +2285,7 @@ t2b_restore() {
 				# if date was specified, error
 				if [ "$backup_date" == "$backup" ] ; then
 					lbg_display_error "No backups available for this file at this date!\nRun the following command to show available backup for this file: $lb_current_script history $file"
-					return 2
+					return 3
 				fi
 			fi
 		fi
@@ -2279,16 +2294,17 @@ t2b_restore() {
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
 		lbg_display_error "No backups available for this file."
-		return 2
+		return 3
 	fi
 
 	# if interactive mode, prompt user to choose a backup date
 	if $interactive ; then
-		if lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}" ; then
-			backup_date=${file_history[$(($lbg_choose_option - 1))]}
-		else
-			return 1
+		if ! lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}" ; then
+			# cancelled
+			return
 		fi
+
+		backup_date=${file_history[$(($lbg_choose_option - 1))]}
 	fi
 
 	# if no backup date specified, use most recent
@@ -2298,10 +2314,11 @@ t2b_restore() {
 
 	src="$backup_destination/$backup_date/$backup_file_path"
 
-	# confirm action
+	# confirm restore
 	if ! $forcemode ; then
 		if ! lbg_yesno "You will restore the file '$file' to backup $(get_backup_fulldate $backup_date).\nAre your sure?" ; then
-			exit
+			# cancelled
+			return
 		fi
 	fi
 
@@ -2312,19 +2329,31 @@ t2b_restore() {
 
 	lb_display_debug "Executing: ${cmd[@]}"
 
-	# execute rsync
+	# execute rsync command
 	"${cmd[@]}"
+	lb_result
 
-	if lb_result ; then
-		restore_notification="File restored: $file"
-	else
-		restore_notification="Restore file failed for $file"
-	fi
+	# rsync results
+	case $? in
+		0)
+			# file restored
+			restore_notification="File restored: $file"
+			lb_display_info "$restore_notification"
+			;;
+		*)
+			# rsync error
+			restore_notification="Restore file failed for $file"
+			lb_display_error "$restore_notification"
+			lb_exitcode=5
+			;;
+	esac
 
 	# display notification
 	if $notifications ; then
 		lbg_notify "$restore_notification"
 	fi
+
+	return $lb_exitcode
 }
 
 
@@ -2456,7 +2485,7 @@ t2b_install() {
 		rm -f "$config_directory/time2backup.conf"
 
 		if ! create_config ; then
-			return 3
+			return 2
 		fi
 	fi
 
@@ -2470,7 +2499,7 @@ t2b_install() {
 	if ! [ -w "$(dirname "$cmd_alias")" ] ; then
 		lb_print "Error: cannot create link to executable. Try the following command:"
 		lb_print "sudo ln -s \"$current_script\" \"$cmd_alias\""
-		return 10
+		return 3
 	fi
 
 	# delete old link if exists
@@ -2481,7 +2510,7 @@ t2b_install() {
 	if [ $? != 0 ] ; then
 		lb_print "Failed to create the link. You may try to run with superuser."
 		lb_print "Try: sudo ln -s \"$current_script\" \"$cmd_alias\""
-		return 10
+		return 3
 	fi
 }
 
