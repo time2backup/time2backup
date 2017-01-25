@@ -50,7 +50,7 @@ backup_disk_uuid=""
 
 compression=false
 
-planned=false
+recurrent=false
 frequency="daily"
 
 keep_limit=-1
@@ -717,11 +717,11 @@ install_config() {
 	fi
 
 	# install cronjob
-	if $planned ; then
+	if $recurrent ; then
 		tmpcrontab="$config_directory/crontmp"
 		crontask="* * * * *	\"$current_script\" backup --planned"
 
-		lb_print "Install planned backup..."
+		lb_print "Install recurrent backup..."
 
 		cmd_opt=""
 		if [ -n "$user" ] ; then
@@ -950,6 +950,32 @@ first_run() {
 		fi
 	else
 		lb_display_debug "Error in choose directory."
+	fi
+
+	# activate recurrent backups
+	if lbg_yesno "Do you want to activate recurrent backups?" ; then
+
+		# choose frequency
+		if lbg_choose_option -l "Choose backup frequency:" -d 1 "daily" "weekly" "monthly" "hourly (use with care)" ; then
+			case "$lbg_choose_option" in
+				1)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"daily\"" "$config_file"
+					;;
+				2)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"weekly\"" "$config_file"
+					;;
+				3)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"monthly\"" "$config_file"
+					;;
+				4)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"hourly\"" "$config_file"
+					;;
+			esac
+		fi
 	fi
 
 	firstconfig_ok=true
