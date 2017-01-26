@@ -166,6 +166,7 @@ print_help() {
 			lb_print "\nOptions:"
 			lb_print "  -s, --sources     edit sources file (sources to backup)"
 			lb_print "  -x, --excludes    edit excludes file (patterns to ignore)"
+			lb_print "  -i, --includes    edit includes file (patterns to include)"
 			lb_print "  -l, --show        show configuration; do not edit"
 			lb_print "                    display configuration without comments"
 			lb_print "  -t, --test        test configuration; do not edit"
@@ -407,6 +408,7 @@ create_config() {
 
 	# copy config samples from current directory
 	cp -f "./config/excludes.example.conf" "$config_directory/excludes.conf"
+	cp -f "./config/includes.example.conf" "$config_directory/includes.conf"
 	cp -f "./config/sources.example.conf" "$config_directory/sources.conf"
 	cp -f "./config/time2backup.example.conf" "$config_directory/time2backup.conf"
 }
@@ -1647,6 +1649,11 @@ t2b_backup() {
 	# of course, we exclude the backup destination itself (..../backups)
 	rsync_cmd+=(--exclude "$(dirname "$backup_destination")")
 
+	# get config for inclusions
+	if [ -f "$config_includes" ] ; then
+		rsync_cmd+=(--include-from "$config_includes")
+	fi
+
 	# get config for exclusions
 	if [ -f "$config_excludes" ] ; then
 		rsync_cmd+=(--exclude-from "$config_excludes")
@@ -2395,7 +2402,15 @@ t2b_restore() {
 	fi
 
 	# prepare rsync command
-	rsync_cmd=(rsync -aHv --exclude-from "$config_excludes" )
+	rsync_cmd=(rsync -aHv)
+
+	# excludes and includes files
+	if [ -f "$config_excludes" ] ; then
+		rsync_cmd+=(--exclude-from "$config_excludes")
+	fi
+	if [ -f "$config_includes" ] ; then
+		rsync_cmd+=(--include-from "$config_includes")
+	fi
 
 	# test newer files
 	if ! $delete_newer_files ; then
@@ -2483,6 +2498,10 @@ t2b_config() {
 		case $1 in
 			-x|--excludes)
 				file="$config_excludes"
+				shift
+				;;
+			-i|--includes)
+				file="$config_includes"
 				shift
 				;;
 			-s|--sources)
@@ -2749,9 +2768,10 @@ else
 	config_directory="$(dirname "$config_file")"
 fi
 
-# default sources and excludes files
+# default config files
 config_sources="$config_directory/sources.conf"
 config_excludes="$config_directory/excludes.conf"
+config_includes="$config_directory/includes.conf"
 
 # if debug mode, log and display everything (no level limit)
 if $debugmode ; then
