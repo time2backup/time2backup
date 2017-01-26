@@ -425,6 +425,7 @@ load_config() {
 	# load global config
 	source "$config_file" > /dev/null
 	if [ $? != 0 ] ; then
+		lb_error "Config file does not exists!"
 		return 1
 	fi
 
@@ -738,7 +739,7 @@ report_duration() {
 
 install_config() {
 
-	lb_print "Testing configuration..."
+	echo "Testing configuration..."
 
 	# if config not ok, error
 	if ! load_config ; then
@@ -750,7 +751,7 @@ install_config() {
 		tmpcrontab="$config_directory/crontmp"
 		crontask="* * * * *	\"$current_script\" backup --planned"
 
-		lb_print "Install recurrent backup..."
+		echo "Install recurrent backup..."
 
 		cmd_opt=""
 		if [ -n "$user" ] ; then
@@ -1044,6 +1045,7 @@ first_run() {
 
 	if lbg_yesno -y "Do you want to perform your first backup now?" ; then
 		t2b_backup
+		return $?
 	else
 		lbg_display_info "time2backup is ready!"
 	fi
@@ -1154,10 +1156,10 @@ edit_config() {
 			wait $!
 		else
 			if $custom_editor ; then
-				lb_print "Editor '$editors' was not found on this system."
+				lb_error "Editor '$editors' was not found on this system."
 			else
-				lb_print "No editor was found on this system."
-				lb_print "Please edit $edit_file manually."
+				lb_error "No editor was found on this system."
+				lb_error "Please edit $edit_file manually."
 			fi
 
 			return 3
@@ -1190,6 +1192,7 @@ cancel_exit() {
 
 # Delete backup lock
 # Usage: remove_lock
+# Exit code: 0: OK, 1: could not delete lock
 release_lock() {
 
 	lb_display_debug "Deleting lock..."
@@ -1400,6 +1403,8 @@ choose_operation() {
 			return 1
 			;;
 	esac
+
+	return $?
 }
 
 
@@ -2072,12 +2077,12 @@ t2b_history() {
 	fi
 
 	if ! $quietmode ; then
-		lb_print "$file: ${#file_history[@]} backups"
+		echo "$file: ${#file_history[@]} backups"
 	fi
 
 	# print backup versions
 	for b in ${backup_history[@]} ; do
-		lb_print $b
+		echo "$b"
 	done
 }
 
@@ -2399,7 +2404,7 @@ t2b_restore() {
 			cmd=("${rsync_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")
 
-			lb_print "Testing restore..."
+			echo "Testing restore..."
 
 			# test to check newer files
 			"${cmd[@]}" | grep "^deleting "
@@ -2432,7 +2437,7 @@ t2b_restore() {
 
 	cmd+=(--progress --human-readable "$src" "$dest")
 
-	lb_print "Restore file from backup $backup_date..."
+	echo "Restore file from backup $backup_date..."
 	lb_display_debug "Executing: ${cmd[@]}"
 
 	# execute rsync command
@@ -2536,7 +2541,7 @@ t2b_config() {
 			;;
 		test)
 			# load and test configuration
-			lb_print "Testing configuration..."
+			echo "Testing configuration..."
 			load_config
 			lb_result
 			;;
@@ -2546,7 +2551,7 @@ t2b_config() {
 			;;
 		*)
 			# edit configuration
-			lb_print "Opening configuration file..."
+			echo "Opening configuration file..."
 			if edit_config $* "$file" ; then
 				install_config
 			fi
@@ -2561,6 +2566,7 @@ t2b_config() {
 # Create a link to execute time2backup easely and create default configuration
 # Usage: t2b_install [OPTIONS]
 t2b_install() {
+
 	reset_config=false
 
 	# get options
@@ -2584,40 +2590,65 @@ t2b_install() {
 		esac
 	done
 
-	lb_print "Install time2backup..."
+	echo "Install time2backup..."
+
+	desktop_file="$lb_current_script_directory/time2backup.desktop"
+
+	# create desktop file
+	cat > "$desktop_file" <<EOF
+[Desktop Entry]
+Version=1.0
+Name=time2backup
+GenericName=Files backup
+Comment=Backup and restore your files
+GenericName[fr]=Sauvegarde de fichiers
+Comment[fr]=Sauvegardez et restaurez vos données
+Type=Application
+Exec=$(lb_realpath "$lb_current_script")
+Icon=$(lb_realpath "$lb_current_script_directory/resources/icon.png")
+Terminal=true
+Categories=System;Utility;Filesystem;
+EOF
+
+	# copy desktop file to /usr/share/applications
+	if [ -d "/usr/share/applications" ] ; then
+
+		cp -f "$desktop_file" "/usr/share/applications/" &> /dev/null
+		if [ $? != 0 ] ; then
+			echo "Cannot create application link. It doesn't matter, but you can try the following command:"
+			echo "sudo cp -f \"$desktop_file\" /usr/share/applications/"
+			lb_exitcode=3
+		fi
+	fi
 
 	# reset configuration
 	if $reset_config ; then
 		rm -f "$config_directory/time2backup.conf"
 
 		if ! create_config ; then
-			return 2
+			lb_exitcode=2
 		fi
 	fi
 
 	if [ -e "$cmd_alias" ] ; then
 		if [ "$(lb_realpath "$cmd_alias")" == "$current_script" ] ; then
-			lb_print "Already installed."
+			echo "Already installed."
 			return
 		fi
 	fi
 
-	if ! [ -w "$(dirname "$cmd_alias")" ] ; then
-		lb_print "Error: cannot create link to executable. Try the following command:"
-		lb_print "sudo ln -s \"$current_script\" \"$cmd_alias\""
-		return 3
-	fi
-
 	# delete old link if exists
-	rm -f "$cmd_alias"
+	rm -f "$cmd_alias" &> /dev/null
 
 	# create link
 	ln -s "$current_script" "$cmd_alias" &> /dev/null
 	if [ $? != 0 ] ; then
-		lb_print "Failed to create the link. You may try to run with superuser."
-		lb_print "Try: sudo ln -s \"$current_script\" \"$cmd_alias\""
-		return 3
+		echo "Cannot create command link. It doesn't matter, but you can try the following command:"
+		echo "sudo ln -s \"$current_script\" \"$cmd_alias\""
+		return 4
 	fi
+
+	return $lb_exitcode
 }
 
 
@@ -2640,7 +2671,7 @@ while true ; do
 			config_file="$2"
 			# test if file exists
 			if ! [ -f "$config_file" ] ; then
-				lb_print "Configuration file $config_file does not exists!"
+				lb_error "Configuration file $config_file does not exists!"
 				exit 1
 			fi
 			shift 2
@@ -2740,12 +2771,6 @@ else
 	fi
 fi
 
-# if configuration file does not exists, execute first run wizard then exit
-if ! [ -f "$config_file" ] ; then
-	first_run
-	exit $?
-fi
-
 # command operations
 case "$1" in
 	backup)
@@ -2769,6 +2794,14 @@ case "$1" in
 		t2b_install $*
 		;;
 	"")
+		# if configuration file does not exists
+		if ! [ -f "$config_file" ] ; then
+			# execute first run wizard and exit
+			first_run
+			exit $?
+		fi
+
+		# display choose operation dialog
 		choose_operation
 		;;
 	*)
@@ -2780,7 +2813,7 @@ esac
 lb_exitcode=$?
 
 if $debugmode ; then
-	lb_print
+	echo
 	lb_display_debug "Exited with code: $lb_exitcode"
 fi
 
