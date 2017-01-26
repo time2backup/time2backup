@@ -156,6 +156,7 @@ print_help() {
 			lb_print "                   by default it restores the last available backup"
 			lb_print "  --directory      path to restore is a directory (not necessary if path exists)"
 			lb_print "                   If deleted or moved, indicate that the chosen path is a directory."
+			lb_print "  --delete-new     delete newer files if exists for directories (restore exactly the same version)"
 			lb_print "  -f, --force      force restore; do not display confirmation"
 			lb_print "  -h, --help       print help"
 			;;
@@ -1817,6 +1818,8 @@ t2b_backup() {
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
+		lb_display --log "Testing rsync..."
+
 		# test rsync and space available for backup
 		if ! test_backup ; then
 			lb_display --log "Error in your rsync syntax."
@@ -2091,6 +2094,7 @@ t2b_restore() {
 	interactive=true
 	directorymode=false
 	restore_moved=false
+	delete_newer_files=false
 
 	# get options
 	while true ; do
@@ -2102,6 +2106,10 @@ t2b_restore() {
 				;;
 			--directory)
 				directorymode=true
+				shift
+				;;
+			--delete-new)
+				delete_newer_files=true
 				shift
 				;;
 			-f|--force)
@@ -2146,10 +2154,21 @@ t2b_restore() {
 		fi
 
 		# choose type of file to restore (file/directory)
-		if ! lbg_choose_option -d 1 -l "What do you want to restore?" "${restore_opts[@]}" ; then
-			# cancelled
-			return
-		fi
+		lbg_choose_option -d 1 -l "What do you want to restore?" "${restore_opts[@]}"
+		case $? in
+			0)
+				# continue
+				:
+				;;
+			2)
+				# cancelled
+				return
+				;;
+			*)
+				# error
+				return 1
+				;;
+		esac
 
 		# directory mode
 		case "$lbg_choose_option" in
@@ -2179,19 +2198,41 @@ t2b_restore() {
 
 		# choose a directory
 		if $directorymode ; then
-			if ! lbg_choose_directory -t "Choose a directory to restore" "$starting_path" ; then
-				# cancelled
-				return
-			fi
+			lbg_choose_directory -t "Choose a directory to restore" "$starting_path"
+			case $? in
+				0)
+					# continue
+					:
+					;;
+				2)
+					# cancelled
+					return
+					;;
+				*)
+					# error
+					return 1
+					;;
+			esac
 
 			# get path to restore
 			file="$lbg_choose_directory"
 		else
 			# choose a file
-			if ! lbg_choose_file -t "Choose a file to restore" "$starting_path" ; then
-				# cancelled
-				return
-			fi
+			lbg_choose_file -t "Choose a file to restore" "$starting_path"
+			case $? in
+				0)
+					# continue
+					:
+					;;
+				2)
+					# cancelled
+					return
+					;;
+				*)
+					# error
+					return 1
+					;;
+			esac
 
 			# get path to restore
 			file="$lbg_choose_file"
@@ -2205,6 +2246,9 @@ t2b_restore() {
 				lb_error "Path is not a backup! Cancel."
 				return 1
 			fi
+
+			# save path as source
+			src="$file"
 
 			# remove destination path prefix
 			file="${file#$backup_destination}"
@@ -2240,16 +2284,16 @@ t2b_restore() {
 		file="$*"
 	fi
 
-	# if directory, change destination path
-	if [ -d "$file" ] || $directorymode ; then
-		if ! $hard_links ; then
-			lb_error "You cannot restore directories in trash mode!"
-			return 6
-		fi
-
-		dest="$(dirname "$file")/"
+	if [ -n "$src" ] ; then
+		symlink_test="$src"
 	else
-		dest="$file"
+		symlink_test="$file"
+	fi
+
+	# case of symbolic links
+	if [ -L "$symlink_test" ] ; then
+		lbg_display_error "You cannot restore symbolic links!"
+		return 6
 	fi
 
 	lb_display_debug "File to restore: $file"
@@ -2299,10 +2343,21 @@ t2b_restore() {
 
 	# if interactive mode, prompt user to choose a backup date
 	if $interactive ; then
-		if ! lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}" ; then
-			# cancelled
-			return
-		fi
+		lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}"
+		case $? in
+			0)
+				# continue
+				:
+				;;
+			2)
+				# cancelled
+				return
+				;;
+			*)
+				# error
+				return 1
+				;;
+		esac
 
 		backup_date=${file_history[$(($lbg_choose_option - 1))]}
 	fi
@@ -2314,19 +2369,70 @@ t2b_restore() {
 
 	src="$backup_destination/$backup_date/$backup_file_path"
 
+	# if source is a directory
+	if [ -d "$src" ] ; then
+		directorymode=true
+	fi
+
+	# trash mode: cannot restore directories
+	if $directorymode ; then
+
+		# trash mode: cannot restore directories
+		if ! $hard_links ; then
+			lb_error "You cannot restore directories in trash mode!"
+			return 6
+		fi
+
+		# destination is the parent directory with a '/' at the end of the path (IMPORTANT)
+		dest="$(dirname "$file")/"
+	else
+		dest="$file"
+	fi
+
+	# prepare rsync command
+	rsync_cmd=(rsync -aHv --exclude-from "$config_excludes" )
+
+	# test newer files
+	if ! $delete_newer_files ; then
+		if $directorymode ; then
+			# prepare test command
+			cmd=("${rsync_cmd[@]}")
+			cmd+=(--delete --dry-run "$src" "$dest")
+
+			lb_print "Testing restore..."
+
+			# test to check newer files
+			"${cmd[@]}" | grep "^deleting "
+
+			if [ $? == 0 ] ; then
+				if ! lbg_yesno "There are newer files in $dest. Do you want to keep them?\nPress Yes to keep new files, No to restore backup exactly as before." ; then
+					delete_newer_files=true
+				fi
+			fi
+		else
+			# if restore a file, always delete new
+			delete_newer_files=true
+		fi
+	fi
+
 	# confirm restore
 	if ! $forcemode ; then
-		if ! lbg_yesno "You will restore the file '$file' to backup $(get_backup_fulldate $backup_date).\nAre your sure?" ; then
+		if ! lbg_yesno "You will restore the path '$file' to backup $(get_backup_fulldate $backup_date).\nAre your sure?" ; then
 			# cancelled
 			return
 		fi
 	fi
 
+	# prepare rsync restore command
+	cmd=("${rsync_cmd[@]}")
+
+	if $delete_newer_files ; then
+		cmd+=(--delete)
+	fi
+
+	cmd+=(--progress --human-readable "$src" "$dest")
+
 	lb_print "Restore file from backup $backup_date..."
-
-	# prepare rsync command
-	cmd=(rsync -aHv --progress --human-readable --delete --exclude-from "$config_excludes" "$src" "$dest")
-
 	lb_display_debug "Executing: ${cmd[@]}"
 
 	# execute rsync command
