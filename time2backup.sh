@@ -1659,11 +1659,6 @@ t2b_backup() {
 		rsync_cmd+=(--exclude-from "$config_excludes")
 	fi
 
-	# get additionnal exclude file
-	if [ -f "$exclude_file" ] ; then
-		rsync_cmd+=(--exclude-from "$exclude_file")
-	fi
-
 	# add max size if specified
 	if [ -n "$max_size" ] ; then
 		rsync_cmd+=(--max-size "$max_size")
@@ -2405,11 +2400,11 @@ t2b_restore() {
 	rsync_cmd=(rsync -aHv)
 
 	# excludes and includes files
-	if [ -f "$config_excludes" ] ; then
-		rsync_cmd+=(--exclude-from "$config_excludes")
-	fi
 	if [ -f "$config_includes" ] ; then
 		rsync_cmd+=(--include-from "$config_includes")
+	fi
+	if [ -f "$config_excludes" ] ; then
+		rsync_cmd+=(--exclude-from "$config_excludes")
 	fi
 
 	# test newer files
