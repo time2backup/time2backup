@@ -1037,7 +1037,7 @@ config_wizard() {
 # Usage: first_run
 first_run() {
 	# confirm install
-	if ! lbg_yesno -y "Do you want to install time2backup?\nChoose no if you want to install manually." ; then
+	if ! lbg_yesno -y "$tr_confirm_install1\n$tr_confirm_install2" ; then
 		return
 	fi
 
@@ -1056,7 +1056,7 @@ first_run() {
 	config_wizard
 
 	# edit config
-	if lbg_yesno "Do you want to edit the configuration files?" ; then
+	if lbg_yesno "$tr_ask_edit_config" ; then
 		t2b_config
 		t2b_config -s
 	fi
@@ -1068,11 +1068,11 @@ first_run() {
 	fi
 
 	# ask to first backup
-	if lbg_yesno -y "Do you want to perform your first backup now?" ; then
+	if lbg_yesno -y "$tr_ask_first_backup" ; then
 		t2b_backup
 		return $?
 	else
-		lbg_display_info "time2backup is ready!"
+		lbg_display_info "$tr_info_time2backup_ready"
 	fi
 }
 
@@ -1411,7 +1411,7 @@ haltpc() {
 choose_operation() {
 
 	# display choice
-	if ! lbg_choose_option -d 1 -l "Choose an operation:" "Backup files" "Restore a file" "Configure time2backup" ; then
+	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
 		return 1
 	fi
 
