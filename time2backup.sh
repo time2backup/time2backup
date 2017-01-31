@@ -12,7 +12,7 @@
 
 ################################
 #                              #
-#  Version 1.0.0 (2017-01-25)  #
+#  Version 1.0.0 (2017-01-31)  #
 #                              #
 ################################
 
@@ -107,6 +107,19 @@ if [ $? != 0 ] ; then
 	echo >&2 "Error: cannot load libbash GUI. Please add it to the '$script_directory/libbash' directory."
 	exit 1
 fi
+
+# load translations
+lang="${LANG:0:2}"
+case "$lang" in
+	fr)
+		# load translation
+		source "$script_directory/locales/$lang.sh" &> /dev/null
+		;;
+	*)
+		# default messages
+		source "$script_directory/locales/en.sh" &> /dev/null
+		;;
+esac
 
 # change current script name
 lb_current_script_name="time2backup"
@@ -641,8 +654,10 @@ test_hardlinks() {
 }
 
 
-# test if a line is a comment
+# Test if a line is a comment
+# Usage: is_comment [OPTIONS] TEXT
 is_comment() {
+
 	# default character for comments
 	char_comment="#"
 	empty_lines_are_comments=false
@@ -681,6 +696,7 @@ is_comment() {
 
 
 # Get list of sources to backup
+# Usage: get_sources
 get_sources() {
 	# reset variable
 	sources=()
@@ -695,12 +711,14 @@ get_sources() {
 
 
 # Get all backup dates list
+# Usage: get_backups
 get_backups() {
 	echo $(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" 2> /dev/null)
 }
 
 
 # Clean old backups if limit is reached or if space is not available
+# Usage: rotate_backups
 rotate_backups() {
 
 	# get backups
@@ -731,6 +749,8 @@ rotate_backups() {
 }
 
 
+# Print report of duration from start script to now
+# Usage: report_duration
 report_duration() {
 	# calculate
 	duration=$(($(date +%s) - $current_timestamp))
@@ -739,6 +759,8 @@ report_duration() {
 }
 
 
+# Install configuration (planned tasks)
+# Usage: install_config
 install_config() {
 
 	echo "Testing configuration..."
@@ -795,8 +817,10 @@ install_config() {
 }
 
 
-# Test if destination is reachable
-test_destination() {
+# Test if destination is reachable and mount it if needed
+# Usage: prepare_destination
+# Exit codes: 0: destination is ready, 1: destination not reachable
+prepare_destination() {
 
 	destok=false
 
@@ -828,6 +852,8 @@ test_destination() {
 
 # Test backup command
 # rsync simulation and get total size of the files to transfer
+# Usage: test_backup
+# Exit codes: 0: command OK, 1: error in command
 test_backup() {
 
 	# prepare rsync in test mode
@@ -861,6 +887,7 @@ test_backup() {
 
 
 # Test space available on destination disk
+# Usage: test_space
 test_space() {
 	# get space available
 	space_available=$(lb_df_space_left "$destination")
@@ -931,7 +958,8 @@ clean_empty_directories() {
 }
 
 
-# config wizard
+# Configuration wizard
+# Usage: config_wizard
 config_wizard() {
 
 	# set default destination directory
@@ -998,17 +1026,15 @@ config_wizard() {
 		fi
 	fi
 
-	firstconfig_ok=true
-
 	# install configuration
 	if ! install_config ; then
-		firstconfig_ok=false
 		lbg_display_error "There are errors in your configuration. Please correct it in configuration files."
 	fi
 }
 
 
 # First run wizard
+# Usage: first_run
 first_run() {
 	# confirm install
 	if ! lbg_yesno -y "Do you want to install time2backup?\nChoose no if you want to install manually." ; then
@@ -1033,10 +1059,6 @@ first_run() {
 	if lbg_yesno "Do you want to edit the configuration files?" ; then
 		t2b_config
 		t2b_config -s
-	else
-		if ! $firstconfig_ok ; then
-			return 2
-		fi
 	fi
 
 	# recheck config
@@ -1045,6 +1067,7 @@ first_run() {
 		return 2
 	fi
 
+	# ask to first backup
 	if lbg_yesno -y "Do you want to perform your first backup now?" ; then
 		t2b_backup
 		return $?
@@ -1177,6 +1200,7 @@ edit_config() {
 
 
 # Exit on cancel
+# Usage: cancel_exit
 cancel_exit() {
 
 	lb_display --log
@@ -1352,7 +1376,8 @@ clean_exit() {
 }
 
 
-# Halt PC
+# Halt PC in 10 seconds
+# Usage: haltpc
 haltpc() {
 
 	# clear all traps to allow user to cancel countdown
@@ -1382,6 +1407,7 @@ haltpc() {
 
 
 # Choose an operation to execute (time2backup commands)
+# Usage: choose_operation
 choose_operation() {
 
 	# display choice
@@ -1416,6 +1442,16 @@ choose_operation() {
 
 # Perform backup
 # Usage: t2b_backup [OPTIONS]
+# Options:
+#   -p, --planned    perform a planned backup
+#   -q, --quiet  quiet mode: print only backup dates
+#   -h, --help   print help
+# Exit codes:
+#   0: history printed
+#   1: usage error
+#   2: config error
+#   3: no backup found for path
+#   4: backup device not reachable
 t2b_backup() {
 
 	# default values and options
@@ -1469,7 +1505,7 @@ t2b_backup() {
 	fi
 
 	# test if destination exists
-	if ! test_destination ; then
+	if ! prepare_destination ; then
 		return 4
 	fi
 
@@ -1897,7 +1933,7 @@ t2b_backup() {
 
 		if $notifications ; then
 			if [ $s == 0 ] ; then
-				lbg_notify "Backup started at $(date '+%H:%M:%S')"
+				lbg_notify "Backup in progress\nStarted at: $(date '+%H:%M:%S')"
 			fi
 		fi
 
@@ -2063,7 +2099,7 @@ t2b_history() {
 	fi
 
 	# test backup destination
-	if ! test_destination ; then
+	if ! prepare_destination ; then
 		return 4
 	fi
 
@@ -2143,7 +2179,7 @@ t2b_restore() {
 	fi
 
 	# test backup destination
-	if ! test_destination ; then
+	if ! prepare_destination ; then
 		return 4
 	fi
 
@@ -2620,7 +2656,7 @@ Comment[fr]=Sauvegardez et restaurez vos données
 Type=Application
 Exec=$(lb_realpath "$lb_current_script")
 Icon=$(lb_realpath "$lb_current_script_directory/resources/icon.png")
-Terminal=true
+Terminal=false
 Categories=System;Utility;Filesystem;
 EOF
 
