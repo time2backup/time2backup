@@ -1,5 +1,9 @@
 # English messages
 
+# Global
+tr_file="file"
+tr_directory="directory"
+
 # Main program
 tr_error_no_rsync_1="rsync is not installed. time2backup will not work."
 tr_error_no_rsync_2="Please install it and retry."
@@ -36,9 +40,9 @@ tr_error_unlock="Could not remove lock. Please delete it manually or further bac
 tr_error_unmount="Can not unmount destination!"
 tr_notify_progress_1="Backup in progress..."
 tr_notify_progress_2="Started at:"
-tr_notify_finished="Backup finished successfully."
-tr_notify_finished_warnings="Backup finished successfully, but some files may not be transferred."
-tr_notify_finished_errors="Backup finished with some errors. See log files for more details."
+tr_backup_finished="Backup finished successfully."
+tr_backup_finished_warnings="Backup finished, but some files may not be transferred."
+tr_backup_failed="Backup failed! See log files for more details."
 
 # Restore
 tr_choose_restore="What do you want to restore?"
@@ -58,3 +62,6 @@ tr_ask_keep_newer_files_1="There are newer files in this directory. Do you want 
 tr_ask_keep_newer_files_2="Press Yes to keep new files, No to restore directory at backup state."
 tr_confirm_restore_1="You will restore '%s' to backup on %s."
 tr_confirm_restore_2="Are your sure to continue?"
+tr_restore_finished="Restore finished successfully."
+tr_restore_finished_warnings="Restore finished, but some files may not be transferred."
+tr_restore_failed="Restore failed! Retry in a console to see details."

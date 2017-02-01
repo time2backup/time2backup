@@ -1987,7 +1987,7 @@ t2b_backup() {
 		lb_display --log "Backup finished successfully."
 
 		if $notifications ; then
-			lbg_notify "$tr_notify_finished\n$(report_duration)"
+			lbg_notify "$tr_backup_finished\n$(report_duration)"
 		fi
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
@@ -2005,7 +2005,7 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "$tr_notify_finished_warnings\n$(report_duration)"
+				lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
 			fi
 		fi
 		if [ ${#errors[@]} -gt 0 ] ; then
@@ -2015,7 +2015,7 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "$tr_notify_finished_errors\n$(report_duration)"
+				lbg_notify "$tr_backup_failed\n$(report_duration)"
 			fi
 		fi
 
@@ -2354,7 +2354,7 @@ t2b_restore() {
 		return 6
 	fi
 
-	lb_display_debug "File to restore: $file"
+	lb_display_debug "Path to restore: $file"
 
 	# get backup full path
 	backup_file_path="$(get_backup_path "$file")"
@@ -2502,12 +2502,12 @@ t2b_restore() {
 	case $? in
 		0)
 			# file restored
-			restore_notification="File restored: $file"
+			restore_notification="$tr_restore_finished"
 			lb_display_info "$restore_notification"
 			;;
 		*)
 			# rsync error
-			restore_notification="Restore file failed for $file"
+			restore_notification="$tr_restore_failed"
 			lb_display_error "$restore_notification"
 			lb_exitcode=5
 			;;
