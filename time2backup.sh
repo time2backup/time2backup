@@ -35,6 +35,7 @@ default_log_level="INFO"
 backup_lock=""
 current_timestamp=$(date +%s)
 current_date=$(date '+%Y-%m-%d at %H:%M:%S')
+force_shutdown=false
 
 
 ############################
@@ -153,8 +154,9 @@ print_help() {
 			lb_print "Command usage: $1 [OPTIONS]"
 			lb_print "\nPerform backup"
 			lb_print "\nOptions:"
-			lb_print "  -p, --planned  perform a planned backup (used in cron jobs)"
-			lb_print "  -h, --help     print help"
+			lb_print "  -s, --shutdown  shutdown after backup (overrides configuration)"
+			lb_print "  -p, --planned   perform a planned backup (used in cron jobs)"
+			lb_print "  -h, --help      print help"
 			;;
 		history)
 			lb_print "Command usage: $1 [OPTIONS] PATH"
@@ -1260,11 +1262,15 @@ cancel_exit() {
 
 	# display notification
 	if $notifications ; then
-		lbg_notify "$(printf "$tr_notify_cancelled" $(date +%H:%M:%S))\n$(report_duration)"
+		if [ "$mode" == "backup" ] ; then
+			lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
+		else
+			lbg_notify "$tr_restore_cancelled"
+		fi
 	fi
 
-	# exit with cancel code
-	clean_exit 11
+	# exit with cancel code without shutdown
+	clean_exit --no-shutdown 11
 }
 
 
@@ -1284,8 +1290,46 @@ release_lock() {
 
 
 # Clean things before exit
-# Usage: clean_exit [EXIT_CODE]
+# Usage: clean_exit [OPTIONS] [EXIT_CODE]
+# Options:
+#   --no-unmount   Do not unmount
+#   --no-email     Do not send email report
+#   --no-rmlog     Do not delete logfile
+#   --no-shutdown  Do not halt PC
 clean_exit() {
+
+	# force shutdown if option from command line
+	if $force_shutdown ; then
+		shutdown=true
+	fi
+
+	# get options
+	while true ; do
+		case "$1" in
+			--no-unmount)
+				unmount=false
+				shift
+				;;
+			--no-email)
+				email_report=false
+				email_report_if_error=false
+				shift
+				;;
+			--no-rmlog)
+				logs_save=true
+				shift
+				;;
+			--no-shutdown)
+				if ! $force_shutdown ; then
+					shutdown=false
+				fi
+				shift
+				;;
+			*)
+				break
+				;;
+		esac
+	done
 
 	# set exit code if specified
 	if [ -n "$1" ] ; then
@@ -1495,9 +1539,9 @@ choose_operation() {
 # Perform backup
 # Usage: t2b_backup [OPTIONS]
 # Options:
-#   -p, --planned    perform a planned backup
-#   -q, --quiet  quiet mode: print only backup dates
-#   -h, --help   print help
+#   -s, --shutdown  shutdown after backup (overrides configuration)
+#   -p, --planned   perform a planned backup
+#   -h, --help      print help
 # Exit codes:
 #   0: history printed
 #   1: usage error
@@ -1514,6 +1558,10 @@ t2b_backup() {
 	# get options
 	while true ; do
 		case $1 in
+			-s|--shutdown)
+				force_shutdown=true
+				shift
+				;;
 			-p|--planned)
 				planned_backup=true
 				shift
@@ -1592,7 +1640,7 @@ t2b_backup() {
 	touch "$backup_lock"
 
 	# catch term signals
-	trap cancel_exit SIGHUP SIGINT SIGTERM
+	trap cancel_backup SIGHUP SIGINT SIGTERM
 
 	# get old backups
 	backups=($(get_backups))
@@ -1640,7 +1688,9 @@ t2b_backup() {
 					if [ $test_timestamp -le $seconds_offset ] ; then
 						lb_display_debug "Last backup was done at $last_backup_date"
 						lb_display_info "Planned backup: no need to backup."
-						clean_exit
+
+						# exit without email or shutdown or delete log (does not exists)
+						clean_exit --no-rmlog --no-email --no-shutdown
 					fi
 				else
 					lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
@@ -1659,7 +1709,9 @@ t2b_backup() {
 	mkdir -p "$logs_directory"
 	if [ $? != 0 ] ; then
 		lb_error "Could not create logs directory. Please verify your access rights."
-		clean_exit 4
+
+		# exit without email or shutdown or delete log (does not exists)
+		clean_exit --no-rmlog --no-shutdown 4
 	fi
 
 	# create log file
@@ -2882,8 +2934,10 @@ else
 	fi
 fi
 
+mode="$1"
+
 # command operations
-case "$1" in
+case "$mode" in
 	backup)
 		shift
 		t2b_backup $*

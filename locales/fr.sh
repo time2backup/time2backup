@@ -38,7 +38,7 @@ tr_frequency_monthly="tous les mois"
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
 
 # Backup
-tr_notify_cancelled="Sauvegarde annulée à %s"
+tr_backup_cancelled_at="Sauvegarde annulée à %s"
 tr_report_duration="Temps écoulé :"
 tr_error_unlock="Impossible d'enlever le verrou. Veuillez le supprimer manuellement ou les prochaines sauvegardes échoueront !"
 tr_error_unmount="Impossible de démonter le volume !"
@@ -71,3 +71,4 @@ tr_confirm_restore_2="Êtes-vous sûr(e) de continuer ?"
 tr_restore_finished="Restauration terminée."
 tr_restore_finished_warnings="Restauration terminée, mais certains fichiers n'ont pas été transférés."
 tr_restore_failed="Échec de la restauration! Réessayez dans un terminal pour voir les détails."
+tr_restore_cancelled="Restauration annulée."

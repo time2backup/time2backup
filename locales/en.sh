@@ -38,7 +38,7 @@ tr_frequency_monthly="monthly"
 tr_errors_in_config="There are errors in your configuration. Please correct it in configuration files."
 
 # Backup
-tr_notify_cancelled="Backup cancelled at %s"
+tr_backup_cancelled_at="Backup cancelled at %s"
 tr_report_duration="Elapsed time:"
 tr_error_unlock="Could not remove lock. Please delete it manually or further backups will fail!"
 tr_error_unmount="Can not unmount destination!"
@@ -71,3 +71,4 @@ tr_confirm_restore_2="Are your sure to continue?"
 tr_restore_finished="Restore finished."
 tr_restore_finished_warnings="Restore finished, but some files may not be transferred."
 tr_restore_failed="Restore failed! Retry in a console to see details."
+tr_restore_cancelled="Restore cancelled."
