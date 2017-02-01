@@ -1560,8 +1560,11 @@ t2b_backup() {
 		if [ -n "$last_backup_date" ] ; then
 
 			# get last backup timestamp
-			# TODO: add macOS support (date -d is not same option)
-			last_backup_timestamp=$(date -d "$last_backup_date" +%s)
+			if [ "$(lb_detect_os)" == "macOS" ] ; then
+				last_backup_timestamp=$(date -j -f "%Y-%m-%d %H:%M:%S" "$last_backup_date" "+%s")
+			else
+				last_backup_timestamp=$(date -d "$last_backup_date" +%s)
+			fi
 
 			if [ -z "$last_backup_timestamp" ] ; then
 				lb_display_error "Error in last backup timestamp."
@@ -2326,7 +2329,6 @@ t2b_restore() {
 			file="${file#$backup_date}"
 
 			# check if it is a file backup
-			# TODO: add SSH/network support
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
 				lb_error "Restoring ssh/network files is not supported yet."
 				return 6
@@ -2822,7 +2824,6 @@ else
 
 	# defines verbose level
 	# if not set (unknown error), set to default level
-	# TODO: implement lb_set_displaylevel
 	if ! lb_set_loglevel "$verbose_level" ; then
 		lb_set_loglevel "$default_verbose_level"
 	fi
