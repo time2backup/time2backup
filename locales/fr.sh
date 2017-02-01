@@ -3,6 +3,8 @@
 # Global
 tr_file="fichier"
 tr_directory="dossier"
+tr_not_sure_say_yes="Si vous n'êtes pas sûr(e), choisissez 'Oui'."
+tr_not_sure_say_no="Si vous n'êtes pas sûr(e), choisissez 'Non'."
 
 # Main program
 tr_error_no_rsync_1="rsync n'est pas installé. time2backup ne fonctionnera pas."
@@ -18,13 +20,15 @@ tr_configure_time2backup="Configurer time2backup (anglais)"
 
 # First run wizard
 tr_confirm_install_1="Voulez-vous installer time2backup ?"
-tr_confirm_install_2="Choisissez non si vous souhaitez l'installer manuellement."
+tr_confirm_install_2="Choisissez 'Non' si vous souhaitez l'installer manuellement."
 tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en anglais)"
 tr_ask_first_backup="Voulez-vous lancer votre première sauvegarde maintenant ?"
 tr_info_time2backup_ready="time2backup est prêt !"
 
 # Config wizard
 tr_choose_backup_destination="Choisissez le répertoire de destination des sauvegardes"
+tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
+tr_ntfs_or_exfat="Le volume de destination des sauvegardes est-il au format NTFS ?"
 tr_ask_activate_recurrent="Voulez-vous activer les sauvegardes récurrentes ?"
 tr_choose_backup_frequency="Choisissez la fréquence des sauvegardes :"
 tr_frequency_hourly="toutes les heures"
@@ -40,7 +44,7 @@ tr_error_unlock="Impossible d'enlever le verrou. Veuillez le supprimer manuellem
 tr_error_unmount="Impossible de démonter le volume !"
 tr_notify_progress_1="Sauvegarde en cours..."
 tr_notify_progress_2="Démarré à :"
-tr_backup_finished="Sauvegarde terminée avec succès."
+tr_backup_finished="Sauvegarde terminée."
 tr_backup_finished_warnings="Sauvegarde terminée, mais certains fichiers n'ont pas été transférés."
 tr_backup_failed="Échec de la sauvegarde. Voir les fichiers de log pour plus de détails."
 
@@ -62,6 +66,6 @@ tr_ask_keep_newer_files_1="Il y a des fichiers plus récents dans ce dossier. Vo
 tr_ask_keep_newer_files_2="Cliquez sur Oui pour conserver, Non pour restaurer le dossier à l'état de la sauvegarde."
 tr_confirm_restore_1="Vous allez restaurer '%s' à la sauvegarde du %s."
 tr_confirm_restore_2="Êtes-vous sûr(e) de continuer ?"
-tr_restore_finished="Restauration terminée avec succès."
+tr_restore_finished="Restauration terminée."
 tr_restore_finished_warnings="Restauration terminée, mais certains fichiers n'ont pas été transférés."
 tr_restore_failed="Échec de la restauration! Réessayez dans un terminal pour voir les détails."

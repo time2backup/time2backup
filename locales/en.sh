@@ -3,6 +3,8 @@
 # Global
 tr_file="file"
 tr_directory="directory"
+tr_not_sure_say_yes="If you are not sure, choose 'Yes'."
+tr_not_sure_say_no="If you are not sure, choose 'No'."
 
 # Main program
 tr_error_no_rsync_1="rsync is not installed. time2backup will not work."
@@ -18,13 +20,15 @@ tr_configure_time2backup="Configure time2backup"
 
 # First run wizard
 tr_confirm_install_1="Do you want to install time2backup?"
-tr_confirm_install_2="Choose no if you want to install manually."
+tr_confirm_install_2="Choose 'No' if you want to install manually."
 tr_ask_edit_config="Do you want to edit the configuration files?"
 tr_ask_first_backup="Do you want to perform your first backup now?"
 tr_info_time2backup_ready="time2backup is ready!"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups"
+tr_force_hard_links_confirm="Previously you choosed to force using hard links. Keep this choice?"
+tr_ntfs_or_exfat="Is your backup destination volume formatted in NTFS?"
 tr_ask_activate_recurrent="Do you want to activate recurrent backups?"
 tr_choose_backup_frequency="Choose backup frequency:"
 tr_frequency_hourly="hourly"
@@ -40,7 +44,7 @@ tr_error_unlock="Could not remove lock. Please delete it manually or further bac
 tr_error_unmount="Can not unmount destination!"
 tr_notify_progress_1="Backup in progress..."
 tr_notify_progress_2="Started at:"
-tr_backup_finished="Backup finished successfully."
+tr_backup_finished="Backup finished."
 tr_backup_finished_warnings="Backup finished, but some files may not be transferred."
 tr_backup_failed="Backup failed! See log files for more details."
 
@@ -62,6 +66,6 @@ tr_ask_keep_newer_files_1="There are newer files in this directory. Do you want 
 tr_ask_keep_newer_files_2="Press Yes to keep new files, No to restore directory at backup state."
 tr_confirm_restore_1="You will restore '%s' to backup on %s."
 tr_confirm_restore_2="Are your sure to continue?"
-tr_restore_finished="Restore finished successfully."
+tr_restore_finished="Restore finished."
 tr_restore_finished_warnings="Restore finished, but some files may not be transferred."
 tr_restore_failed="Restore failed! Retry in a console to see details."
