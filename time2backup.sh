@@ -12,7 +12,7 @@
 
 ################################
 #                              #
-#  Version 1.0.0 (2017-01-31)  #
+#  Version 1.0.0 (2017-02-01)  #
 #                              #
 ################################
 
@@ -21,7 +21,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-beta.3"
+version="1.0.0-beta.4"
 
 user=""
 sources=()
@@ -73,6 +73,7 @@ shutdown_cmd=(shutdown -h now)
 
 # advanced options
 hard_links=true
+force_hard_links=false
 mirror_mode=false
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
@@ -644,7 +645,15 @@ get_backup_path() {
 test_hardlinks() {
 
 	# filesystems that does not support hard links
-	filesystems=(vfat vboxsf)
+	# Details:
+	#   vfat:    FAT32 on Linux systems
+	#   msdos:   FAT32 on macOS systems
+	#   exfat:   exFAT on macOS systems
+	#   vboxsf:  VirtualBox shared folder on Linux guests
+	# Note: NTFS supports hard links, but exFAT does not.
+	#       Therefore, both are identified on Linux as 'fuseblk' filesystems.
+	#       So for the moment, exFAT will be set with hard links by default.
+	no_hardlinks_fs=(vfat msdos exfat vboxsf)
 
 	# get destination filesystem
 	dest_fstype="$(lb_df_fstype "$destination")"
@@ -653,7 +662,7 @@ test_hardlinks() {
 	fi
 
 	# if destination filesystem does not support hard links, return error
-	if lb_array_contains "$dest_fstype" "${filesystems[@]}" ; then
+	if lb_array_contains "$dest_fstype" "${no_hardlinks_fs[@]}" ; then
 		return 2
 	fi
 }
@@ -1681,9 +1690,11 @@ t2b_backup() {
 
 	# check if destination supports hard links
 	if $hard_links ; then
-		if ! test_hardlinks ; then
-			lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
-			hard_links=false
+		if ! $force_hard_links ; then
+			if ! test_hardlinks ; then
+				lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
+				hard_links=false
+			fi
 		fi
 	fi
 
@@ -2191,8 +2202,11 @@ t2b_restore() {
 		return 4
 	fi
 
-	if ! test_hardlinks ; then
-		hard_links=false
+	# test hard links
+	if ! $force_hard_links ; then
+		if ! test_hardlinks ; then
+			hard_links=false
+		fi
 	fi
 
 	# get all backups
