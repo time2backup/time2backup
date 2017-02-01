@@ -95,29 +95,34 @@ fi
 script_directory="$(dirname "$current_script")"
 
 # load libbash
-source "$script_directory/libbash/libbash.sh"
+source "$script_directory/libbash/libbash.sh" > /dev/null
 if [ $? != 0 ] ; then
 	echo >&2 "Error: cannot load libbash. Please add it to the '$script_directory/libbash' directory."
 	exit 1
 fi
 
 # load libbash GUI
-source "$script_directory/libbash/libbash_gui.sh"
+source "$script_directory/libbash/libbash_gui.sh" > /dev/null
 if [ $? != 0 ] ; then
 	echo >&2 "Error: cannot load libbash GUI. Please add it to the '$script_directory/libbash' directory."
 	exit 1
 fi
 
-# load translations
+# load default messages
+source "$script_directory/locales/en.sh" > /dev/null
+if [ $? != 0 ] ; then
+	lb_error "Error: cannot load messages!"
+	exit 1
+fi
+
+# get user language
 lang="${LANG:0:2}"
+
+# load translations (without errors)
 case "$lang" in
 	fr)
-		# load translation
+		source "$script_directory/libbash/locales/$lang.sh" &> /dev/null
 		source "$script_directory/locales/$lang.sh" &> /dev/null
-		;;
-	*)
-		# default messages
-		source "$script_directory/locales/en.sh" &> /dev/null
 		;;
 esac
 
@@ -755,7 +760,7 @@ report_duration() {
 	# calculate
 	duration=$(($(date +%s) - $current_timestamp))
 
-	echo "Elapsed time: $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
+	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
 }
 
 
@@ -970,7 +975,7 @@ config_wizard() {
 	fi
 
 	# get external disk
-	if lbg_choose_directory -t "Choose a destination for backups" "$start_path" ; then
+	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
 
 		lb_display_debug "Choosed directory: $lbg_choose_directory"
 
@@ -1001,10 +1006,10 @@ config_wizard() {
 	fi
 
 	# activate recurrent backups
-	if lbg_yesno "Do you want to activate recurrent backups?" ; then
+	if lbg_yesno "$tr_ask_activate_recurrent" ; then
 
 		# choose frequency
-		if lbg_choose_option -l "Choose backup frequency:" -d 1 "daily" "weekly" "monthly" "hourly (use with care)" ; then
+		if lbg_choose_option -l "$tr_choose_backup_frequency" -d 1 "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_hourly" ; then
 			case "$lbg_choose_option" in
 				1)
 					edit_config --set "recurrent=true" "$config_file"
@@ -1028,7 +1033,7 @@ config_wizard() {
 
 	# install configuration
 	if ! install_config ; then
-		lbg_display_error "There are errors in your configuration. Please correct it in configuration files."
+		lbg_display_error "$tr_errors_in_config"
 	fi
 }
 
@@ -1037,7 +1042,7 @@ config_wizard() {
 # Usage: first_run
 first_run() {
 	# confirm install
-	if ! lbg_yesno -y "$tr_confirm_install1\n$tr_confirm_install2" ; then
+	if ! lbg_yesno -y "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
 		return
 	fi
 
@@ -1063,7 +1068,7 @@ first_run() {
 
 	# recheck config
 	if ! install_config ; then
-		lbg_display_error "There are errors in your configuration. Please check it and retry later."
+		lbg_display_error "$tr_errors_in_config"
 		return 2
 	fi
 
@@ -1208,7 +1213,7 @@ cancel_exit() {
 
 	# display notification
 	if $notifications ; then
-		lbg_notify "Backup cancelled at $(date +%H:%M:%S)\n$(report_duration)"
+		lbg_notify "$(printf "$tr_notify_cancelled" $(date +%H:%M:%S))\n$(report_duration)"
 	fi
 
 	# exit with cancel code
@@ -1225,7 +1230,7 @@ release_lock() {
 
 	rm -f "$backup_lock" &> /dev/null
 	if [ $? != 0 ] ; then
-		lbg_display_critical --log "Could not remove lock. Please delete it manually or further backups will fail!"
+		lbg_display_critical --log "$tr_error_unlock"
 		return 1
 	fi
 }
@@ -1249,7 +1254,7 @@ clean_exit() {
 	if [ -n "$unmount" ] ; then
 		if $unmount ; then
 			if ! unmount_destination ; then
-				lbg_display_error --log "Can not unmount destination!"
+				lbg_display_error --log "$tr_error_unmount"
 			fi
 		fi
 	fi
@@ -1933,7 +1938,7 @@ t2b_backup() {
 
 		if $notifications ; then
 			if [ $s == 0 ] ; then
-				lbg_notify "Backup in progress\nStarted at: $(date '+%H:%M:%S')"
+				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
 			fi
 		fi
 
@@ -1979,10 +1984,10 @@ t2b_backup() {
 		lb_display --log "Backup finished successfully."
 
 		if $notifications ; then
-			lbg_notify "Backup finished successfully.\n$(report_duration)"
+			lbg_notify "$tr_notify_finished\n$(report_duration)"
 		fi
 	else
-		lb_display --log "Backup finished with some errors. Check report below and check log files for more details.\n"
+		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
 		if [ ${#success[@]} -gt 0 ] ; then
 			report_details+="Success: (${#success[@]}/$nbsrc)\n"
@@ -1997,7 +2002,7 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "Backup finished successfully, but some files may not be transferred.\n$(report_duration)"
+				lbg_notify "$tr_notify_finished_warnings\n$(report_duration)"
 			fi
 		fi
 		if [ ${#errors[@]} -gt 0 ] ; then
@@ -2007,7 +2012,7 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "Backup finished with some errors. Check report and check log files for more details.\n$(report_duration)"
+				lbg_notify "$tr_notify_finished_errors\n$(report_duration)"
 			fi
 		fi
 
@@ -2187,17 +2192,25 @@ t2b_restore() {
 		hard_links=false
 	fi
 
+	# get all backups
+	backups=($(get_backups))
+	# if no backups, exit
+	if [ ${#backups[@]} == 0 ] ; then
+		lbg_display_error "$tr_no_backups_available"
+		return 3
+	fi
+
 	# if no file specified, go to interactive mode
 	if [ $# == 0 ] ; then
 
-		restore_opts=("An existing file" "A renamed/moved/deleted file")
+		restore_opts=("$tr_restore_existing_file" "$tr_restore_moved_file")
 
 		if $hard_links ; then
-			restore_opts+=("An existing directory" "A renamed/moved/deleted directory")
+			restore_opts+=("$tr_restore_existing_directory" "$tr_restore_moved_directory")
 		fi
 
 		# choose type of file to restore (file/directory)
-		lbg_choose_option -d 1 -l "What do you want to restore?" "${restore_opts[@]}"
+		lbg_choose_option -d 1 -l "$tr_choose_restore" "${restore_opts[@]}"
 		case $? in
 			0)
 				# continue
@@ -2241,7 +2254,7 @@ t2b_restore() {
 
 		# choose a directory
 		if $directorymode ; then
-			lbg_choose_directory -t "Choose a directory to restore" "$starting_path"
+			lbg_choose_directory -t "$tr_choose_directory_to_restore" "$starting_path"
 			case $? in
 				0)
 					# continue
@@ -2261,7 +2274,7 @@ t2b_restore() {
 			file="$lbg_choose_directory"
 		else
 			# choose a file
-			lbg_choose_file -t "Choose a file to restore" "$starting_path"
+			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path"
 			case $? in
 				0)
 					# continue
@@ -2335,7 +2348,7 @@ t2b_restore() {
 
 	# case of symbolic links
 	if [ -L "$symlink_test" ] ; then
-		lbg_display_error "You cannot restore symbolic links!"
+		lbg_display_error "$tr_cannot_restore_links"
 		return 6
 	fi
 
@@ -2347,13 +2360,6 @@ t2b_restore() {
 	# if error, exit
 	if [ -z "$backup_file_path" ] ; then
 		return 1
-	fi
-
-	# get all backups
-	backups=($(get_backups))
-	if [ ${#backups[@]} == 0 ] ; then
-		lbg_display_error "No backups on destination."
-		return 3
 	fi
 
 	# find last backup of the file
@@ -2371,7 +2377,7 @@ t2b_restore() {
 			if [ "$backup_date" != "latest" ] ; then
 				# if date was specified, error
 				if [ "$backup_date" == "$backup" ] ; then
-					lbg_display_error "No backups available for this file at this date!\nRun the following command to show available backup for this file: $lb_current_script history $file"
+					lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
 					return 3
 				fi
 			fi
@@ -2380,13 +2386,13 @@ t2b_restore() {
 
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
-		lbg_display_error "No backups available for this file."
+		lbg_display_error "$tr_no_backups_for_file"
 		return 3
 	fi
 
 	# if interactive mode, prompt user to choose a backup date
 	if $interactive ; then
-		lbg_choose_option -d 1 -l "Choose a backup date:" "${file_history[@]}"
+		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${file_history[@]}"
 		case $? in
 			0)
 				# continue
@@ -2456,7 +2462,7 @@ t2b_restore() {
 			"${cmd[@]}" | grep "^deleting "
 
 			if [ $? == 0 ] ; then
-				if ! lbg_yesno "There are newer files in $dest. Do you want to keep them?\nPress Yes to keep new files, No to restore backup exactly as before." ; then
+				if ! lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" ; then
 					delete_newer_files=true
 				fi
 			fi
@@ -2468,7 +2474,7 @@ t2b_restore() {
 
 	# confirm restore
 	if ! $forcemode ; then
-		if ! lbg_yesno "You will restore the path '$file' to backup $(get_backup_fulldate $backup_date).\nAre your sure?" ; then
+		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
 			# cancelled
 			return
 		fi
@@ -2779,7 +2785,7 @@ fi
 
 # test if rsync command is available
 if ! lb_command_exists rsync ; then
-	lbg_display_critical "rsync is not installed. time2backup will not work.\nPlease install it and retry."
+	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
 fi
 
@@ -2790,7 +2796,7 @@ cd "$lb_current_script_directory"
 if [ -z "$config_file" ] ; then
 	config_directory="$(lb_homepath $user)/.config/time2backup/"
 	if [ $? != 0 ] ; then
-		lbg_display_error "Cannot get user homepath. Please install your config file manually."
+		lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
 		exit 2
 	fi
 	config_file="$config_directory/time2backup.conf"
