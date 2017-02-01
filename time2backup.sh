@@ -2354,7 +2354,7 @@ t2b_restore() {
 
 			# test if path to restore is stored in the backup directory
 			if [[ "$file" != "$backup_destination"* ]] ; then
-				lb_error "Path is not a backup! Cancel."
+				lbg_display_error "$tr_path_is_not_backup"
 				return 1
 			fi
 
@@ -2371,7 +2371,7 @@ t2b_restore() {
 			# get backup date
 			backup_date="$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)"
 			if [ -z "$backup_date" ] ; then
-				lb_error "Path is not correct"
+				lbg_display_error "$tr_path_is_not_backup"
 				return 1
 			fi
 
@@ -2382,6 +2382,7 @@ t2b_restore() {
 
 			# check if it is a file backup
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
+				lbg_display_error "$tr_path_is_not_backup"
 				lb_error "Restoring ssh/network files is not supported yet."
 				return 6
 			fi
@@ -2482,7 +2483,7 @@ t2b_restore() {
 
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
-			lb_error "You cannot restore directories in trash mode!"
+			lbg_display_error "$tr_cannot_restore_from_trash"
 			return 6
 		fi
 
