@@ -1197,7 +1197,23 @@ edit_config() {
 			sed -i'~' "${config_line}s/.*/$conf_value/" "$edit_file"
 		else
 			# if not found, append to file
-			echo "$conf_value" >> "$edit_file"
+
+			# test type of value
+			if ! lb_is_integer $set_config ; then
+				case $set_config in
+					true|false)
+						# do nothing
+						:
+						;;
+					*)
+						# append quotes
+						set_config="\"$set_config\""
+						;;
+				esac
+			fi
+
+			# append config to file
+			echo "$conf_param=$set_config" >> "$edit_file"
 		fi
 	else
 		# config editor mode
