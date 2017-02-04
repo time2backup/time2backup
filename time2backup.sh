@@ -428,10 +428,10 @@ create_config() {
 	fi
 
 	# copy config samples from current directory
-	cp -f "./config/excludes.example.conf" "$config_directory/excludes.conf"
-	cp -f "./config/includes.example.conf" "$config_directory/includes.conf"
-	cp -f "./config/sources.example.conf" "$config_directory/sources.conf"
-	cp -f "./config/time2backup.example.conf" "$config_directory/time2backup.conf"
+	cp -f "$script_directory/config/excludes.example.conf" "$config_directory/excludes.conf"
+	cp -f "$script_directory/config/includes.example.conf" "$config_directory/includes.conf"
+	cp -f "$script_directory/config/sources.example.conf" "$config_directory/sources.conf"
+	cp -f "$script_directory/config/time2backup.example.conf" "$config_directory/time2backup.conf"
 }
 
 
@@ -990,7 +990,10 @@ config_wizard() {
 	# get external disk
 	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
 
-		lb_display_debug "Choosed directory: $lbg_choose_directory"
+		lb_display_debug "Chosen destination: $lbg_choose_directory"
+
+		# get absolute path of the chosen directory
+		lbg_choose_directory="$(lb_realpath "$lbg_choose_directory")"
 
 		# update destination config
 		if [ "$lbg_choose_directory" != "$destination" ] ; then
@@ -2896,9 +2899,6 @@ if ! lb_command_exists rsync ; then
 	exit 1
 fi
 
-# go into current directory to avoid relative path confusion
-cd "$lb_current_script_directory"
-
 # set default configuration file and path
 if [ -z "$config_file" ] ; then
 	config_directory="$(lb_homepath $user)/.config/time2backup/"
@@ -2934,6 +2934,13 @@ else
 	fi
 fi
 
+# if configuration file does not exists,
+if ! [ -f "$config_file" ] ; then
+	# execute first run wizard and exit
+	first_run
+	exit $?
+fi
+
 mode="$1"
 
 # command operations
@@ -2959,13 +2966,6 @@ case "$mode" in
 		t2b_install $*
 		;;
 	"")
-		# if configuration file does not exists
-		if ! [ -f "$config_file" ] ; then
-			# execute first run wizard and exit
-			first_run
-			exit $?
-		fi
-
 		# display choose operation dialog
 		choose_operation
 		;;
