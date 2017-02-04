@@ -1784,7 +1784,7 @@ t2b_backup() {
 	lb_display --log "Prepare backup..."
 
 	# if mirror mode and there is an old backup, move last backup to current directory
-	if $mirror_mode && [ -e "$backup_destination/$last_backup" ] ; then
+	if $mirror_mode && [ -n "$last_backup" ] ; then
 		mv "$backup_destination/$last_backup" "$dest"
 	else
 		# create destination
