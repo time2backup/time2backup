@@ -2783,7 +2783,6 @@ EOF
 		if [ $? != 0 ] ; then
 			echo "Cannot create application link. It doesn't matter, but you can try the following command:"
 			echo "sudo cp -f \"$desktop_file\" /usr/share/applications/"
-			lb_exitcode=3
 		fi
 	fi
 
@@ -2811,7 +2810,6 @@ EOF
 	if [ $? != 0 ] ; then
 		echo "Cannot create command link. It doesn't matter, but you can try the following command:"
 		echo "sudo ln -s \"$current_script\" \"$cmd_alias\""
-		return 4
 	fi
 
 	return $lb_exitcode
