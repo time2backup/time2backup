@@ -2516,25 +2516,30 @@ t2b_restore() {
 		return 3
 	fi
 
-	# if interactive mode, prompt user to choose a backup date
-	if $interactive ; then
-		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${file_history[@]}"
-		case $? in
-			0)
-				# continue
-				:
-				;;
-			2)
-				# cancelled
-				return
-				;;
-			*)
-				# error
-				return 1
-				;;
-		esac
+	# if only one backup, no need to choose one
+	if [ ${#file_history[@]} == 1 ] ; then
+		backup_date="latest"
+	else
+		# if interactive mode, prompt user to choose a backup date
+		if $interactive ; then
+			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${file_history[@]}"
+			case $? in
+				0)
+					# continue
+					:
+					;;
+				2)
+					# cancelled
+					return
+					;;
+				*)
+					# error
+					return 1
+					;;
+			esac
 
-		backup_date=${file_history[$(($lbg_choose_option - 1))]}
+			backup_date=${file_history[$(($lbg_choose_option - 1))]}
+		fi
 	fi
 
 	# if no backup date specified, use most recent
@@ -2549,7 +2554,7 @@ t2b_restore() {
 		directorymode=true
 	fi
 
-	# trash mode: cannot restore directories
+	# prepare destination
 	if $directorymode ; then
 
 		# trash mode: cannot restore directories
