@@ -661,47 +661,6 @@ test_hardlinks() {
 }
 
 
-# Test if a line is a comment
-# Usage: is_comment [OPTIONS] TEXT
-is_comment() {
-
-	# default character for comments
-	char_comment="#"
-	empty_lines_are_comments=false
-
-	# get options
-	while true ; do
-		case $1 in
-			-c)
-				char_comment=("$2")
-				custom_editor=true
-				shift 2
-				;;
-			-n)
-				empty_lines_are_comments=true
-				shift
-				;;
-			*)
-				break
-				;;
-		esac
-	done
-
-	# test if current line is not a comment
-	# delete spaces and test first character
-	trimtest=$(echo $* | tr -d '[:space:]')
-	if [ -z "$trimtest" ] ; then
-		if ! $empty_lines_are_comments ; then
-			return 2
-		fi
-	else
-		if [[ "$trimtest" != "$char_comment"* ]] ; then
-			return 1
-		fi
-	fi
-}
-
-
 # Get list of sources to backup
 # Usage: get_sources
 get_sources() {
@@ -710,7 +669,7 @@ get_sources() {
 
 	# read sources.conf file line by line
 	while read line ; do
-		if ! is_comment -n $line ; then
+		if ! lb_is_comment $line ; then
 			sources+=("$line")
 		fi
 	done < "$config_sources"
@@ -2710,7 +2669,7 @@ t2b_config() {
 			# get sources is a special case to print list without comments
 			# read sources.conf file line by line
 			while read line ; do
-				if ! is_comment -n $line ; then
+				if ! lb_is_comment $line ; then
 					echo "$line"
 				fi
 			done < "$file"
