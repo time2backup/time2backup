@@ -3,18 +3,14 @@
 ########################################################
 #                                                      #
 #  time2backup                                         #
-#                                                      #
 #  It's time to backup your files!                     #
 #                                                      #
-#  Author: Jean Prunneaux (http://jean.prunneaux.com)  #
+#  MIT License                                         #
+#  Copyright (c) 2017 Jean Prunneaux                   #
+#                                                      #
+#  Version 1.0.0 (2017-02-07)                          #
 #                                                      #
 ########################################################
-
-################################
-#                              #
-#  Version 1.0.0 (2017-02-01)  #
-#                              #
-################################
 
 
 ###########################
@@ -216,13 +212,6 @@ print_help() {
 }
 
 
-# Get absolute path of a file/directory
-# Usage: get_absolute_path PATH
-get_absolute_path() {
-	echo $(cd "$(dirname "$1")" && pwd)/"$(basename "$1")"
-}
-
-
 # Get relative path to reach second path from a first one
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
@@ -231,8 +220,8 @@ get_relative_path() {
 
 	local dir_src="$1"
 	local dir_dest="$2"
-	local abs_dir_src="$(get_absolute_path "$dir_src")"
-	local abs_dir_dest="$(get_absolute_path "$dir_dest")"
+	local abs_dir_src="$(lb_abspath "$dir_src")"
+	local abs_dir_dest="$(lb_abspath "$dir_dest")"
 	local abs_test_dir=""
 	local abs_common_path=""
 	local newpath="./"
@@ -623,11 +612,11 @@ get_backup_path() {
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$f" ] ; then
-		echo "/files/$(get_absolute_path "$f")"
+		echo "/files/$(lb_abspath "$f")"
 	else
 		parent_dir="$(dirname "$f")"
 		if [ -d "$parent_dir" ] ; then
-			echo "/files/$(get_absolute_path "$parent_dir")/$(basename "$f")"
+			echo "/files/$(lb_abspath "$parent_dir")/$(basename "$f")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -1875,7 +1864,7 @@ t2b_backup() {
 				fi
 
 				# get absolute path for source
-				abs_src="$(get_absolute_path "$src")"
+				abs_src="$(lb_abspath "$src")"
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
