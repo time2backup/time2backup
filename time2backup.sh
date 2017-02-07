@@ -1147,7 +1147,7 @@ edit_config() {
 			# if not found, append to file
 
 			# test type of value
-			if ! lb_is_integer $set_config ; then
+			if ! lb_is_number $set_config ; then
 				case $set_config in
 					true|false)
 						# do nothing
@@ -1684,7 +1684,7 @@ t2b_backup() {
 	# create log file
 	if ! lb_set_logfile "$logfile" ; then
 		lb_error "Cannot create log file $logfile. Please verify your access rights."
-		clean_exit 4
+		clean_exit --no-rmlog --no-shutdown 4
 	fi
 
 	lb_display --log "time2backup\n"
