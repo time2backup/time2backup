@@ -727,6 +727,8 @@ get_backups() {
 # Usage: rotate_backups
 rotate_backups() {
 
+	local rotate_errors=0
+
 	# get backups
 	old_backups=($(get_backups))
 	nbold=${#old_backups[@]}
@@ -748,10 +750,21 @@ rotate_backups() {
 		for ((r=0; r<${#old_backups[@]}; r++)) ; do
 			lb_display_debug --log "Removing $backup_destination/${old_backups[$r]}..."
 
-			rm -rf "$backup_destination/${old_backups[$r]}"
-			lb_result -l DEBUG
+			rm -rf "$backup_destination/${old_backups[$r]}" 2> "$logfile"
+
+			rm_result=$?
+			if [ $rm_result == 0 ] ; then
+				# delete log file
+				lb_display_debug --log "Removing log file $backup_destination/logs/time2backup_${old_backups[$r]}.log..."
+				rm -rf "$backup_destination/logs/time2backup_${old_backups[$r]}.log" 2> "$logfile"
+			else
+				lb_display_debug --log "... Failed (exit code: $rm_result)"
+				rotate_errors=$rm_result
+			fi
 		done
 	fi
+
+	return $rotate_errors
 }
 
 
@@ -1094,14 +1107,6 @@ config_wizard() {
 	if lbg_yesno "$tr_ask_edit_config" ; then
 		t2b_config -g
 	fi
-
-	# install configuration
-	if ! install_config ; then
-		lbg_display_error "$tr_errors_in_config"
-		return 1
-	fi
-
-	return 0
 }
 
 
@@ -1192,6 +1197,17 @@ edit_config() {
 	fi
 
 	edit_file="$*"
+
+	# test file
+	if [ -e "$edit_file" ] ; then
+		# if exists but is not a file, return error
+		if ! [ -f "$edit_file" ] ; then
+			return 1
+		fi
+	else
+		# create empty file if it does not exists (should be includes.conf)
+		echo -e "\n" > "$edit_file"
+	fi
 
 	# headless mode
 	if [ -n "$set_config" ] ; then
