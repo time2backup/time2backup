@@ -5,6 +5,7 @@
 #  time2backup                                         #
 #  It's time to backup your files!                     #
 #                                                      #
+#  Website: https://github.com/pruje/time2backup       #
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #

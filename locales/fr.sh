@@ -1,4 +1,11 @@
-# French translations
+#
+# time2backup French translations
+#
+# This file is part of time2backup (https://github.com/pruje/time2backup)
+#
+# MIT License
+# Copyright (c) 2017 Jean Prunneaux
+#
 
 # Global
 tr_file="fichier"
