@@ -612,11 +612,15 @@ get_backup_path() {
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$f" ] ; then
-		echo "/files/$(lb_abspath "$f")"
+		echo -n "/files/$(lb_abspath "$f")"
+
+		# if it is a directory, add '/' at the end of the path
+		if [ -d "$f" ] ; then
+			echo /
+		fi
 	else
-		parent_dir="$(dirname "$f")"
-		if [ -d "$parent_dir" ] ; then
-			echo "/files/$(lb_abspath "$parent_dir")/$(basename "$f")"
+		if [ -d "$(dirname "$f")" ] ; then
+			echo "/files/$(lb_abspath "$f")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -1841,7 +1845,7 @@ t2b_backup() {
 
 		# set final destination with is a representation of system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
-		finaldest=$(dirname "$dest/$path_dest")
+		finaldest="$dest/$path_dest"
 
 		# create destination folder
 		mkdir -p "$finaldest"
@@ -1902,13 +1906,13 @@ t2b_backup() {
 					# revision folder
 					linkdest="$(get_relative_path "$finaldest" "$backup_destination")"
 					if [ -e "$linkdest" ] ; then
-						cmd+=(--link-dest="$(dirname "$linkdest/$lastcleanbackup/$path_dest")")
+						cmd+=(--link-dest="$linkdest/$lastcleanbackup/$path_dest")
 					fi
 				else
 					# backups with a "trash" folder that contains older revisions
 					# be careful that trash must be set to parent directory
 					# or it will create something like dest/src/src
-					trash="$(dirname "$backup_destination/$lastcleanbackup/$path_dest")"
+					trash="$backup_destination/$lastcleanbackup/$path_dest"
 
 					# create trash
 					mkdir -p "$trash"
@@ -1932,6 +1936,11 @@ t2b_backup() {
 		# enable network compression
 		if $network_compression ; then
 			cmd+=(-z)
+		fi
+
+		# if it is a directory, add '/' at the end of the path
+		if [ -d "$abs_src" ] ; then
+			abs_src+="/"
 		fi
 
 		# add source and destination
@@ -2300,7 +2309,7 @@ t2b_restore() {
 				;;
 		esac
 
-		# directory mode
+		# manage choosed option
 		case "$lbg_choose_option" in
 			1)
 				# restore a file
@@ -2345,7 +2354,7 @@ t2b_restore() {
 			esac
 
 			# get path to restore
-			file="$lbg_choose_directory"
+			file="$lbg_choose_directory/"
 		else
 			# choose a file
 			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path"
@@ -2396,6 +2405,11 @@ t2b_restore() {
 
 			interactive=false
 
+			# if it is a directory, add '/' at the end of the path
+			if [ -d "$file" ] ; then
+				file+="/"
+			fi
+
 			# remove backup date path prefix
 			file="${file#$backup_date}"
 
@@ -2424,6 +2438,11 @@ t2b_restore() {
 	if [ -L "$symlink_test" ] ; then
 		lbg_display_error "$tr_cannot_restore_links"
 		return 6
+	fi
+
+	# if it is a directory, add '/' at the end of the path
+	if [ -d "$file" ] ; then
+		file+="/"
 	fi
 
 	lb_display_debug "Path to restore: $file"
@@ -2510,12 +2529,9 @@ t2b_restore() {
 			lbg_display_error "$tr_cannot_restore_from_trash"
 			return 6
 		fi
-
-		# destination is the parent directory with a '/' at the end of the path (IMPORTANT)
-		dest="$(dirname "$file")/"
-	else
-		dest="$file"
 	fi
+
+	dest="$file"
 
 	# prepare rsync command
 	rsync_cmd=(rsync -aHv)
