@@ -25,10 +25,20 @@ tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en angl
 tr_ask_first_backup="Voulez-vous lancer votre première sauvegarde maintenant ?"
 tr_info_time2backup_ready="time2backup est prêt !"
 
+# Config mode
+tr_choose_config_file="Choisissez un fichier de configuration à éditer :"
+tr_global_config="Configuration générale"
+tr_sources_config="Éléments à sauvegarder"
+tr_excludes_config="Fichiers exclus"
+tr_includes_config="Fichiers inclus (souvent peu utile)"
+
 # Config wizard
 tr_choose_backup_destination="Choisissez le répertoire de destination des sauvegardes"
 tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
 tr_ntfs_or_exfat="Le volume de destination des sauvegardes est-il au format NTFS ?"
+tr_ask_edit_sources="Voulez-vous choisir les éléments à sauvegarder ?"
+tr_default_source="Par défaut, tout votre répertoire personnel sera sauvegardé."
+tr_finished_edit="Si vous avez terminé l'édition du fichier de configuration, enregistrez le fichier et cliquez sur OK."
 tr_ask_activate_recurrent="Voulez-vous activer les sauvegardes récurrentes ?"
 tr_choose_backup_frequency="Choisissez la fréquence des sauvegardes :"
 tr_frequency_hourly="toutes les heures"

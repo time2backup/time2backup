@@ -25,10 +25,20 @@ tr_ask_edit_config="Do you want to edit the configuration files?"
 tr_ask_first_backup="Do you want to perform your first backup now?"
 tr_info_time2backup_ready="time2backup is ready!"
 
+# Config mode
+tr_choose_config_file="Choose a configuration file to edit:"
+tr_global_config="General configuration"
+tr_sources_config="Elements to backup"
+tr_excludes_config="Excluded files"
+tr_includes_config="Included files (not used in most cases)"
+
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups"
 tr_force_hard_links_confirm="Previously you choosed to force using hard links. Keep this choice?"
 tr_ntfs_or_exfat="Is your backup destination volume formatted in NTFS?"
+tr_ask_edit_sources="Do you want to choose which elements will be backuped?"
+tr_default_source="By default, it will backup your private home directory."
+tr_finished_edit="If you have finished to edit the configuration file, save the file and press OK."
 tr_ask_activate_recurrent="Do you want to activate recurrent backups?"
 tr_choose_backup_frequency="Choose backup frequency:"
 tr_frequency_hourly="hourly"

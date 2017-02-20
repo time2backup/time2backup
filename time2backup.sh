@@ -181,13 +181,13 @@ print_help() {
 			lb_print "Command usage: $1 [OPTIONS]"
 			lb_print "\nEdit configuration"
 			lb_print "\nOptions:"
+			lb_print "  -g, --general     edit general configuration"
 			lb_print "  -s, --sources     edit sources file (sources to backup)"
 			lb_print "  -x, --excludes    edit excludes file (patterns to ignore)"
 			lb_print "  -i, --includes    edit includes file (patterns to include)"
 			lb_print "  -l, --show        show configuration; do not edit"
 			lb_print "                    display configuration without comments"
 			lb_print "  -t, --test        test configuration; do not edit"
-			lb_print "  -a, --apply       apply configuration; do not edit"
 			lb_print "  -w, --wizard      display configuration wizard instead of edit"
 			lb_print "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
 			lb_print "  -h, --help        print help"
@@ -1032,7 +1032,16 @@ config_wizard() {
 			fi
 		fi
 	else
-		lb_display_debug "Error or cancel in choose directory (exit code: $?)."
+		lb_display_debug "Error or cancel when choosing destination directory (exit code: $?)."
+	fi
+
+	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
+		edit_config "$config_sources"
+		if [ $? == 0 ] ; then
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
+			fi
+		fi
 	fi
 
 	# activate recurrent backups
@@ -1059,6 +1068,11 @@ config_wizard() {
 					;;
 			esac
 		fi
+	fi
+
+	# edit config
+	if lbg_yesno "$tr_ask_edit_config" ; then
+		t2b_config -g
 	fi
 
 	# install configuration
@@ -1089,12 +1103,6 @@ first_run() {
 
 	# config wizard
 	config_wizard
-
-	# edit config
-	if lbg_yesno "$tr_ask_edit_config" ; then
-		t2b_config
-		t2b_config -s
-	fi
 
 	# recheck config
 	if ! install_config ; then
@@ -2670,14 +2678,19 @@ t2b_restore() {
 t2b_config() {
 
 	# default values
-	file="$config_file"
+	file=""
 	op_config="edit"
 	show_sources=false
+	choose_config=false
 
 	# get options
 	# following other options to edit_config() function
 	while true ; do
 		case $1 in
+			-g|--general)
+				file="$config_file"
+				shift
+				;;
 			-x|--excludes)
 				file="$config_excludes"
 				shift
@@ -2699,10 +2712,6 @@ t2b_config() {
 				op_config="test"
 				shift
 				;;
-			-a|--apply)
-				op_config="apply"
-				shift
-				;;
 			-w|--wizard)
 				op_config="wizard"
 				shift
@@ -2721,15 +2730,17 @@ t2b_config() {
 		esac
 	done
 
+	if [ -z "$file" ] ; then
+		choose_config=true
+	fi
+
 	# special operations: show and test
 	case "$op_config" in
 		wizard)
 			load_config
 
 			# run config wizard
-			if config_wizard ; then
-				install_config
-			fi
+			config_wizard
 			;;
 		show)
 			# get sources is a special case to print list without comments
@@ -2739,26 +2750,64 @@ t2b_config() {
 					echo "$line"
 				fi
 			done < "$file"
+
+			return 0
 			;;
 		test)
 			# load and test configuration
 			echo "Testing configuration..."
 			load_config
 			lb_result
-			;;
-		apply)
-			# apply configuration
-			install_config
+
+			return $?
 			;;
 		*)
 			# edit configuration
+
+			if $choose_config ; then
+				if ! lbg_choose_option -l "$tr_choose_config_file" \
+			        "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" ; then
+					return 0
+				fi
+
+				case "$lbg_choose_option" in
+					1)
+						file="$config_file"
+						;;
+					2)
+						file="$config_sources"
+						;;
+					3)
+						file="$config_excludes"
+						;;
+					4)
+						file="$config_includes"
+						;;
+				esac
+			fi
+
 			echo "Opening configuration file..."
-			if edit_config $* "$file" ; then
-				install_config
+			edit_config $* "$file"
+
+			result_config=$?
+
+			if [ $result_config != 0 ] ; then
+				return $result_config
+			fi
+
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
 			fi
 			;;
 	esac
 
+	result_config=$?
+
+	if [ $result_config != 0 ] ; then
+		return $result_config
+	fi
+
+	install_config
 	return $?
 }
 
