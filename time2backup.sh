@@ -8,7 +8,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0 (2017-02-07)                          #
+#  Version 1.0.0 (2017-02-20)                          #
 #                                                      #
 ########################################################
 
@@ -17,8 +17,9 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-beta.4"
+version="1.0.0-beta.5"
 
+config_version=""
 user=""
 sources=()
 backup_destination=""
@@ -467,6 +468,14 @@ load_config() {
 	if [ $? != 0 ] ; then
 		lb_error "Config file does not exists!"
 		return 1
+	fi
+
+	# get config version
+	config_version="$(cat "$config_file" | grep "time2backup configuration file v" | grep -o [0-9].[0-9].[0-9])"
+	if [ -n "$config_version" ] ; then
+		lb_display_debug --log "Loading config version $config_version"
+	else
+		lb_display_warning --log "Cannot get config version."
 	fi
 
 	# test if destination is defined
