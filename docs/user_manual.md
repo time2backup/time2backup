@@ -6,7 +6,7 @@
 * [How to install time2backup](#install)
 * [Backup your files](#backup)
 * [Restore your files](#restore)
-* [Credits](#credits)
+
 ---------------------------------------------------------------
 
 <a name="whatisit"></a>
@@ -38,15 +38,18 @@ If you have enabled recurrent backups, you just have to wait until backup is fin
 
 If you haven't, just run time2backup and go into backup mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh backup [OPTIONS]
+./time2backup.sh backup
 ```
+See [command documentation](command.md) for more information and options.
+
 
 <a name="restore"></a>
 ## Restore your files
 Run time2backup and go into restore mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh restore [OPTIONS]
+./time2backup.sh restore
 ```
+See [command documentation](command.md) for more information and options.
 
 You will have to choose the file or directory to restore, and the version date to restore.
 

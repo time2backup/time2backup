@@ -218,22 +218,54 @@ print_help() {
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
 # will return /home/user/my/
 # Usage: get_common_path PATH_1 PATH_2
+# Return: absolute path of the common directory
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: error with paths
 get_common_path() {
 
-	local abs_dir_src="$(lb_abspath "$1")"
-	local abs_dir_dest="$(lb_abspath "$2")"
-	local common_path=""
+	# usage error
+	if [ $# -lt 2 ] ; then
+		return 1
+	fi
 
+	# get absolute paths
+	local gcp_dir1="$(lb_abspath "$1")"
+	if [ $? != 0 ] ; then
+		return 2
+	fi
+
+	local gcp_dir2="$(lb_abspath "$2")"
+	if [ $? != 0 ] ; then
+		return 2
+	fi
+
+	# compare characters of paths one by one
 	declare -i i=0
 	while true ; do
-		if [ "${abs_dir_src:0:$i}" != "${abs_dir_dest:0:$i}" ] ; then
-			common_path="${abs_dir_src:0:$i}"
-			if [ -d "$common_path" ] ; then
-				echo "$common_path"
+
+		# if a character changes in the 2 paths,
+		if [ "${gcp_dir1:0:$i}" != "${gcp_dir2:0:$i}" ] ; then
+
+			local gcp_path="${gcp_dir1:0:$i}"
+
+			# if it's a directory, return it
+			if [ -d "$gcp_path" ] ; then
+
+				if [ "${gcp_path:${#gcp_path}-1}" == "/" ] ; then
+					# return path without the last /
+					echo "${gcp_path:0:${#gcp_path}-1}"
+				else
+					echo "$gcp_path"
+				fi
 			else
-				dirname "$common_path"
+				# if not, return parent directory
+				dirname "$gcp_path"
 			fi
-			break
+
+			# quit function
+			return 0
 		fi
 		i+=1
 	done
@@ -244,6 +276,12 @@ get_common_path() {
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
 # Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
+# Return: relative path
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: error with paths
+#   3: unknown cd error (may be access rights issue)
 get_relative_path() {
 
 	# usage error
@@ -251,50 +289,46 @@ get_relative_path() {
 		return 1
 	fi
 
-	local abs_dir_src="$(lb_abspath "$1")"
-	local abs_dir_dest="$(lb_abspath "$2")"
-	local abs_test_dir=""
-	local abs_common_path=""
-	local newpath="./"
-
-	# particular case of 2 identical folders
-	if [ "$abs_dir_src" == "$abs_dir_dest" ] ; then
-		echo "./"
-		return 0
-	fi
-
-	declare -i i=0
-	while true ; do
-		if [ "${abs_dir_src:0:$i}" != "${abs_dir_dest:0:$i}" ] ; then
-			abs_common_path=$(dirname "${abs_dir_src:0:$i}")
-			break
-		fi
-		i+=1
-	done
-
-	cd "$abs_dir_src/.."
+	# get absolute paths
+	local grp_src="$(lb_abspath "$1")"
 	if [ $? != 0 ] ; then
-		return 1
+		return 2
 	fi
 
-	while true ; do
-		if [ "$(pwd)" == "$abs_common_path" ] ; then
-			break
-		fi
+	local grp_dest="$(lb_abspath "$2")"
+	if [ $? != 0 ] ; then
+		return 2
+	fi
 
-		cd ..
+	# get common path
+	local grp_common_path=$(get_common_path "$grp_src" "$grp_dest")
+	if [ $? != 0 ] ; then
+		return 2
+	fi
+
+	# go into the first path
+	cd "$grp_src" 2> /dev/null
+	if [ $? != 0 ] ; then
+		return 3
+	fi
+
+	local grp_relative_path="./"
+
+	# loop to find common path
+	while [ "$(pwd)" != "$grp_common_path" ] ; do
+
+		# go to upper directory
+		cd .. 2> /dev/null
 		if [ $? != 0 ] ; then
-			return 1
+			return 3
 		fi
 
-		newpath+="../"
+		# append double dots to relative path
+		grp_relative_path+="../"
 	done
 
 	# print relative path
-	echo "$newpath/"
-
-	# return to current directory
-	cd "$lb_current_path" 2> /dev/null
+	echo "$grp_relative_path/"
 }
 
 
@@ -303,14 +337,14 @@ get_relative_path() {
 # Return: type of source (files/ssh)
 get_backup_type() {
 
-	url="$*"
-	protocol=$(echo "$url" | cut -d: -f1)
+	backup_url="$*"
+	protocol=$(echo "$backup_url" | cut -d: -f1)
 
 	# get protocol
 	case "$protocol" in
 		ssh|fish)
 			# double check protocol
-			echo "$url" | grep -E "^$protocol://" &> /dev/null
+			echo "$backup_url" | grep -E "^$protocol://" &> /dev/null
 			if [ $? == 0 ] ; then
 				# special case of fish = ssh
 				if [ "$protocol" == "fish" ] ; then
@@ -323,7 +357,7 @@ get_backup_type() {
 			;;
 	esac
 
-	# if not found, it is regular file
+	# if not found or error of protocol, it is regular file
 	echo "files"
 }
 
@@ -642,10 +676,10 @@ get_backup_path() {
 	# if not absolute path, check protocols
 	case $(get_backup_type "$f") in
 		ssh)
-			# transform ssh://user@hostname:/path/to/file -> /ssh/user@hostname/path/to/file
-			# command: split by colon to ssh/user@hostname/,
-			# then print path with no loose of colons and delete the last colon
-			echo "$f" | awk -F ':' '{printf $1 "/" $2 "/"; for(i=3;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
+			# transform ssh://user@hostname/path/to/file -> /ssh/user@hostname/path/to/file
+			# how it works: split by colon to ssh/user@hostname/path/to/file,
+			# with no loose of potential colons then delete the last colon
+			echo "$f" | awk -F ':' '{printf $1 ; for(i=2;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
 			return 0
 			;;
 	esac
@@ -1445,12 +1479,7 @@ clean_exit() {
 
 				# error report
 				if [ $lb_exitcode != 0 ] ; then
-					report_user="$user"
-					if [ -z "$report_user"] ; then
-						report_user="$(whoami)"
-					fi
-
-					email_content+="User: $report_user\n$report_details\n\n"
+					email_content+="User: $user\n$report_details\n\n"
 				fi
 
 				# if logs are kept,
@@ -3034,6 +3063,11 @@ fi
 if ! lb_command_exists rsync ; then
 	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
+fi
+
+# if user not set, get current user
+if [ -z "$user" ] ; then
+	user="$(whoami)"
 fi
 
 # set default configuration file and path
