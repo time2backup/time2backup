@@ -288,11 +288,11 @@ get_relative_path() {
 		newpath+="../"
 	done
 
-	#echo "$newpath/${dir_dest:${#abs_common_path}}"
+	# print relative path
 	echo "$newpath/"
 
 	# return to current directory
-	cd "$lb_current_path"
+	cd "$lb_current_path" 2> /dev/null
 }
 
 
@@ -316,7 +316,7 @@ get_backup_type() {
 				else
 					echo "$protocol"
 				fi
-				return
+				return 0
 			fi
 			;;
 	esac
@@ -426,6 +426,8 @@ get_backup_history() {
 	else
 		return 2
 	fi
+
+	return 0
 }
 
 
@@ -567,6 +569,8 @@ mount_destination() {
 			return 1
 		fi
 	fi
+
+	return 0
 }
 
 
@@ -605,6 +609,8 @@ unmount_destination() {
 			return 2
 		fi
 	fi
+
+	return 0
 }
 
 
@@ -620,7 +626,7 @@ get_backup_path() {
 	if [ "${f:0:1}" == "/" ] ; then
 		# return file path
 		echo "/files$f"
-		return
+		return 0
 	fi
 
 	# if not absolute path, check protocols
@@ -630,7 +636,7 @@ get_backup_path() {
 			# command: split by colon to ssh/user@hostname/,
 			# then print path with no loose of colons and delete the last colon
 			echo "$f" | awk -F ':' '{printf $1 "/" $2 "/"; for(i=3;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
-			return
+			return 0
 			;;
 	esac
 
@@ -654,6 +660,8 @@ get_backup_path() {
 			return 1
 		fi
 	fi
+
+	return 0
 }
 
 
@@ -688,6 +696,8 @@ test_hardlinks() {
 	if lb_array_contains "$dest_fstype" "${no_hardlinks_fs[@]}" ; then
 		return 2
 	fi
+
+	return 0
 }
 
 
@@ -810,6 +820,8 @@ install_config() {
 
 		return $res
 	fi
+
+	return 0
 }
 
 
@@ -843,6 +855,8 @@ prepare_destination() {
 		lb_display --log "Verify if your media is plugged in and try again."
 		return 1
 	fi
+
+	return 0
 }
 
 
@@ -879,6 +893,8 @@ test_backup() {
 		lb_display_debug --log "Error: '$total_size' is not a valid size in bytes. Continue..."
 		return 1
 	fi
+
+	return 0
 }
 
 
@@ -893,7 +909,7 @@ test_space() {
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
 		lb_display --log "Cannot get available space. Trying to backup although."
-		return
+		return 0
 	fi
 
 	# if space is not enough, error
@@ -902,6 +918,8 @@ test_space() {
 		lb_display_debug --log "Needed (in bytes): $total_size/$space_available"
 		return 1
 	fi
+
+	return 0
 }
 
 
@@ -931,7 +949,7 @@ clean_empty_directories() {
 
 		# security check: do not delete destination path
 		if [ "$(dirname "$d")" == "$(dirname "$destination")" ] ; then
-			return
+			return 0
 		fi
 
 		# if directory is empty,
@@ -949,8 +967,10 @@ clean_empty_directories() {
 		fi
 
 		# if not empty, quit loop
-		return
+		return 0
 	done
+
+	return 0
 }
 
 
@@ -1078,7 +1098,10 @@ config_wizard() {
 	# install configuration
 	if ! install_config ; then
 		lbg_display_error "$tr_errors_in_config"
+		return 1
 	fi
+
+	return 0
 }
 
 
@@ -1087,7 +1110,7 @@ config_wizard() {
 first_run() {
 	# confirm install
 	if ! lbg_yesno -y "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-		return
+		return 0
 	fi
 
 	# create configuration
@@ -1117,6 +1140,8 @@ first_run() {
 	else
 		lbg_display_info "$tr_info_time2backup_ready"
 	fi
+
+	return 0
 }
 
 
@@ -1255,6 +1280,8 @@ edit_config() {
 		lb_error "Please edit $edit_file manually."
 		return 2
 	fi
+
+	return 0
 }
 
 
@@ -1291,6 +1318,8 @@ release_lock() {
 		lbg_display_critical --log "$tr_error_unlock"
 		return 1
 	fi
+
+	return 0
 }
 
 
@@ -1573,7 +1602,7 @@ t2b_backup() {
 				;;
 			-h|--help)
 				print_help backup
-				return
+				return 0
 				;;
 			-*)
 				print_help backup
@@ -2218,7 +2247,7 @@ t2b_history() {
 				;;
 			-h|--help)
 				print_help history
-				return
+				return 0
 				;;
 			-*)
 				print_help history
@@ -2304,7 +2333,7 @@ t2b_restore() {
 				;;
 			-h|--help)
 				print_help restore
-				return
+				return 0
 				;;
 			-*)
 				print_help restore
@@ -2359,7 +2388,7 @@ t2b_restore() {
 				;;
 			2)
 				# cancelled
-				return
+				return 0
 				;;
 			*)
 				# error
@@ -2403,7 +2432,7 @@ t2b_restore() {
 					;;
 				2)
 					# cancelled
-					return
+					return 0
 					;;
 				*)
 					# error
@@ -2423,7 +2452,7 @@ t2b_restore() {
 					;;
 				2)
 					# cancelled
-					return
+					return 0
 					;;
 				*)
 					# error
@@ -2555,7 +2584,7 @@ t2b_restore() {
 					;;
 				2)
 					# cancelled
-					return
+					return 0
 					;;
 				*)
 					# error
@@ -2629,7 +2658,7 @@ t2b_restore() {
 	if ! $forcemode ; then
 		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
 			# cancelled
-			return
+			return 0
 		fi
 	fi
 
@@ -2718,7 +2747,7 @@ t2b_config() {
 				;;
 			-h|--help)
 				print_help config
-				return
+				return 0
 				;;
 			-*)
 				print_help config
@@ -2828,7 +2857,7 @@ t2b_install() {
 				;;
 			-h|--help)
 				print_help install
-				return
+				return 0
 				;;
 			-*)
 				print_help install
@@ -2882,7 +2911,7 @@ EOF
 	if [ -e "$cmd_alias" ] ; then
 		if [ "$(lb_realpath "$cmd_alias")" == "$current_script" ] ; then
 			echo "Already installed."
-			return
+			return 0
 		fi
 	fi
 
