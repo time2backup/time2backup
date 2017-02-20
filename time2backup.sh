@@ -212,16 +212,45 @@ print_help() {
 }
 
 
+# Get common path of 2 paths
+# e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
+# will return /home/user/my/
+# Usage: get_common_path PATH_1 PATH_2
+get_common_path() {
+
+	local abs_dir_src="$(lb_abspath "$1")"
+	local abs_dir_dest="$(lb_abspath "$2")"
+	local common_path=""
+
+	declare -i i=0
+	while true ; do
+		if [ "${abs_dir_src:0:$i}" != "${abs_dir_dest:0:$i}" ] ; then
+			common_path="${abs_dir_src:0:$i}"
+			if [ -d "$common_path" ] ; then
+				echo "$common_path"
+			else
+				dirname "$common_path"
+			fi
+			break
+		fi
+		i+=1
+	done
+}
+
+
 # Get relative path to reach second path from a first one
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
 # Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
 get_relative_path() {
 
-	local dir_src="$1"
-	local dir_dest="$2"
-	local abs_dir_src="$(lb_abspath "$dir_src")"
-	local abs_dir_dest="$(lb_abspath "$dir_dest")"
+	# usage error
+	if [ $# -lt 2 ] ; then
+		return 1
+	fi
+
+	local abs_dir_src="$(lb_abspath "$1")"
+	local abs_dir_dest="$(lb_abspath "$2")"
 	local abs_test_dir=""
 	local abs_common_path=""
 	local newpath="./"
@@ -229,10 +258,7 @@ get_relative_path() {
 	# particular case of 2 identical folders
 	if [ "$abs_dir_src" == "$abs_dir_dest" ] ; then
 		echo "./"
-
-		# return to current directory and quit
-		cd "$lb_current_path"
-		return
+		return 0
 	fi
 
 	declare -i i=0
@@ -1611,7 +1637,7 @@ t2b_backup() {
 	touch "$backup_lock"
 
 	# catch term signals
-	trap cancel_backup SIGHUP SIGINT SIGTERM
+	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# get old backups
 	backups=($(get_backups))
@@ -1761,9 +1787,6 @@ t2b_backup() {
 
 	# basic rsync command
 	rsync_cmd=(rsync -aHv --delete --progress --human-readable)
-
-	# of course, we exclude the backup destination itself (..../backups)
-	rsync_cmd+=(--exclude "$(dirname "$backup_destination")")
 
 	# get config for inclusions
 	if [ -f "$config_includes" ] ; then
@@ -1921,6 +1944,33 @@ t2b_backup() {
 					cmd+=(-b --backup-dir "$trash")
 				fi
 			fi
+		fi
+
+		# of course, we exclude the backup destination itself if it is included
+		# into the backup source
+		# e.g. to backup /media directory, we must exclude /user/device/path/to/backups
+		if [[ "$backup_destination" == "$abs_src"* ]] ; then
+
+			# get common path of the backup directory and source
+			common_path="$(get_common_path "$backup_destination" "$abs_src")"
+
+			if [ $? != 0 ] ; then
+				lb_error "Cannot exclude directory backup from $src!"
+				errors+=("$src (exclude error)")
+				lb_exitcode=6
+
+				# continue to next source
+				continue
+			fi
+
+			# get relative exclude directory
+			exclude_backup_dir="${backup_destination#$common_path}"
+
+			if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
+				exclude_backup_dir="/$exclude_backup_dir"
+			fi
+
+			cmd+=(--exclude "$exclude_backup_dir")
 		fi
 
 		# search in source if exclude conf file is set
