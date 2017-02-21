@@ -736,7 +736,7 @@ install_config() {
 		cat "$tmpcrontab" | grep "$crontask" > /dev/null
 		if [ $? != 0 ] ; then
 			# append command to crontab
-			echo -e "\n$crontask" >> "$tmpcrontab"
+			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
 
 			cmd_opt=""
 			if [ -n "$user" ] ; then
