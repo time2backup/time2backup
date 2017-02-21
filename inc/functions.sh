@@ -1186,16 +1186,13 @@ release_lock() {
 #   --no-shutdown  Do not halt PC
 clean_exit() {
 
-	# force shutdown if option from command line
-	if $force_shutdown ; then
-		shutdown=true
-	fi
-
 	# get options
 	while true ; do
 		case "$1" in
 			--no-unmount)
-				unmount=false
+				if ! $force_unmount ; then
+					unmount=false
+				fi
 				shift
 				;;
 			--no-email)

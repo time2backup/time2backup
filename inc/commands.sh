@@ -25,6 +25,7 @@ print_help() {
 			lb_print "Command usage: $1 [OPTIONS]"
 			lb_print "\nPerform backup"
 			lb_print "\nOptions:"
+			lb_print "  -u, --unmount   unmount destination after backup (overrides configuration)"
 			lb_print "  -s, --shutdown  shutdown after backup (overrides configuration)"
 			lb_print "  -p, --planned   perform a planned backup (used in cron jobs)"
 			lb_print "  -h, --help      print help"
@@ -139,8 +140,14 @@ t2b_backup() {
 	# get options
 	while true ; do
 		case $1 in
+			-u|--unmount)
+				force_unmount=true
+				unmount=true
+				shift
+				;;
 			-s|--shutdown)
 				force_shutdown=true
+				shutdown=true
 				shift
 				;;
 			-p|--planned)
