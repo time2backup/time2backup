@@ -88,13 +88,177 @@ print_help() {
 }
 
 
+# Configuration wizard
+# Usage: config_wizard
+config_wizard() {
+
+	# set default destination directory
+	if [ -d "$destination" ] ; then
+		start_path="$destination"
+	else
+		start_path="$lb_current_path"
+	fi
+
+	# get external disk
+	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
+
+		lb_display_debug "Chosen destination: $lbg_choose_directory"
+
+		# get absolute path of the chosen directory
+		lbg_choose_directory="$(lb_realpath "$lbg_choose_directory")"
+
+		# update destination config
+		if [ "$lbg_choose_directory" != "$destination" ] ; then
+			edit_config --set "destination=\"$lbg_choose_directory\"" "$config_file"
+
+			# reset destination variable
+			destination="$lbg_choose_directory"
+		fi
+
+		# set mountpoint in config file
+		mountpoint="$(lb_df_mountpoint "$lbg_choose_directory")"
+		if [ -n "$mountpoint" ] ; then
+			lb_display_debug "Mount point: $mountpoint"
+
+			# update disk mountpoint config
+			if [ "$lbg_choose_directory" != "$backup_disk_mountpoint" ] ; then
+				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
+			fi
+		else
+			lb_error "Could not find mount point of destination."
+		fi
+
+		# set mountpoint in config file
+		disk_uuid="$(lb_df_uuid "$lbg_choose_directory")"
+		if [ -n "$disk_uuid" ] ; then
+			lb_display_debug "Disk UUID: $disk_uuid"
+
+			# update disk UUID config
+			if [ "$lbg_choose_directory" != "$backup_disk_uuid" ] ; then
+				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
+			fi
+		else
+			lb_error "Could not find disk UUID of destination."
+		fi
+
+		# hard links support
+		if $hard_links ; then
+			# test hard links support
+			if ! test_hardlinks ; then
+
+				# NTFS/exFAT case
+				if [ "$(lb_df_fstype "$destination")" == "fuseblk" ] ; then
+					# ask user disk format
+					if lbg_yesno "$tr_ntfs_or_exfat\n$tr_not_sure_say_no" ; then
+						edit_config --set "force_hard_links=true" "$config_file"
+					else
+						edit_config --set "force_hard_links=false" "$config_file"
+					fi
+				else
+					# if forced hard links in older config
+					if $force_hard_links ; then
+						# ask user to keep or not the force mode
+						if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
+							edit_config --set "force_hard_links=false" "$config_file"
+						fi
+					fi
+				fi
+			fi
+		fi
+	else
+		lb_display_debug "Error or cancel when choosing destination directory (exit code: $?)."
+	fi
+
+	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
+		edit_config "$config_sources"
+		if [ $? == 0 ] ; then
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
+			fi
+		fi
+	fi
+
+	# activate recurrent backups
+	if lbg_yesno "$tr_ask_activate_recurrent" ; then
+
+		# choose frequency
+		if lbg_choose_option -l "$tr_choose_backup_frequency" -d 1 "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_hourly" ; then
+			case "$lbg_choose_option" in
+				1)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"daily\"" "$config_file"
+					;;
+				2)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"weekly\"" "$config_file"
+					;;
+				3)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"monthly\"" "$config_file"
+					;;
+				4)
+					edit_config --set "recurrent=true" "$config_file"
+					edit_config --set "frequency=\"hourly\"" "$config_file"
+					;;
+			esac
+		fi
+	fi
+
+	# edit config
+	if lbg_yesno "$tr_ask_edit_config" ; then
+		t2b_config -g
+	fi
+}
+
+
+# First run wizard
+# Usage: first_run
+first_run() {
+	# confirm install
+	if ! lbg_yesno -y "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+		return 0
+	fi
+
+	# create configuration
+	if ! create_config ; then
+		return 3
+	fi
+
+	# load configuration; don't care of errors
+	load_config &> /dev/null
+
+	# install time2backup (create links)
+	t2b_install
+
+	# config wizard
+	config_wizard
+
+	# recheck config
+	if ! install_config ; then
+		lbg_display_error "$tr_errors_in_config"
+		return 2
+	fi
+
+	# ask to first backup
+	if lbg_yesno -y "$tr_ask_first_backup" ; then
+		t2b_backup
+		return $?
+	else
+		lbg_display_info "$tr_info_time2backup_ready"
+	fi
+
+	return 0
+}
+
+
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation
 choose_operation() {
 
 	# display choice
 	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
-		return 1
+		# cancelled
+		return 0
 	fi
 
 	# run command
@@ -114,6 +278,7 @@ choose_operation() {
 			;;
 	esac
 
+	# return command result
 	return $?
 }
 
@@ -121,11 +286,12 @@ choose_operation() {
 # Perform backup
 # Usage: t2b_backup [OPTIONS]
 # Options:
+#   -u, --unmount   unmount after backup (overrides configuration)
 #   -s, --shutdown  shutdown after backup (overrides configuration)
 #   -p, --planned   perform a planned backup
 #   -h, --help      print help
 # Exit codes:
-#   0: history printed
+#   0: backup OK
 #   1: usage error
 #   2: config error
 #   3: no backup found for path
@@ -777,11 +943,11 @@ t2b_backup() {
 #   -q, --quiet  quiet mode: print only backup dates
 #   -h, --help   print help
 # Exit codes:
-#   0: history printed
+#   0: OK
 #   1: usage error
 #   2: config error
-#   3: no backup found for path
-#   4: backup device not reachable
+#   3: backup source is not reachable
+#   4: no backup found for path
 t2b_history() {
 
 	# default options and variables
@@ -819,14 +985,14 @@ t2b_history() {
 		return 1
 	fi
 
-	# load and test configuration
+	# load configuration
 	if ! load_config ; then
 		return 2
 	fi
 
 	# test backup destination
 	if ! prepare_destination ; then
-		return 4
+		return 3
 	fi
 
 	# get file
@@ -837,11 +1003,12 @@ t2b_history() {
 
 	if [ -z "$backup_history" ] ; then
 		lb_error "No backup found for '$file'!"
-		return 3
+		return 4
 	fi
 
+	# verbose result
 	if ! $quietmode ; then
-		echo "$file: ${#file_history[@]} backups"
+		echo "$file: ${#backup_history[@]} backups"
 	fi
 
 	# print backup versions
@@ -853,6 +1020,23 @@ t2b_history() {
 
 # Restore a file
 # Usage: t2b_restore [OPTIONS] [PATH]
+# Options:
+#   -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+#                    by default it restores the last available backup
+#   --directory      path to restore is a directory (not necessary if path exists)
+#                    If deleted or moved, indicate that the chosen path is a directory.
+#   --delete-new     delete newer files if exists for directories (restore exactly the same version)
+#   -f, --force      force restore; do not display confirmation
+#   -h, --help       print help
+# Exit codes:
+#   0: file(s) restored
+#   1: usage error
+#   2: config error
+#   3: backup source is not reachable
+#   4: no backups available for this path
+#   5: no backup found at this date
+#   6: rsync error while restore
+#   7: operation not supported
 t2b_restore() {
 
 	# default options
@@ -906,7 +1090,7 @@ t2b_restore() {
 
 	# test backup destination
 	if ! prepare_destination ; then
-		return 4
+		return 3
 	fi
 
 	# test hard links
@@ -921,7 +1105,7 @@ t2b_restore() {
 	# if no backups, exit
 	if [ ${#backups[@]} == 0 ] ; then
 		lbg_display_error "$tr_no_backups_available"
-		return 3
+		return 4
 	fi
 
 	# if no file specified, go to interactive mode
@@ -1058,7 +1242,7 @@ t2b_restore() {
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
 				lbg_display_error "$tr_path_is_not_backup"
 				lb_error "Restoring ssh/network files is not supported yet."
-				return 6
+				return 7
 			fi
 
 			# absolute path of destination
@@ -1078,7 +1262,7 @@ t2b_restore() {
 	# case of symbolic links
 	if [ -L "$symlink_test" ] ; then
 		lbg_display_error "$tr_cannot_restore_links"
-		return 6
+		return 7
 	fi
 
 	# if it is a directory, add '/' at the end of the path
@@ -1112,7 +1296,7 @@ t2b_restore() {
 				# if date was specified, error
 				if [ "$backup_date" == "$backup" ] ; then
 					lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
-					return 3
+					return 5
 				fi
 			fi
 		fi
@@ -1121,7 +1305,7 @@ t2b_restore() {
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
 		lbg_display_error "$tr_no_backups_for_file"
-		return 3
+		return 4
 	fi
 
 	# if only one backup, no need to choose one
@@ -1168,7 +1352,7 @@ t2b_restore() {
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
 			lbg_display_error "$tr_cannot_restore_from_trash"
-			return 6
+			return 7
 		fi
 	fi
 
@@ -1258,6 +1442,16 @@ t2b_restore() {
 
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]
+#   -g, --general     edit general configuration
+#   -s, --sources     edit sources file (sources to backup)
+#   -x, --excludes    edit excludes file (patterns to ignore)
+#   -i, --includes    edit includes file (patterns to include)
+#   -l, --show        show configuration; do not edit
+#                     display configuration without comments
+#   -t, --test        test configuration; do not edit
+#   -w, --wizard      display configuration wizard instead of edit
+#   -e, --editor BIN  use specified editor (e.g. vim, nano, ...)
+#   -h, --help        print help
 t2b_config() {
 
 	# default values
@@ -1398,6 +1592,8 @@ t2b_config() {
 # Install time2backup
 # Create a link to execute time2backup easely and create default configuration
 # Usage: t2b_install [OPTIONS]
+#   -r, --reset-config  reset configuration files to default"
+#   -h, --help          print help"
 t2b_install() {
 
 	reset_config=false
