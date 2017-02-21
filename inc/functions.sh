@@ -988,8 +988,14 @@ cancel_exit() {
 		fi
 	fi
 
-	# exit with cancel code without shutdown
-	clean_exit --no-shutdown 11
+	# backup mode
+	if [ "$mode" == "backup" ] ; then
+		# exit with cancel code without shutdown
+		clean_exit --no-shutdown 11
+	else
+		# restore mode
+		exit 8
+	fi
 }
 
 

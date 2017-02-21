@@ -1035,8 +1035,10 @@ t2b_history() {
 #   3: backup source is not reachable
 #   4: no backups available for this path
 #   5: no backup found at this date
-#   6: rsync error while restore
-#   7: operation not supported
+#   6: rsync warning while restore
+#   7: rsync critical error
+#   8: restore cancelled
+#   9: operation not supported
 t2b_restore() {
 
 	# default options
@@ -1242,7 +1244,7 @@ t2b_restore() {
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
 				lbg_display_error "$tr_path_is_not_backup"
 				lb_error "Restoring ssh/network files is not supported yet."
-				return 7
+				return 9
 			fi
 
 			# absolute path of destination
@@ -1262,7 +1264,7 @@ t2b_restore() {
 	# case of symbolic links
 	if [ -L "$symlink_test" ] ; then
 		lbg_display_error "$tr_cannot_restore_links"
-		return 7
+		return 9
 	fi
 
 	# if it is a directory, add '/' at the end of the path
@@ -1352,11 +1354,14 @@ t2b_restore() {
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
 			lbg_display_error "$tr_cannot_restore_from_trash"
-			return 7
+			return 9
 		fi
 	fi
 
 	dest="$file"
+
+	# catch term signals
+	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# prepare rsync command
 	rsync_cmd=(rsync -aHv)
@@ -1427,7 +1432,7 @@ t2b_restore() {
 			# rsync error
 			restore_notification="$tr_restore_failed"
 			lb_display_error "$restore_notification"
-			lb_exitcode=5
+			lb_exitcode=6
 			;;
 	esac
 
