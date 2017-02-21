@@ -7,6 +7,11 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+
+######################
+#  GLOBAL FUNCTIONS  #
+######################
+
 # Get common path of 2 paths
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
 # will return /home/user/my/
@@ -125,7 +130,7 @@ get_relative_path() {
 }
 
 
-# Get backup type to check if a backup source is a file or a protocol like ssh, smb, ...
+# Get backup type to check if a backup source is a file or a protocol (ssh, smb, ...)
 # Usage: get_backup_type SOURCE_URL
 # Return: type of source (files/ssh)
 get_backup_type() {
@@ -159,6 +164,9 @@ get_backup_type() {
 # Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
 # Return: backup datetime (format YYYY-MM-DD HH:MM:SS)
 # e.g. 2016-12-31-233059 -> 2016-12-31 23:30:59
+# Exit codes:
+#   0: OK
+#   1: format error
 get_backup_fulldate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
@@ -263,7 +271,11 @@ get_backup_history() {
 
 # Create configuration files in user config
 # Usage: create_config
-# Exit codes: 0 if OK, 1 if cannot create config directory
+# Exit codes:
+#   0: OK
+#   1: could not create config directory
+#   2: could not copy sources config file
+#   3: could not copy global config file
 create_config() {
 
 	# create config directory
@@ -276,9 +288,18 @@ create_config() {
 
 	# copy config samples from current directory
 	cp -f "$script_directory/config/excludes.example.conf" "$config_directory/excludes.conf"
-	cp -f "$script_directory/config/includes.example.conf" "$config_directory/includes.conf"
+
 	cp -f "$script_directory/config/sources.example.conf" "$config_directory/sources.conf"
+	if [ $? != 0 ] ; then
+		lb_error "Cannot create sources file."
+		return 2
+	fi
+
 	cp -f "$script_directory/config/time2backup.example.conf" "$config_directory/time2backup.conf"
+	if [ $? != 0 ] ; then
+		lb_error "Cannot create config file."
+		return 3
+	fi
 }
 
 
@@ -541,12 +562,15 @@ test_hardlinks() {
 
 # Get list of sources to backup
 # Usage: get_sources
+# Return: array of sources
 get_sources() {
+
 	# reset variable
 	sources=()
 
 	# read sources.conf file line by line
 	while read line ; do
+		# append source if line is not a comment
 		if ! lb_is_comment $line ; then
 			sources+=("$line")
 		fi
@@ -554,10 +578,11 @@ get_sources() {
 }
 
 
-# Get all backup dates list
+# Get all backup dates
 # Usage: get_backups
+# Return: dates list (format YYYY-MM-DD-HHMMSS)
 get_backups() {
-	echo $(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" 2> /dev/null)
+	ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" 2> /dev/null
 }
 
 
@@ -606,12 +631,15 @@ rotate_backups() {
 }
 
 
-# Print report of duration from start script to now
+# Print report of duration from start of script to now
 # Usage: report_duration
+# Return: complete report with elapsed time in HH:MM:SS
 report_duration() {
+
 	# calculate
 	duration=$(($(date +%s) - $current_timestamp))
 
+	# print report
 	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
 }
 
@@ -1191,6 +1219,10 @@ clean_exit() {
 
 # Halt PC in 10 seconds
 # Usage: haltpc
+# Exit codes:
+#   0: OK (halted)
+#   1: shutdown command does not exists
+#   2: error in shutdown command
 haltpc() {
 
 	# clear all traps to allow user to cancel countdown
@@ -1214,6 +1246,6 @@ haltpc() {
 	"${shutdown_cmd[@]}"
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Error with shutdown command. PC is still up."
-		return 1
+		return 2
 	fi
 }

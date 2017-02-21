@@ -7,6 +7,10 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+###########
+#  USAGE  #
+###########
+
 # Print help for users in console
 # Usage: print_help [COMMAND] (if empty, print global help)
 print_help() {
@@ -87,6 +91,10 @@ print_help() {
 	esac
 }
 
+
+#############
+#  WIZARDS  #
+#############
 
 # Configuration wizard
 # Usage: config_wizard
@@ -282,6 +290,10 @@ choose_operation() {
 	return $?
 }
 
+
+###################
+#  MAIN COMMANDS  #
+###################
 
 # Perform backup
 # Usage: t2b_backup [OPTIONS]
@@ -1015,6 +1027,8 @@ t2b_history() {
 	for b in ${backup_history[@]} ; do
 		echo "$b"
 	done
+
+	return 0
 }
 
 
