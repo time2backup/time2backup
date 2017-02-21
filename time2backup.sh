@@ -67,6 +67,9 @@ email_report_if_error=false
 exec_before_block=false
 exec_after_block=false
 
+# unmount after backup
+unmount=false
+
 # shutdown after backup
 shutdown=false
 shutdown_cmd=(shutdown -h now)

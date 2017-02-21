@@ -692,10 +692,6 @@ prepare_destination() {
 			# mount disk
 			if mount_destination ; then
 				destok=true
-				# if unmount not set, default behaviour
-				if [ -z "$unmount" ] ; then
-					unmount=true
-				fi
 			fi
 		fi
 	fi
@@ -1227,11 +1223,9 @@ clean_exit() {
 	release_lock
 
 	# unmount destination
-	if [ -n "$unmount" ] ; then
-		if $unmount ; then
-			if ! unmount_destination ; then
-				lbg_display_error --log "$tr_error_unmount"
-			fi
+	if $unmount ; then
+		if ! unmount_destination ; then
+			lbg_display_error --log "$tr_error_unmount"
 		fi
 	fi
 
