@@ -33,11 +33,12 @@ tr_ask_first_backup="Do you want to perform your first backup now?"
 tr_info_time2backup_ready="time2backup is ready!"
 
 # Config mode
-tr_choose_config_file="Choose a configuration file to edit:"
+tr_choose_config_file="Choose file to edit:"
 tr_global_config="General configuration"
 tr_sources_config="Elements to backup"
 tr_excludes_config="Excluded files"
 tr_includes_config="Included files (not used in most cases)"
+tr_run_config_wizard="Run configuration wizard"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups"

@@ -23,7 +23,7 @@ tr_error_getting_homepath_2="Veuillez installer le fichier de configuration manu
 tr_choose_an_operation="Choisissez une opération :"
 tr_backup_files="Sauvegarder les fichiers"
 tr_restore_file="Restaurer un fichier"
-tr_configure_time2backup="Configurer time2backup (anglais)"
+tr_configure_time2backup="Configurer time2backup"
 
 # First run wizard
 tr_confirm_install_1="Voulez-vous installer time2backup ?"
@@ -33,11 +33,12 @@ tr_ask_first_backup="Voulez-vous lancer votre première sauvegarde maintenant ?"
 tr_info_time2backup_ready="time2backup est prêt !"
 
 # Config mode
-tr_choose_config_file="Choisissez un fichier de configuration à éditer :"
-tr_global_config="Configuration générale"
+tr_choose_config_file="Choisissez le fichier à éditer :"
+tr_global_config="Configuration générale (anglais)"
 tr_sources_config="Éléments à sauvegarder"
 tr_excludes_config="Fichiers exclus"
 tr_includes_config="Fichiers inclus (souvent peu utile)"
+tr_run_config_wizard="Lancer l'assistant de configuration"
 
 # Config wizard
 tr_choose_backup_destination="Choisissez le répertoire de destination des sauvegardes"

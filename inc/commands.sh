@@ -1562,7 +1562,7 @@ t2b_config() {
 
 			if $choose_config ; then
 				if ! lbg_choose_option -l "$tr_choose_config_file" \
-			        "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" ; then
+			        "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
 					return 0
 				fi
 
@@ -1578,6 +1578,14 @@ t2b_config() {
 						;;
 					4)
 						file="$config_includes"
+						;;
+					5)
+						config_wizard
+						return $?
+						;;
+					*)
+						# bad choice
+						return 1
 						;;
 				esac
 			fi
