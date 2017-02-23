@@ -480,47 +480,7 @@ t2b_backup() {
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
 	backup_date=$(date +%Y-%m-%d-%H%M%S)
 
-	# get sources to backup
-	get_sources
-
-	# get number of sources to backup
-	nbsrc=${#sources[@]}
-
 	lb_display "time2backup\n"
-
-	# is no sources, exit
-	if [ $nbsrc == 0 ] ; then
-		lb_display_warning "Nothing to backup!"
-		return 3
-	fi
-
-	# test if destination exists
-	if ! prepare_destination ; then
-		return 4
-	fi
-
-	# create destination if not exists
-	mkdir -p "$backup_destination" &> /dev/null
-	if [ $? != 0 ] ; then
-		lb_display_error "Could not create destination at $backup_destination. Please verify your access rights."
-		return 4
-	fi
-
-	# test if destination is writable
-	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	if ! [ -w "$backup_destination" ] ; then
-		lb_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
-		return 4
-	fi
-
-	# test if a backup is running
-	ls "$backup_destination/.lock_"* &> /dev/null
-	if [ $? == 0 ] ; then
-		lb_error "A backup is already running. Abording."
-
-		# exit
-		return 10
-	fi
 
 	# get last backup file
 	last_backup_file="$config_directory/.lastbackup"
@@ -595,6 +555,48 @@ t2b_backup() {
 				lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
 			fi
 		fi
+	fi
+
+	# get sources to backup
+	get_sources
+
+	# get number of sources to backup
+	nbsrc=${#sources[@]}
+
+	# if no sources to backup, exit
+	if [ $nbsrc == 0 ] ; then
+		lbg_display_warning "Nothing to backup!\nConfigure time2backup sources."
+		return 3
+	fi
+
+	# test if destination exists
+	if ! prepare_destination ; then
+		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
+		return 4
+	fi
+
+	# create destination if not exists
+	mkdir -p "$backup_destination" &> /dev/null
+	if [ $? != 0 ] ; then
+		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
+		return 4
+	fi
+
+	# test if destination is writable
+	# must keep this test because if directory exists, the previous mkdir -p command returns no error
+	if ! [ -w "$backup_destination" ] ; then
+		lbg_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
+
+		return 4
+	fi
+
+	# test if a backup is running
+	ls "$backup_destination/.lock_"* &> /dev/null
+	if [ $? == 0 ] ; then
+		lbg_display_error "A backup is already running. Abording."
+
+		# exit
+		return 10
 	fi
 
 	# create lock to avoid duplicates
