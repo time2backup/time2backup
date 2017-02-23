@@ -12,6 +12,7 @@ tr_file="fichier"
 tr_directory="dossier"
 tr_not_sure_say_yes="Si vous n'êtes pas sûr(e), choisissez 'Oui'."
 tr_not_sure_say_no="Si vous n'êtes pas sûr(e), choisissez 'Non'."
+tr_please_retry="Veuillez réessayer."
 
 # Main program
 tr_error_no_rsync_1="rsync n'est pas installé. time2backup ne fonctionnera pas."
@@ -55,6 +56,10 @@ tr_frequency_hourly="toutes les heures"
 tr_frequency_daily="tous les jours"
 tr_frequency_weekly="toutes les semaines"
 tr_frequency_monthly="tous les mois"
+tr_frequency_custom="personnalisé"
+tr_enter_frequency="Entrez une fréquence (h pour heures, d pour jours):"
+tr_frequency_examples="ex: 4h pour 4 heures, 2d pour 2 jours"
+tr_frequency_syntax_error="Il y a une erreur de syntaxe dans votre choix."
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
 
 # Backup

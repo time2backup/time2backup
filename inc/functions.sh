@@ -321,9 +321,14 @@ load_config() {
 	fi
 
 	# get config version
-	config_version="$(cat "$config_file" | grep "time2backup configuration file v" | grep -o [0-9].[0-9].[0-9])"
+	config_version="$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\s]*")"
 	if [ -n "$config_version" ] ; then
-		lb_display_debug --log "Loading config version $config_version"
+		if [ "$config_version" != "version" ] ; then
+			upgrade_config $config_version
+			if [ $? != 0 ] ; then
+				configok=false
+			fi
+		fi
 	else
 		lb_display_warning --log "Cannot get config version."
 	fi
@@ -363,6 +368,26 @@ load_config() {
 
 	# set backup destination
 	backup_destination="$destination/backups/$(hostname)/"
+}
+
+
+# Upgrade configuration
+# Usage: upgrade_config CURRENT_VERSION
+# Exit codes:
+#   0: upgrade OK
+#   1: compatibility error
+upgrade_config() {
+
+	current_version="$*"
+
+	case "$current_version" in
+		*)
+			# other compatible versions: replace version number
+			sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
+			;;
+	esac
+
+	return 0
 }
 
 
@@ -648,59 +673,88 @@ report_duration() {
 # Usage: install_config
 install_config() {
 
+	res_install=0
+
 	echo "Testing configuration..."
 
 	# if config not ok, error
 	if ! load_config ; then
-		return 3
+		return 1
 	fi
 
 	# install cronjob
-	if $recurrent ; then
-		tmpcrontab="$config_directory/crontmp"
-		crontask="* * * * *	\"$current_script\" backup --planned"
+	tmpcrontab="$config_directory/crontmp"
+	crontask="* * * * *	\"$current_script\" backup --planned"
 
-		echo "Install recurrent backup..."
+	echo "Enable recurrent backup..."
 
-		cmd_opt=""
-		if [ -n "$user" ] ; then
-			cmd_opt="-u $user"
-		fi
-
-		crontab -l $cmd_opt > "$tmpcrontab" 2>&1
-		if [ $? != 0 ] ; then
-			# special case for error when no crontab
-			cat "$tmpcrontab" | grep "no crontab for " > /dev/null
-			if [ $? == 0 ] ; then
-				# reset crontab
-				echo > "$tmpcrontab"
-			else
-				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
-				lb_display --log "$crontask"
-				return 3
-			fi
-		fi
-
-		cat "$tmpcrontab" | grep "$crontask" > /dev/null
-		if [ $? != 0 ] ; then
-			# append command to crontab
-			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
-
-			cmd_opt=""
-			if [ -n "$user" ] ; then
-				cmd_opt="-u $user"
-			fi
-
-			crontab $cmd_opt "$tmpcrontab"
-			res=$?
-		fi
-
-		rm -f "$tmpcrontab" &> /dev/null
-
-		return $res
+	crontab_opt=""
+	if [ -n "$user" ] ; then
+		crontab_opt="-u $user"
 	fi
 
-	return 0
+	# check if crontab exists
+	crontab -l $crontab_opt > "$tmpcrontab" 2>&1
+	if [ $? != 0 ] ; then
+		# special case for error when no crontab
+		grep "no crontab for " "$tmpcrontab" > /dev/null
+		if [ $? == 0 ] ; then
+			# reset crontab
+			echo > "$tmpcrontab"
+
+			# if error, delete temporary crontab and exit
+			if [ $? != 0 ] ; then
+				rm -f "$tmpcrontab" &> /dev/null
+				return 2
+			fi
+		else
+			# cannot access to user crontab
+			if $recurrent ; then
+				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
+				lb_display --log "$crontask"
+			fi
+
+			# delete temporary crontab and exit
+			rm -f "$tmpcrontab" &> /dev/null
+			return 2
+		fi
+	fi
+
+	# test if line exists
+	grep "$crontask" "$tmpcrontab" > /dev/null
+
+	# cron task already exists
+	if [ $? == 0 ] ; then
+		# delete if option disabled
+		if ! $recurrent ; then
+			# avoid bugs in sed commands
+			crontask="$(echo "$crontask" | sed 's/\//\\\//g')"
+
+			# delete line
+			sed -i~ "/$crontask/d" "$tmpcrontab"
+			if [ $? != 0 ] ; then
+				res_install=3
+			fi
+
+			rm -f "$tmpcrontab~"
+		fi
+
+	else
+		# cron task does not exists
+		if $recurrent ; then
+			# append command to crontab
+			echo -e "\n$crontask # time2backup recurrent backups" >> "$tmpcrontab"
+		fi
+	fi
+
+	# install new crontab
+	crontab $crontab_opt "$tmpcrontab"
+	res_install=$?
+
+	# delete temporary crontab
+	rm -f "$tmpcrontab" &> /dev/null
+
+	return $res_install
 }
 
 
