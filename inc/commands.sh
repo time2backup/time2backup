@@ -591,10 +591,8 @@ t2b_backup() {
 	fi
 
 	# test if a backup is running
-	ls "$backup_destination/.lock_"* &> /dev/null
-	if [ $? == 0 ] ; then
+	if current_lock &> /dev/null ; then
 		lbg_display_error "A backup is already running. Abording."
-
 		# exit
 		return 10
 	fi
@@ -1111,14 +1109,14 @@ t2b_backup() {
 t2b_history() {
 
 	# default options and variables
-	file_history=()
 	quietmode=false
+	history_opts=""
 
 	# get options
 	while true ; do
 		case $1 in
 			-a|--all)
-				opts="-a "
+				history_opts="-a "
 				shift
 				;;
 			-q|--quiet)
@@ -1159,20 +1157,21 @@ t2b_history() {
 	file="$*"
 
 	# get backup versions of this file
-	backup_history=$(get_backup_history $opts"$file")
+	file_history=($(get_backup_history $history_opts"$file"))
 
-	if [ -z "$backup_history" ] ; then
+	# no backup found
+	if [ ${#file_history[@]} == 0 ] ; then
 		lb_error "No backup found for '$file'!"
 		return 4
 	fi
 
-	# verbose result
+	# complete result (not quiet mode)
 	if ! $quietmode ; then
-		echo "$file: ${#backup_history[@]} backups"
+		echo "$file: ${#file_history[@]} backups"
 	fi
 
 	# print backup versions
-	for b in ${backup_history[@]} ; do
+	for b in ${file_history[@]} ; do
 		echo "$b"
 	done
 

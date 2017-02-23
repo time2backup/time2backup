@@ -229,28 +229,87 @@ get_backup_history() {
 
 	# try to find backup
 	last_inode=""
+	last_symlink_target=""
 	for ((h=${#backups[@]}-1; h>=0; h--)) ; do
-		backup_file="$backup_destination/${backups[$h]}/$abs_file"
+
+		backup_date="${backups[$h]}"
+
+		# check if file/directory exists
+		backup_file="$backup_destination/$backup_date/$abs_file"
+
+		# if file/directory exists,
 		if [ -e "$backup_file" ] ; then
+
+			# check if a backup is currently running
+			if [ "$(current_lock)" == "$backup_date" ] ; then
+				# ignore current backup (if running, it could contain errors)
+				continue
+			fi
+
+			# if all versions, do not compare files and quit
 			if $allversions ; then
-				file_history+=("${backups[$h]}")
+				file_history+=("$backup_date")
 				continue
 			fi
 
-			# if no hardlinks, do not test inodes
+			#  DIRECTORIES
+
+			if [ -d "$backup_file" ] ; then
+
+				# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
+				if [ "${backup_file:${#backup_file}-1}" == "/" ] ; then
+					# return path without the last /
+					backup_dir="${backup_file:0:${#backup_file}-1}"
+				else
+					backup_dir="$backup_file"
+				fi
+
+				backup_file="$backup_dir"
+
+				# if it is really a directory and not a symlink,
+				if ! [ -L "$backup_file" ] ; then
+					# NEW FEATURE TO COME: DETECT DIRECTORY CHANGES
+					# for now, just add it to list
+					file_history+=("$backup_date")
+					continue
+				fi
+			fi
+
+			#  SYMLINKS
+
+			# detect symlinks changes
+			if [ -L "$backup_file" ] ; then
+				symlink_target="$(readlink "$backup_file")"
+
+				if [ "$symlink_target" != "$last_symlink_target" ] ; then
+					file_history+=("$backup_date")
+
+					# save last target to compare to next one
+					last_symlink_target="$symlink_target"
+				fi
+
+				continue
+			fi
+
+			#  REGULAR FILES
+
+			# if no hardlinks, no need to test inodes
 			if ! test_hardlinks ; then
-				file_history+=("${backups[$h]}")
+				file_history+=("$backup_date")
 				continue
 			fi
 
-			# check inodes for version detection
+			# compare inodes to detect different versions
 			if [ "$(lb_detect_os)" == "macOS" ] ; then
 				inode=$(stat -f %i "$backup_file")
 			else
 				inode=$(stat --format %i "$backup_file")
 			fi
+
 			if [ "$inode" != "$last_inode" ] ; then
-				file_history+=("${backups[$h]}")
+				file_history+=("$backup_date")
+
+				# save last inode to compare to next
 				last_inode=$inode
 			fi
 		fi
@@ -258,10 +317,11 @@ get_backup_history() {
 
 	# return file versions
 	if [ ${#file_history[@]} -gt 0 ] ; then
-		for b in ${file_history[@]} ; do
-			echo $b
+		for h in ${file_history[@]} ; do
+			echo "$h"
 		done
 	else
+		# no backups
 		return 2
 	fi
 
@@ -1098,6 +1158,31 @@ cancel_exit() {
 		# restore mode
 		exit 8
 	fi
+}
+
+
+# Test if lock exists
+# Usage: current_lock
+# Return: date of lock, empty if no lock
+# Exit code:
+#   0: lock exists
+#   1: lock does not exists
+#   2: unknown error
+current_lock() {
+
+	# get lock file
+	blf=$(ls "$backup_destination/.lock_"* 2> /dev/null)
+	if [ $? != 0 ] ; then
+		return 1
+	fi
+
+	# print date of lock
+	basename "$blf" | sed 's/^.lock_//'
+	if [ $? != 0 ] ; then
+		return 2
+	fi
+
+	return 0
 }
 
 
