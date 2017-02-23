@@ -7,6 +7,9 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+# Dates formatting
+tr_readable_date="%d/%m/%Y à %H:%M:%S"
+
 # Global
 tr_file="fichier"
 tr_directory="dossier"

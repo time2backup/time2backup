@@ -1209,8 +1209,7 @@ t2b_restore() {
 	# default options
 	backup_date="latest"
 	forcemode=false
-	choose_file=false
-	interactive=true
+	choose_date=true
 	directorymode=false
 	restore_moved=false
 	delete_newer_files=false
@@ -1220,7 +1219,7 @@ t2b_restore() {
 		case $1 in
 			-d|--date)
 				backup_date="$2"
-				interactive=false
+				choose_date=false
 				shift 2
 				;;
 			--directory)
@@ -1391,7 +1390,7 @@ t2b_restore() {
 				return 1
 			fi
 
-			interactive=false
+			choose_date=false
 
 			# if it is a directory, add '/' at the end of the path
 			if [ -d "$file" ] ; then
@@ -1438,7 +1437,7 @@ t2b_restore() {
 	fi
 
 	# get all versions of the file/directory
-	file_history=($(get_backup_history -q "$file"))
+	file_history=($(get_backup_history "$file"))
 
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
@@ -1457,9 +1456,19 @@ t2b_restore() {
 
 	# if only one backup, no need to choose one
 	if [ ${#file_history[@]} -gt 1 ] ; then
+
 		# if interactive mode, prompt user to choose a backup date
-		if $interactive ; then
-			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${file_history[@]}"
+		if $choose_date ; then
+
+			# change dates to a user-friendly format
+			history_dates=(${file_history[@]})
+
+			for ((i=0; i<${#file_history[@]}; i++)) ; do
+				history_dates[$i]=$(get_backup_fulldate "${file_history[$i]}")
+			done
+
+			# choose backup date
+			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
 			case $? in
 				0)
 					# continue

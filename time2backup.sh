@@ -31,8 +31,6 @@ report_details=""
 default_verbose_level="INFO"
 default_log_level="INFO"
 backup_lock=""
-current_timestamp=$(date +%s)
-current_date=$(date '+%Y-%m-%d at %H:%M:%S')
 force_unmount=false
 force_shutdown=false
 

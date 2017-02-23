@@ -177,8 +177,20 @@ get_backup_fulldate() {
 		return 1
 	fi
 
-	# return date at format YYYY-MM-DD HH:MM:SS
-	echo ${1:0:10} ${1:11:2}:${1:13:2}:${1:15:2}
+	# get date details
+	byear="${1:0:4}"
+	bmonth="${1:5:2}"
+	bday="${1:8:2}"
+	bhour="${1:11:2}"
+	bmin="${1:13:2}"
+	bsec="${1:15:2}"
+
+	# return date formatted for languages
+	if [ "$(lb_detect_os)" == "macOS" ] ; then
+		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
+	else
+		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
+	fi
 }
 
 
