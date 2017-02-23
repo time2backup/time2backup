@@ -98,6 +98,9 @@ print_help() {
 
 # Configuration wizard
 # Usage: config_wizard
+# Exit codes:
+#   0: OK
+#   1: no destination chosen
 config_wizard() {
 
 	# set default destination directory
@@ -118,9 +121,12 @@ config_wizard() {
 		# update destination config
 		if [ "$lbg_choose_directory" != "$destination" ] ; then
 			edit_config --set "destination=\"$lbg_choose_directory\"" "$config_file"
-
-			# reset destination variable
-			destination="$lbg_choose_directory"
+			if [ $? == 0 ] ; then
+				# reset destination variable
+				destination="$lbg_choose_directory"
+			else
+				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
+			fi
 		fi
 
 		# set mountpoint in config file
@@ -130,7 +136,13 @@ config_wizard() {
 
 			# update disk mountpoint config
 			if [ "$lbg_choose_directory" != "$backup_disk_mountpoint" ] ; then
+
 				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
+				fi
 			fi
 		else
 			lb_error "Could not find mount point of destination."
@@ -144,6 +156,11 @@ config_wizard() {
 			# update disk UUID config
 			if [ "$lbg_choose_directory" != "$backup_disk_uuid" ] ; then
 				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
+				fi
 			fi
 		else
 			lb_error "Could not find disk UUID of destination."
@@ -156,33 +173,63 @@ config_wizard() {
 
 				# NTFS/exFAT case
 				if [ "$(lb_df_fstype "$destination")" == "fuseblk" ] ; then
+
+					fhl="false"
+
 					# ask user disk format
 					if lbg_yesno "$tr_ntfs_or_exfat\n$tr_not_sure_say_no" ; then
-						edit_config --set "force_hard_links=true" "$config_file"
-					else
-						edit_config --set "force_hard_links=false" "$config_file"
+						fhl="true"
 					fi
+
+					# set config
+					edit_config --set "force_hard_links=$fhl" "$config_file"
+
+					res_edit=$?
+					if [ $res_edit != 0 ] ; then
+						lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
+					fi
+
 				else
 					# if forced hard links in older config
 					if $force_hard_links ; then
 						# ask user to keep or not the force mode
 						if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
+
+							# set config
 							edit_config --set "force_hard_links=false" "$config_file"
+
+							res_edit=$?
+							if [ $res_edit != 0 ] ; then
+								lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
+							fi
 						fi
 					fi
 				fi
 			fi
 		fi
 	else
-		lb_display_debug "Error or cancel when choosing destination directory (exit code: $?)."
+		lb_display_debug "Error or cancel when choosing destination directory (result code: $?)."
+
+		# if no destination set, return error
+		if [ -z "$destination" ] ; then
+			return 1
+		fi
 	fi
 
+	# edit sources to backup
 	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
+
 		edit_config "$config_sources"
-		if [ $? == 0 ] ; then
+
+		# manage result
+		res_edit=$?
+		if [ $res_edit == 0 ] ; then
+			# display window to wait until user has finished
 			if ! $consolemode ; then
 				lbg_display_info "$tr_finished_edit"
 			fi
+		else
+			lb_error "Error in editing sources config file (result code: $res_edit)"
 		fi
 	fi
 
@@ -191,30 +238,37 @@ config_wizard() {
 
 		# choose frequency
 		if lbg_choose_option -l "$tr_choose_backup_frequency" -d 1 "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_hourly" ; then
+
+			# enable recurrence in config
+			edit_config --set "recurrent=true" "$config_file"
+			res_edit=$?
+			if [ $res_edit != 0 ] ; then
+				lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
+			fi
+
+			# set recurrence frequency
 			case "$lbg_choose_option" in
 				1)
-					edit_config --set "recurrent=true" "$config_file"
 					edit_config --set "frequency=\"daily\"" "$config_file"
 					;;
 				2)
-					edit_config --set "recurrent=true" "$config_file"
 					edit_config --set "frequency=\"weekly\"" "$config_file"
 					;;
 				3)
-					edit_config --set "recurrent=true" "$config_file"
 					edit_config --set "frequency=\"monthly\"" "$config_file"
 					;;
 				4)
-					edit_config --set "recurrent=true" "$config_file"
 					edit_config --set "frequency=\"hourly\"" "$config_file"
 					;;
 			esac
-		fi
-	fi
 
-	# edit config
-	if lbg_yesno "$tr_ask_edit_config" ; then
-		t2b_config -g
+			res_edit=$?
+			if [ $res_edit != 0 ] ; then
+				lb_error "Error in setting config parameter frequency (result code: $res_edit)"
+			fi
+		else
+			lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
+		fi
 	fi
 }
 
@@ -240,6 +294,18 @@ first_run() {
 
 	# config wizard
 	config_wizard
+
+	# ask to edit config
+	if lbg_yesno "$tr_ask_edit_config" ; then
+
+		edit_config "$config_file"
+		if [ $? == 0 ] ; then
+			# display window to wait until user has finished
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
+			fi
+		fi
+	fi
 
 	# recheck config
 	if ! install_config ; then
@@ -1537,6 +1603,11 @@ t2b_config() {
 
 			# run config wizard
 			config_wizard
+
+			# config is not OK (missing destination)
+			if [ $? != 0 ] ; then
+				return 3
+			fi
 			;;
 		show)
 			# get sources is a special case to print list without comments
@@ -1597,10 +1668,6 @@ t2b_config() {
 
 			if [ $result_config != 0 ] ; then
 				return $result_config
-			fi
-
-			if ! $consolemode ; then
-				lbg_display_info "$tr_finished_edit"
 			fi
 			;;
 	esac

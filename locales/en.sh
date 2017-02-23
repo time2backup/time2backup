@@ -41,7 +41,9 @@ tr_includes_config="Included files (not used in most cases)"
 tr_run_config_wizard="Run configuration wizard"
 
 # Config wizard
-tr_choose_backup_destination="Choose a destination for backups"
+tr_choose_backup_destination="Choose a destination for backups:"
+tr_error_set_destination="Error while setting destination."
+tr_edit_config_manually="Please edit configuration file manually."
 tr_force_hard_links_confirm="Previously you choosed to force using hard links. Keep this choice?"
 tr_ntfs_or_exfat="Is your backup destination volume formatted in NTFS?"
 tr_ask_edit_sources="Do you want to choose which elements will be backuped?"
