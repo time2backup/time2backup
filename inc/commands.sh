@@ -734,8 +734,11 @@ t2b_backup() {
 			ssh)
 				source_ssh=true
 				source_network=true
-				# do not include protocol
+
+				# do not include protocol in absolute path
 				abs_src="${src:6}"
+
+				# get full backup path
 				path_dest="$(get_backup_path "$src")"
 				;;
 			*)
@@ -772,6 +775,7 @@ t2b_backup() {
 					continue
 				fi
 
+				# get backup path
 				path_dest="$(get_backup_path "$abs_src")"
 				;;
 		esac
@@ -1204,7 +1208,6 @@ t2b_restore() {
 
 	# default options
 	backup_date="latest"
-	file_history=()
 	forcemode=false
 	choose_file=false
 	interactive=true
@@ -1374,9 +1377,6 @@ t2b_restore() {
 				return 1
 			fi
 
-			# save path as source
-			src="$file"
-
 			# remove destination path prefix
 			file="${file#$backup_destination}"
 			# remove slashes
@@ -1416,14 +1416,8 @@ t2b_restore() {
 		file="$*"
 	fi
 
-	if [ -n "$src" ] ; then
-		symlink_test="$src"
-	else
-		symlink_test="$file"
-	fi
-
 	# case of symbolic links
-	if [ -L "$symlink_test" ] ; then
+	if [ -L "$file" ] ; then
 		lbg_display_error "$tr_cannot_restore_links"
 		return 9
 	fi
@@ -1443,27 +1437,8 @@ t2b_restore() {
 		return 1
 	fi
 
-	# find last backup of the file
-	for ((j=${#backups[@]}-1; j>=0; j--)) ; do
-		backup="${backups[$j]}"
-		backup_file="$backup_destination/$backup/$backup_file_path"
-
-		# if backup found,
-		if [ -e "$backup_file" ] ; then
-			# add backup to the list of backups
-			file_history+=("${backups[$j]}")
-			lb_display_debug "Found backup: ${backups[$j]}"
-		else
-			# if no backup at this date,
-			if [ "$backup_date" != "latest" ] ; then
-				# if date was specified, error
-				if [ "$backup_date" == "$backup" ] ; then
-					lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
-					return 5
-				fi
-			fi
-		fi
-	done
+	# get all versions of the file/directory
+	file_history=($(get_backup_history -q "$file"))
 
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
@@ -1471,10 +1446,17 @@ t2b_restore() {
 		return 4
 	fi
 
+	# search for dates
+	if [ "$backup_date" != "latest" ] ; then
+		# if date was specified but not here, error
+		if ! lb_array_contains "$backup_date" "${file_history[@]}" ; then
+			lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
+			return 5
+		fi
+	fi
+
 	# if only one backup, no need to choose one
-	if [ ${#file_history[@]} == 1 ] ; then
-		backup_date="latest"
-	else
+	if [ ${#file_history[@]} -gt 1 ] ; then
 		# if interactive mode, prompt user to choose a backup date
 		if $interactive ; then
 			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${file_history[@]}"
@@ -1493,15 +1475,17 @@ t2b_restore() {
 					;;
 			esac
 
+			# get chosen backup (= chosen ID - 1 because array ID starts from 0)
 			backup_date=${file_history[$(($lbg_choose_option - 1))]}
 		fi
 	fi
 
-	# if no backup date specified, use most recent
+	# if latest backup wanted, get most recent date
 	if [ "$backup_date" == "latest" ] ; then
 		backup_date=${file_history[0]}
 	fi
 
+	# set backup source for restore command
 	src="$backup_destination/$backup_date/$backup_file_path"
 
 	# if source is a directory
