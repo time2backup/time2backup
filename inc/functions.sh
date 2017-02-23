@@ -731,7 +731,7 @@ install_config() {
 			crontask="$(echo "$crontask" | sed 's/\//\\\//g')"
 
 			# delete line
-			sed -i~ "/$crontask/d" "$tmpcrontab"
+			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
 			if [ $? != 0 ] ; then
 				res_install=3
 			fi
@@ -743,7 +743,7 @@ install_config() {
 		# cron task does not exists
 		if $recurrent ; then
 			# append command to crontab
-			echo -e "\n$crontask # time2backup recurrent backups" >> "$tmpcrontab"
+			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
 		fi
 	fi
 
@@ -898,6 +898,26 @@ clean_empty_directories() {
 		# if not empty, quit loop
 		return 0
 	done
+
+	return 0
+}
+
+
+# Save last backup timestamp
+# Usage: save_backup_date
+# Exit codes:
+#   0: OK
+#   1: write failed
+save_backup_date() {
+
+	lb_display_debug --log "Save backup timestamp"
+
+	# save current timestamp into file
+	date '+%s' > "$last_backup_file"
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
+		return 1
+	fi
 
 	return 0
 }

@@ -293,7 +293,7 @@ config_wizard() {
 						monthly)
 							frequency="30d"
 							;;
-						*)
+						"")
 							# default is 24h
 							frequency="24h"
 							;;
@@ -486,6 +486,8 @@ t2b_backup() {
 	# get number of sources to backup
 	nbsrc=${#sources[@]}
 
+	lb_display "time2backup\n"
+
 	# is no sources, exit
 	if [ $nbsrc == 0 ] ; then
 		lb_display_warning "Nothing to backup!"
@@ -516,11 +518,83 @@ t2b_backup() {
 	if [ $? == 0 ] ; then
 		lb_error "A backup is already running. Abording."
 
-		# delete backup lock
-		release_lock
-
 		# exit
 		return 10
+	fi
+
+	# get last backup file
+	last_backup_file="$config_directory/.lastbackup"
+
+	# if file does not exist, create it
+	touch "$last_backup_file"
+	if [ $? != 0 ] ; then
+		lb_display_error "Cannot create last backup! Verify your right access on config directory."
+	fi
+
+	# get last backup timestamp
+	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -o -E "^[1-9][0-9]*$")
+
+	# if planned, check frequency
+	if $planned_backup ; then
+
+		# if cannot get last timestamp, cancel (avoid to backup every minute)
+		if ! [ -w "$last_backup_file" ] ; then
+			lb_display_error "Cannot get/save the last backup timestamp."
+			return 11
+		fi
+
+		# compare timestamps
+		if [ -n "$last_backup_timestamp" ] ; then
+			# convert frequency in seconds
+			case "$frequency" in
+				hourly)
+					seconds_offset=3600
+					;;
+				""|daily)
+					seconds_offset=86400
+					;;
+				weekly)
+					seconds_offset=604800
+					;;
+				monthly)
+					seconds_offset=18144000
+					;;
+				*)
+					# custom
+					case "${frequency:${#frequency}-1}" in
+						m)
+							fqunit=60
+							;;
+						h)
+							fqunit=3600
+							;;
+						*)
+							fqunit=86400
+							;;
+					esac
+
+					fqnum=$(echo $frequency | grep -o -E "^[0-9]*")
+
+					# set offset
+					seconds_offset=$(( $fqnum * $fqunit))
+					;;
+			esac
+
+			# test if delay is passed
+			test_timestamp=$(($current_timestamp - $last_backup_timestamp))
+
+			if [ $test_timestamp -gt 0 ] ; then
+				if [ $test_timestamp -le $seconds_offset ] ; then
+					lb_display_debug "Last backup was done at $last_backup_timestamp, we are now $current_timestamp (backup every $seconds_offset)"
+					lb_display_info "Planned backup: no need to backup."
+
+					# exit without email or shutdown or delete log (does not exists)
+					return 0
+				fi
+			else
+				lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
+			fi
+		fi
 	fi
 
 	# create lock to avoid duplicates
@@ -529,82 +603,6 @@ t2b_backup() {
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
-
-	# get old backups
-	backups=($(get_backups))
-
-	# if planned, check frequency
-	if $planned_backup ; then
-
-		# get last backup date
-		last_backup_date=$(get_backup_fulldate ${backups[-1]})
-
-		# if not found, continue; if found, check frequency
-		if [ -n "$last_backup_date" ] ; then
-
-			# get last backup timestamp
-			if [ "$(lb_detect_os)" == "macOS" ] ; then
-				last_backup_timestamp=$(date -j -f "%Y-%m-%d %H:%M:%S" "$last_backup_date" "+%s")
-			else
-				last_backup_timestamp=$(date -d "$last_backup_date" +%s)
-			fi
-
-			if [ -z "$last_backup_timestamp" ] ; then
-				lb_display_error "Error in last backup timestamp."
-				lb_display_debug "Continue backup..."
-			else
-				# convert frequency in seconds
-				case "$frequency" in
-					hourly)
-						seconds_offset=3600
-						;;
-					""|daily)
-						seconds_offset=86400
-						;;
-					weekly)
-						seconds_offset=604800
-						;;
-					monthly)
-						seconds_offset=18144000
-						;;
-					*)
-						# custom
-						case "${frequency:${#frequency}-1}" in
-							m)
-								fqunit=60
-								;;
-							h)
-								fqunit=3600
-								;;
-							*)
-								fqunit=86400
-								;;
-						esac
-
-						fqnum=$(echo $frequency | grep -o -E "^[0-9]*")
-
-						# set offset
-						seconds_offset=$(( $fqnum * $fqunit))
-						;;
-				esac
-
-				# test if delay is passed
-				test_timestamp=$(($current_timestamp - $last_backup_timestamp))
-
-				if [ $test_timestamp -gt 0 ] ; then
-					if [ $test_timestamp -le $seconds_offset ] ; then
-						lb_display_debug "Last backup was done at $last_backup_date, we are now $(date '+%Y-%m-%d %H:%M:%S')"
-						lb_display_info "Planned backup: no need to backup."
-
-						# exit without email or shutdown or delete log (does not exists)
-						return 0
-					fi
-				else
-					lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
-				fi
-			fi
-		fi
-	fi
 
 	# set log file directory
 	if [ -z "$logs_directory" ] ; then
@@ -629,7 +627,6 @@ t2b_backup() {
 		clean_exit --no-rmlog --no-shutdown 4
 	fi
 
-	lb_display --log "time2backup\n"
 	lb_display --log "Backup started on $current_date\n"
 
 
@@ -732,6 +729,7 @@ t2b_backup() {
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/$nbsrc)\n"
 
+		# get backup type (normal, ssh, network shares, ...)
 		case $(get_backup_type "$src") in
 			ssh)
 				source_ssh=true
@@ -991,13 +989,18 @@ t2b_backup() {
 		res=${PIPESTATUS[0]}
 		case $res in
 			0|24)
-				# ignoring vanished files in transfer
+				# backup succeeded
+				# (ignoring vanished files in transfer)
 				success+=("$src")
+
+				save_backup_date
 				;;
 			1|2|3|4|5|6)
 				# critical errors that caused backup to fail
 				errors+=("$src (backup failed; code: $res)")
 				lb_exitcode=6
+
+				save_backup_date
 				;;
 			*)
 				# considering any other rsync error as not critical
