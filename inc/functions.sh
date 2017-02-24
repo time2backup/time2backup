@@ -553,35 +553,45 @@ mount_destination() {
 # Usage: unmount_destination
 # Exit codes:
 #   0: OK
-#   1: umount error
-#   2: cannot delete mountpoint
+#   1: cannot get destination mountpoint
+#   2: umount error
+#   3: cannot delete mountpoint
 unmount_destination() {
 
 	lb_display --log "Unmount destination..."
-	umount "$destination" &> /dev/null
 
-	# if failed, try in sudo mode
+	destination_mountpoint="$(lb_df_mountpoint "$destination")"
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Try with sudo..."
-		sudo umount "$destination" &> /dev/null
-
-		if [ $? != 0 ] ; then
-			lb_display --log "...Failed!"
-			return 1
-		fi
+		lb_display_error "Cannot get mountpoint of $destination"
+		return 1
 	fi
 
-	lb_display_debug --log "Delete mount point..."
-	rmdir "$destination" &> /dev/null
+	lb_display_debug umount "$destination_mountpoint"
+
+	umount "$destination_mountpoint" &> /dev/null
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
 		lb_display_debug --log "...Failed! Try with sudo..."
-		sudo rmdir "$destination" &> /dev/null
+		sudo umount "$destination_mountpoint" &> /dev/null
 
 		if [ $? != 0 ] ; then
 			lb_display --log "...Failed!"
 			return 2
+		fi
+	fi
+
+	lb_display_debug --log "Delete mount point..."
+	rmdir "$destination_mountpoint" &> /dev/null
+
+	# if failed, try in sudo mode
+	if [ $? != 0 ] ; then
+		lb_display_debug --log "...Failed! Try with sudo..."
+		sudo rmdir "$destination_mountpoint" &> /dev/null
+
+		if [ $? != 0 ] ; then
+			lb_display --log "...Failed!"
+			return 3
 		fi
 	fi
 
@@ -871,8 +881,7 @@ prepare_destination() {
 
 	# error message if destination not ready
 	if ! $destok ; then
-		lb_display --log "Backup destination is not reachable."
-		lb_display --log "Verify if your media is plugged in and try again."
+		lb_display --log "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
 		return 1
 	fi
 
@@ -1283,6 +1292,10 @@ clean_exit() {
 	# delete backup lock
 	release_lock
 
+	# clear all traps to avoid infinite loop if following commands takes some time
+	trap - 1 2 3 15
+	trap
+
 	# unmount destination
 	if $unmount ; then
 		if ! unmount_destination ; then
@@ -1395,7 +1408,9 @@ clean_exit() {
 
 	# if shutdown after backup, execute it
 	if $shutdown ; then
-		haltpc
+		if ! haltpc ; then
+			lb_exitcode=14
+		fi
 	fi
 
 	if $debugmode ; then
@@ -1415,10 +1430,6 @@ clean_exit() {
 #   2: error in shutdown command
 haltpc() {
 
-	# clear all traps to allow user to cancel countdown
-	trap - 1 2 3 15
-	trap
-
 	# test shutdown command
 	if ! lb_command_exists "${shutdown_cmd[0]}" ; then
 		lb_display_error --log "No shutdown command found. PC will not halt."
@@ -1432,10 +1443,13 @@ haltpc() {
 		sleep 1
 	done
 
-	# shutdown
+	# just do a line return
+	echo
+
+	# run shutdown command
 	"${shutdown_cmd[@]}"
 	if [ $? != 0 ] ; then
-		lb_display_error --log "Error with shutdown command. PC is still up."
+		lb_display_error "Error with shutdown command. PC is still up."
 		return 2
 	fi
 }

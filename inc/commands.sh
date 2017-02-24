@@ -484,6 +484,18 @@ t2b_backup() {
 
 	lb_display "time2backup\n"
 
+	# get sources to backup
+	get_sources
+
+	# get number of sources to backup
+	nbsrc=${#sources[@]}
+
+	# if no sources to backup, exit
+	if [ $nbsrc == 0 ] ; then
+		lbg_display_warning "Nothing to backup!\nPlease configure time2backup sources."
+		return 3
+	fi
+
 	# get last backup file
 	last_backup_file="$config_directory/.lastbackup"
 
@@ -565,21 +577,33 @@ t2b_backup() {
 		fi
 	fi
 
-	# get sources to backup
-	get_sources
-
-	# get number of sources to backup
-	nbsrc=${#sources[@]}
-
-	# if no sources to backup, exit
-	if [ $nbsrc == 0 ] ; then
-		lbg_display_warning "Nothing to backup!\nConfigure time2backup sources."
-		return 3
+	# execute before backup command/script
+	if [ ${#exec_before[@]} -gt 0 ] ; then
+		# test command/script
+		if lb_command_exists "${exec_before[0]}" ; then
+			"${exec_before[@]}"
+			# if error
+			if [ $? != 0 ] ; then
+				lb_exitcode=8
+				if $exec_before_block ; then
+					lb_display_debug --log "Before script exited with error."
+					clean_exit
+				fi
+			fi
+		else
+			lb_error "Error: cannot run command $exec_before"
+			lb_exitcode=8
+			if $exec_before_block ; then
+				clean_exit
+			fi
+		fi
 	fi
 
 	# test if destination exists
 	if ! prepare_destination ; then
-		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
+		if ! $planned_backup ; then
+			lbg_display_error "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
+		fi
 		return 4
 	fi
 
@@ -636,29 +660,6 @@ t2b_backup() {
 	fi
 
 	lb_display --log "Backup started on $current_date\n"
-
-
-	# execute before backup command/script
-	if [ ${#exec_before[@]} -gt 0 ] ; then
-		# test command/script
-		if lb_command_exists "${exec_before[0]}" ; then
-			"${exec_before[@]}"
-			# if error
-			if [ $? != 0 ] ; then
-				lb_exitcode=8
-				if $exec_before_block ; then
-					lb_display_debug --log "Before script exited with error."
-					clean_exit
-				fi
-			fi
-		else
-			lb_error "Error: cannot run command $exec_before"
-			lb_exitcode=8
-			if $exec_before_block ; then
-				clean_exit
-			fi
-		fi
-	fi
 
 	# if keep limit to 0, we are in mirror mode
 	if [ $keep_limit == 0 ] ; then
