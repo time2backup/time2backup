@@ -359,18 +359,24 @@ create_config() {
 	fi
 
 	# copy config samples from current directory
-	cp -f "$script_directory/config/excludes.example.conf" "$config_directory/excludes.conf"
-
-	cp -f "$script_directory/config/sources.example.conf" "$config_directory/sources.conf"
-	if [ $? != 0 ] ; then
-		lb_error "Cannot create sources file."
-		return 2
+	if ! [ -f "$config_excludes" ] ; then
+		cp -f "$script_directory/config/excludes.example.conf" "$config_excludes"
 	fi
 
-	cp -f "$script_directory/config/time2backup.example.conf" "$config_directory/time2backup.conf"
-	if [ $? != 0 ] ; then
-		lb_error "Cannot create config file."
-		return 3
+	if ! [ -f "$config_sources" ] ; then
+		cp -f "$script_directory/config/sources.example.conf" "$config_sources"
+		if [ $? != 0 ] ; then
+			lb_error "Cannot create sources file."
+			return 2
+		fi
+	fi
+
+	if ! [ -f "$config_file" ] ; then
+		cp -f "$script_directory/config/time2backup.example.conf" "$config_file"
+		if [ $? != 0 ] ; then
+			lb_error "Cannot create config file."
+			return 3
+		fi
 	fi
 }
 

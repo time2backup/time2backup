@@ -260,11 +260,8 @@ config_sources="$config_directory/sources.conf"
 config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
-# if debug mode, log and display everything (no level limit)
-if $debugmode ; then
-	lb_display_debug "Running in DEBUG mode...\n"
-else
-	# defines log level
+# defines log level
+if ! $debugmode ; then
 	# if not set (unknown error), set to default level
 	if ! lb_set_loglevel "$log_level" ; then
 		lb_set_loglevel "$default_log_level"
@@ -277,9 +274,21 @@ else
 	fi
 fi
 
-# if configuration file does not exists,
-if ! [ -f "$config_file" ] ; then
-	# execute first run wizard and exit
+lb_display_debug "Running in DEBUG mode...\n"
+lb_display_debug "Config file: $config_file"
+
+# config initialization
+if ! create_config ; then
+	lbg_display_error "Cannot create config files!"
+	exit 3
+fi
+
+# load configuration; don't care of errors
+load_config &> /dev/null
+
+# if configuration is not set (destination empty),
+# run first wizard and exit
+if [ -z "$destination" ] ; then
 	first_run
 	exit $?
 fi

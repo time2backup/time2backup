@@ -394,9 +394,11 @@ choose_operation() {
 	# run command
 	case $lbg_choose_option in
 		1)
+			mode="backup"
 			t2b_backup
 			;;
 		2)
+			mode="restore"
 			t2b_restore
 			;;
 		3)
@@ -912,6 +914,12 @@ t2b_backup() {
 
 		lb_display --log "Testing rsync..."
 
+		if $notifications ; then
+			if [ $s == 0 ] ; then
+				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
+			fi
+		fi
+
 		# test rsync and space available for backup
 		if ! test_backup ; then
 			lb_display --log "Error in your rsync syntax."
@@ -979,12 +987,6 @@ t2b_backup() {
 		fi
 
 		lb_display_debug --log "Executing: ${cmd[@]}\n"
-
-		if $notifications ; then
-			if [ $s == 0 ] ; then
-				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
-			fi
-		fi
 
 		# execute rsync command, print into terminal and logfile
 		"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -1828,10 +1830,17 @@ EOF
 
 	# reset configuration
 	if $reset_config ; then
-		rm -f "$config_directory/time2backup.conf"
 
-		if ! create_config ; then
-			lb_exitcode=2
+		# confirm reset
+		if lbg_yesno "Are you sure you want to reset config?" ; then
+			rm -f "$config_file"
+			rm -f "$config_sources"
+			rm -f "$config_excludes"
+			rm -f "$config_includes"
+
+			if ! create_config ; then
+				lb_exitcode=2
+			fi
 		fi
 	fi
 
