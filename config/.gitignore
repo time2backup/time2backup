@@ -1,3 +1,5 @@
+*~
 excludes.conf
 sources.conf
 time2backup.conf
+.lastbackup
