@@ -333,7 +333,7 @@ config_wizard() {
 # Usage: first_run
 first_run() {
 	# confirm install
-	if ! lbg_yesno -y "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+	if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
 		return 0
 	fi
 
