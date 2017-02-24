@@ -1194,15 +1194,33 @@ t2b_history() {
 		return 4
 	fi
 
-	# complete result (not quiet mode)
-	if ! $quietmode ; then
-		echo "$file: ${#file_history[@]} backups"
-	fi
-
 	# print backup versions
 	for b in ${file_history[@]} ; do
-		echo "$b"
+		# quiet mode: just print the version
+		if $quietmode ; then
+			echo "$b"
+		else
+			# complete result: print details
+			abs_file="$(get_backup_path "$file")"
+			if [ -z "$abs_file" ] ; then
+				continue
+			fi
+
+			# get backup file
+			backup_file="$backup_destination/$b/$abs_file"
+
+			# print details of file/directory
+			echo
+			echo "$b:"
+			ls -l "$backup_file" 2> /dev/null
+		fi
 	done
+
+	# complete result (not quiet mode)
+	if ! $quietmode ; then
+		echo
+		echo "${#file_history[@]} backups found for $file"
+	fi
 
 	return 0
 }

@@ -20,7 +20,6 @@
 
 version="1.0.0-beta.6"
 
-config_version=""
 portable_mode=false
 user=""
 sources=()
