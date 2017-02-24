@@ -424,7 +424,7 @@ choose_operation() {
 ###################
 
 # Perform backup
-# Usage: t2b_backup [OPTIONS]
+# Usage: t2b_backup [OPTIONS] [PATH]
 # Options:
 #   -u, --unmount   unmount after backup (overrides configuration)
 #   -s, --shutdown  shutdown after backup (overrides configuration)
@@ -443,9 +443,16 @@ t2b_backup() {
 	source_ssh=false
 	source_network=false
 
+	# get current date
+	current_timestamp=$(date +%s)
+	current_date=$(date '+%Y-%m-%d at %H:%M:%S')
+
+	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
+	backup_date=$(date +%Y-%m-%d-%H%M%S)
+
 	# get options
 	while true ; do
-		case $1 in
+		case "$1" in
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
@@ -474,22 +481,22 @@ t2b_backup() {
 		esac
 	done
 
+	# specified source
+	if [ $# -gt 0 ] ; then
+		sources=("$*")
+	fi
+
 	# load and test configuration
 	if ! load_config ; then
 		return 2
 	fi
 
-	# get current date
-	current_timestamp=$(date +%s)
-	current_date=$(date '+%Y-%m-%d at %H:%M:%S')
-
-	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backup_date=$(date +%Y-%m-%d-%H%M%S)
-
 	lb_display "time2backup\n"
 
-	# get sources to backup
-	get_sources
+	# if not specified, get sources to backup
+	if [ ${#sources[@]} == 0 ] ; then
+		get_sources
+	fi
 
 	# get number of sources to backup
 	nbsrc=${#sources[@]}
