@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0 (2017-02-20)                          #
+#  Version 1.0.0-beta.6 (2017-02-24)                   #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-beta.5"
+version="1.0.0-beta.6"
 
 config_version=""
 portable_mode=false
@@ -251,7 +251,7 @@ fi
 if [ -z "$config_file" ] ; then
 
 	if $portable_mode ; then
-		config_directory="$lb_current_script_directory/config/"
+		config_directory="$script_directory/config/"
 	else
 		config_directory="$(lb_homepath $user)/.config/time2backup/"
 		if [ $? != 0 ] ; then

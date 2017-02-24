@@ -17,6 +17,8 @@ print_help() {
 	lb_print "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	lb_print "\nGlobal options:"
 	lb_print "  -C, --console              execute time2backup in console mode (no dialog windows)"
+	lb_print "  -p, --portable             execute time2backup in a portable mode"
+	lb_print "                             (no install, use local config files, meant to run from removable devices)"
 	lb_print "  -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	lb_print "  -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	lb_print "  -c, --config CONFIG_FILE   overwrite configuration with specific file"
@@ -31,7 +33,7 @@ print_help() {
 			lb_print "\nOptions:"
 			lb_print "  -u, --unmount   unmount destination after backup (overrides configuration)"
 			lb_print "  -s, --shutdown  shutdown after backup (overrides configuration)"
-			lb_print "  -p, --planned   perform a planned backup (used in cron jobs)"
+			lb_print "  -p, --planned   perform a planned backup (used in cron jobs, not available in portable mode)"
 			lb_print "  -h, --help      print help"
 			;;
 		history)
@@ -335,7 +337,9 @@ config_wizard() {
 # Usage: first_run
 first_run() {
 
-	if ! $portable_mode ; then
+	if $portable_mode ; then
+		create_appicon -p
+	else
 		# confirm install
 		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
 			return 0
@@ -1807,23 +1811,7 @@ t2b_install() {
 
 	echo "Install time2backup..."
 
-	desktop_file="$lb_current_script_directory/time2backup.desktop"
-
-	# create desktop file
-	cat > "$desktop_file" <<EOF
-[Desktop Entry]
-Version=1.0
-Name=time2backup
-GenericName=Files backup
-Comment=Backup and restore your files
-GenericName[fr]=Sauvegarde de fichiers
-Comment[fr]=Sauvegardez et restaurez vos données
-Type=Application
-Exec=$(lb_realpath "$lb_current_script")
-Icon=$(lb_realpath "$lb_current_script_directory/resources/icon.png")
-Terminal=false
-Categories=System;Utility;Filesystem;
-EOF
+	create_appicon time2backup
 
 	# copy desktop file to /usr/share/applications
 	if [ -d "/usr/share/applications" ] ; then
