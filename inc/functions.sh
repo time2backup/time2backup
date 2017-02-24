@@ -12,6 +12,19 @@
 #  GLOBAL FUNCTIONS  #
 ######################
 
+# Convert timestamp to user readable date
+# Usage: timestamp2date TIMESTAMP
+# Return: formatted date
+timestamp2date() {
+	# return date formatted for languages
+	if [ "$(lb_detect_os)" == "macOS" ] ; then
+		date -j -f "%s" "$1" +"$tr_readable_date"
+	else
+		date -d "@$1" +"$tr_readable_date"
+	fi
+}
+
+
 # Get common path of 2 paths
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
 # will return /home/user/my/

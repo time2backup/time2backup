@@ -236,94 +236,96 @@ config_wizard() {
 	fi
 
 	# activate recurrent backups
-	if lbg_yesno "$tr_ask_activate_recurrent" ; then
+	if ! $portable_mode ; then
+		if lbg_yesno "$tr_ask_activate_recurrent" ; then
 
-		# default custom frequency
-		case "$frequency" in
-			hourly|1h|60m)
-				default_frequency=1
-				;;
-			""|daily|1d|24h)
-				default_frequency=2
-				;;
-			weekly|7d)
-				default_frequency=3
-				;;
-			monthly|30d)
-				default_frequency=4
-				;;
-			*)
-				default_frequency=5
-				;;
-		esac
+			# default custom frequency
+			case "$frequency" in
+				hourly|1h|60m)
+					default_frequency=1
+					;;
+				""|daily|1d|24h)
+					default_frequency=2
+					;;
+				weekly|7d)
+					default_frequency=3
+					;;
+				monthly|30d)
+					default_frequency=4
+					;;
+				*)
+					default_frequency=5
+					;;
+			esac
 
-		# choose frequency
-		if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
+			# choose frequency
+			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
 
-			# enable recurrence in config
-			edit_config --set "recurrent=true" "$config_file"
+				# enable recurrence in config
+				edit_config --set "recurrent=true" "$config_file"
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
+				fi
+
+				# set recurrence frequency
+				case "$lbg_choose_option" in
+					1)
+						edit_config --set "frequency=\"hourly\"" "$config_file"
+						;;
+					2)
+						edit_config --set "frequency=\"daily\"" "$config_file"
+						;;
+					3)
+						edit_config --set "frequency=\"weekly\"" "$config_file"
+						;;
+					4)
+						edit_config --set "frequency=\"monthly\"" "$config_file"
+						;;
+					5)
+						# default custom frequency
+						case "$frequency" in
+							hourly)
+								frequency="1h"
+								;;
+							weekly)
+								frequency="7d"
+								;;
+							monthly)
+								frequency="30d"
+								;;
+							"")
+								# default is 24h
+								frequency="24h"
+								;;
+						esac
+
+						# display dialog to enter custom frequency
+						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
+							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
+							if [ $? == 0 ] ; then
+								edit_config --set "frequency=\"$lbg_input_text\"" "$config_file"
+							else
+								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
+							fi
+						fi
+						;;
+				esac
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter frequency (result code: $res_edit)"
+				fi
+			else
+				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
+			fi
+		else
+			# disable recurrence in config
+			edit_config --set "recurrent=false" "$config_file"
 			res_edit=$?
 			if [ $res_edit != 0 ] ; then
 				lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
 			fi
-
-			# set recurrence frequency
-			case "$lbg_choose_option" in
-				1)
-					edit_config --set "frequency=\"hourly\"" "$config_file"
-					;;
-				2)
-					edit_config --set "frequency=\"daily\"" "$config_file"
-					;;
-				3)
-					edit_config --set "frequency=\"weekly\"" "$config_file"
-					;;
-				4)
-					edit_config --set "frequency=\"monthly\"" "$config_file"
-					;;
-				5)
-					# default custom frequency
-					case "$frequency" in
-						hourly)
-							frequency="1h"
-							;;
-						weekly)
-							frequency="7d"
-							;;
-						monthly)
-							frequency="30d"
-							;;
-						"")
-							# default is 24h
-							frequency="24h"
-							;;
-					esac
-
-					# display dialog to enter custom frequency
-					if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
-						echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
-						if [ $? == 0 ] ; then
-							edit_config --set "frequency=\"$lbg_input_text\"" "$config_file"
-						else
-							lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
-						fi
-					fi
-					;;
-			esac
-
-			res_edit=$?
-			if [ $res_edit != 0 ] ; then
-				lb_error "Error in setting config parameter frequency (result code: $res_edit)"
-			fi
-		else
-			lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
-		fi
-	else
-		# disable recurrence in config
-		edit_config --set "recurrent=false" "$config_file"
-		res_edit=$?
-		if [ $res_edit != 0 ] ; then
-			lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
 		fi
 	fi
 }
@@ -332,21 +334,19 @@ config_wizard() {
 # First run wizard
 # Usage: first_run
 first_run() {
-	# confirm install
-	if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-		return 0
+
+	if ! $portable_mode ; then
+		# confirm install
+		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+			return 0
+		fi
+
+		# load configuration; don't care of errors
+		load_config &> /dev/null
+
+		# install time2backup (create links)
+		t2b_install
 	fi
-
-	# create configuration
-	if ! create_config ; then
-		return 3
-	fi
-
-	# load configuration; don't care of errors
-	load_config &> /dev/null
-
-	# install time2backup (create links)
-	t2b_install
 
 	# config wizard
 	config_wizard
@@ -499,6 +499,12 @@ t2b_backup() {
 	# if planned, check frequency
 	if $planned_backup ; then
 
+		# portable mode not permitted
+		if $portable_mode ; then
+			lb_display_error "Cannot run planned backups in portable mode!"
+			return 12
+		fi
+
 		# if cannot get last timestamp, cancel (avoid to backup every minute)
 		if ! [ -w "$last_backup_file" ] ; then
 			lb_display_error "Cannot get/save the last backup timestamp."
@@ -547,7 +553,7 @@ t2b_backup() {
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_display_debug "Last backup was done at $last_backup_timestamp, we are now $current_timestamp (backup every $seconds_offset)"
+					lb_display_debug "Last backup was done at $(timestamp2date $last_backup_timestamp), we are now $(timestamp2date $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
 					lb_display_info "Planned backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
@@ -886,7 +892,7 @@ t2b_backup() {
 				exclude_backup_dir="/$exclude_backup_dir"
 			fi
 
-			cmd+=(--exclude "$exclude_backup_dir")
+			cmd+=(--exclude "$(dirname "$exclude_backup_dir")")
 		fi
 
 		# search in source if exclude conf file is set

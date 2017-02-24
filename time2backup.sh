@@ -21,6 +21,7 @@
 version="1.0.0-beta.5"
 
 config_version=""
+portable_mode=false
 user=""
 sources=()
 backup_destination=""
@@ -180,6 +181,10 @@ while true ; do
 			fi
 			shift 2
 			;;
+		-p|--portable)
+			portable_mode=true
+			shift
+			;;
 		-u|--user)
 			if lb_test_arguments -eq 0 $2 ; then
 				print_help
@@ -244,11 +249,17 @@ fi
 
 # set default configuration file and path
 if [ -z "$config_file" ] ; then
-	config_directory="$(lb_homepath $user)/.config/time2backup/"
-	if [ $? != 0 ] ; then
-		lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
-		exit 2
+
+	if $portable_mode ; then
+		config_directory="$lb_current_script_directory/config/"
+	else
+		config_directory="$(lb_homepath $user)/.config/time2backup/"
+		if [ $? != 0 ] ; then
+			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+			exit 2
+		fi
 	fi
+
 	config_file="$config_directory/time2backup.conf"
 else
 	# parent directory of specified configuration file
