@@ -868,6 +868,7 @@ prepare_destination() {
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
+		mounted=true
 		destok=true
 	else
 		# if automount

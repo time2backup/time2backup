@@ -588,17 +588,15 @@ t2b_backup() {
 			"${exec_before[@]}"
 			# if error
 			if [ $? != 0 ] ; then
-				lb_exitcode=8
 				if $exec_before_block ; then
 					lb_display_debug --log "Before script exited with error."
-					clean_exit
+					clean_exit --no-unmount 8
 				fi
 			fi
 		else
 			lb_error "Error: cannot run command $exec_before"
-			lb_exitcode=8
 			if $exec_before_block ; then
-				clean_exit
+				clean_exit --no-unmount 8
 			fi
 		fi
 	fi
@@ -609,6 +607,13 @@ t2b_backup() {
 			lbg_display_error "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
 		fi
 		return 4
+	fi
+
+	# auto unmount: unmount if it was not mounted
+	if $unmount_auto ; then
+		if ! $mounted ; then
+			unmount=true
+		fi
 	fi
 
 	# create destination if not exists

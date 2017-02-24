@@ -25,6 +25,7 @@ portable_mode=false
 user=""
 sources=()
 backup_destination=""
+mounted=false
 success=()
 warnings=()
 errors=()
@@ -68,6 +69,7 @@ exec_after_block=false
 
 # unmount after backup
 unmount=false
+unmount_auto=true
 
 # shutdown after backup
 shutdown=false
