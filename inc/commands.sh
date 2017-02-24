@@ -814,7 +814,7 @@ t2b_backup() {
 		if ! $hard_links ; then
 			# move old backup as current backup, if exists
 			if [ -n "$lastcleanbackup" ] ; then
-				mv "$backup_destination/$lastcleanbackup/$path_dest" "$finaldest"
+				mv "$backup_destination/$lastcleanbackup/$path_dest" "$(dirname "$finaldest")"
 				prepare_dest=$?
 			fi
 		fi
