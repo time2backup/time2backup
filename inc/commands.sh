@@ -118,26 +118,31 @@ config_wizard() {
 		lb_display_debug "Chosen destination: $lbg_choose_directory"
 
 		# get absolute path of the chosen directory
-		lbg_choose_directory="$(lb_realpath "$lbg_choose_directory")"
+		chosen_directory="$(lb_realpath "$lbg_choose_directory")"
+
+		# if chosen directory is named backups, get parent directory
+		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
+			chosen_directory="$(dirname "$chosen_directory")"
+		fi
 
 		# update destination config
-		if [ "$lbg_choose_directory" != "$destination" ] ; then
-			edit_config --set "destination=\"$lbg_choose_directory\"" "$config_file"
+		if [ "$chosen_directory" != "$destination" ] ; then
+			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
 			if [ $? == 0 ] ; then
 				# reset destination variable
-				destination="$lbg_choose_directory"
+				destination="$chosen_directory"
 			else
 				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
 			fi
 		fi
 
 		# set mountpoint in config file
-		mountpoint="$(lb_df_mountpoint "$lbg_choose_directory")"
+		mountpoint="$(lb_df_mountpoint "$chosen_directory")"
 		if [ -n "$mountpoint" ] ; then
 			lb_display_debug "Mount point: $mountpoint"
 
 			# update disk mountpoint config
-			if [ "$lbg_choose_directory" != "$backup_disk_mountpoint" ] ; then
+			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
 
 				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
 
@@ -151,12 +156,12 @@ config_wizard() {
 		fi
 
 		# set mountpoint in config file
-		disk_uuid="$(lb_df_uuid "$lbg_choose_directory")"
+		disk_uuid="$(lb_df_uuid "$chosen_directory")"
 		if [ -n "$disk_uuid" ] ; then
 			lb_display_debug "Disk UUID: $disk_uuid"
 
 			# update disk UUID config
-			if [ "$lbg_choose_directory" != "$backup_disk_uuid" ] ; then
+			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
 				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
 
 				res_edit=$?
@@ -1658,9 +1663,8 @@ t2b_config() {
 
 	# default values
 	file=""
-	op_config="edit"
+	op_config=""
 	show_sources=false
-	choose_config=false
 
 	# get options
 	# following other options to edit_config() function
@@ -1710,7 +1714,35 @@ t2b_config() {
 	done
 
 	if [ -z "$file" ] ; then
-		choose_config=true
+
+		if [ -z "$op_config" ] ; then
+			if ! lbg_choose_option -l "$tr_choose_config_file" \
+						"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
+				return 0
+			fi
+
+			case "$lbg_choose_option" in
+				1)
+					file="$config_file"
+					;;
+				2)
+					file="$config_sources"
+					;;
+				3)
+					file="$config_excludes"
+					;;
+				4)
+					file="$config_includes"
+					;;
+				5)
+					op_config="wizard"
+					;;
+				*)
+					# bad choice
+					return 1
+					;;
+			esac
+		fi
 	fi
 
 	# special operations: show and test
@@ -1752,39 +1784,6 @@ t2b_config() {
 			;;
 		*)
 			# edit configuration
-
-			if $choose_config ; then
-				if ! lbg_choose_option -l "$tr_choose_config_file" \
-			        "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
-					return 0
-				fi
-
-				case "$lbg_choose_option" in
-					1)
-						file="$config_file"
-						;;
-					2)
-						file="$config_sources"
-						;;
-					3)
-						file="$config_excludes"
-						;;
-					4)
-						file="$config_includes"
-						;;
-					5)
-						# run config wizard
-						load_config
-						config_wizard
-						return $?
-						;;
-					*)
-						# bad choice
-						return 1
-						;;
-				esac
-			fi
-
 			echo "Opening configuration file..."
 			edit_config $* "$file"
 
