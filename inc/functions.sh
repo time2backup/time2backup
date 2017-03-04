@@ -785,7 +785,7 @@ install_config() {
 
 	# install cronjob
 	tmpcrontab="$config_directory/crontmp"
-	crontask="* * * * *	\"$current_script\" backup --planned"
+	crontask="* * * * *	\"$current_script\" backup --recurrent"
 
 	echo "Enable recurrent backup..."
 
@@ -866,11 +866,15 @@ prepare_destination() {
 
 	destok=false
 
+	lb_display_debug "Testing destination on: $destination..."
+
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
+		lb_display_debug "Destination mounted."
 		mounted=true
 		destok=true
 	else
+		lb_display_debug "Destination NOT mounted."
 		# if automount
 		if $mount ; then
 			# mount disk

@@ -31,10 +31,10 @@ print_help() {
 			lb_print "Command usage: $1 [OPTIONS]"
 			lb_print "\nPerform backup"
 			lb_print "\nOptions:"
-			lb_print "  -u, --unmount   unmount destination after backup (overrides configuration)"
-			lb_print "  -s, --shutdown  shutdown after backup (overrides configuration)"
-			lb_print "  -p, --planned   perform a planned backup (used in cron jobs, not available in portable mode)"
-			lb_print "  -h, --help      print help"
+			lb_print "  -u, --unmount    unmount destination after backup (overrides configuration)"
+			lb_print "  -s, --shutdown   shutdown after backup (overrides configuration)"
+			lb_print "  -r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)"
+			lb_print "  -h, --help       print help"
 			;;
 		history)
 			lb_print "Command usage: $1 [OPTIONS] PATH"
@@ -433,7 +433,7 @@ choose_operation() {
 # Options:
 #   -u, --unmount   unmount after backup (overrides configuration)
 #   -s, --shutdown  shutdown after backup (overrides configuration)
-#   -p, --planned   perform a planned backup
+#   -r, --recurrent   perform a recurrent backup
 #   -h, --help      print help
 # Exit codes:
 #   0: backup OK
@@ -444,7 +444,7 @@ choose_operation() {
 t2b_backup() {
 
 	# default values and options
-	planned_backup=false
+	recurrent_backup=false
 	source_ssh=false
 	source_network=false
 
@@ -468,8 +468,8 @@ t2b_backup() {
 				shutdown=true
 				shift
 				;;
-			-p|--planned)
-				planned_backup=true
+			-r|--recurrent)
+				recurrent_backup=true
 				shift
 				;;
 			-h|--help)
@@ -524,12 +524,18 @@ t2b_backup() {
 	# get last backup timestamp
 	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -o -E "^[1-9][0-9]*$")
 
-	# if planned, check frequency
-	if $planned_backup ; then
+	# if recurrent, check frequency
+	if $recurrent_backup ; then
+
+		# recurrent backups not enabled in configuration
+		if ! $recurrent ; then
+			lb_display_error "Recurrent backups are disabled. You can enable it in configuration file."
+			return 12
+		fi
 
 		# portable mode not permitted
 		if $portable_mode ; then
-			lb_display_error "Cannot run planned backups in portable mode!"
+			lb_display_error "Cannot run recurrent backups in portable mode!"
 			return 12
 		fi
 
@@ -582,7 +588,7 @@ t2b_backup() {
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
 					lb_display_debug "Last backup was done at $(timestamp2date $last_backup_timestamp), we are now $(timestamp2date $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
-					lb_display_info "Planned backup: no need to backup."
+					lb_display_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
 					return 0
@@ -615,7 +621,7 @@ t2b_backup() {
 
 	# test if destination exists
 	if ! prepare_destination ; then
-		if ! $planned_backup ; then
+		if ! $recurrent_backup ; then
 			lbg_display_error "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
 		fi
 		return 4
@@ -1266,6 +1272,10 @@ t2b_restore() {
 	while true ; do
 		case $1 in
 			-d|--date)
+				if lb_test_arguments -eq 0 $2 ; then
+					print_help restore
+					return 1
+				fi
 				backup_date="$2"
 				choose_date=false
 				shift 2
@@ -1471,7 +1481,9 @@ t2b_restore() {
 
 	# if it is a directory, add '/' at the end of the path
 	if [ -d "$file" ] ; then
-		file+="/"
+		if [ "${file:${#file}-1}" != "/" ] ; then
+			file+="/"
+		fi
 	fi
 
 	lb_display_debug "Path to restore: $file"
@@ -1568,12 +1580,51 @@ t2b_restore() {
 	# prepare rsync command
 	rsync_cmd=(rsync -aHv)
 
-	# excludes and includes files
+	# get config for inclusions
 	if [ -f "$config_includes" ] ; then
 		rsync_cmd+=(--include-from "$config_includes")
 	fi
+
+	# get config for exclusions
 	if [ -f "$config_excludes" ] ; then
 		rsync_cmd+=(--exclude-from "$config_excludes")
+	fi
+
+	# add user defined options
+	if [ ${#rsync_options[@]} -gt 0 ] ; then
+		rsync_cmd+=("${rsync_options[@]}")
+	fi
+
+	# of course, we exclude the backup destination itself if it is included
+	# into the destination path
+	# e.g. to restore /media directory, we must exclude /user/device/path/to/backups
+	if [[ "$backup_destination" == "$dest"* ]] ; then
+
+		# get common path of the backup directory and source
+		common_path="$(get_common_path "$backup_destination" "$dest")"
+
+		if [ $? != 0 ] ; then
+			lb_error "Cannot exclude directory backup from $dest!"
+			errors+=("$dest (exclude error)")
+			lb_exitcode=6
+
+			# continue to next source
+			continue
+		fi
+
+		# get relative exclude directory
+		exclude_backup_dir="${backup_destination#$common_path}"
+
+		if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
+			exclude_backup_dir="/$exclude_backup_dir"
+		fi
+
+		rsync_cmd+=(--exclude "$(dirname "$exclude_backup_dir")")
+	fi
+
+	# search in source if exclude conf file is set
+	if [ -f "$src/.rsyncignore" ] ; then
+		rsync_cmd+=(--exclude-from="$src/.rsyncignore")
 	fi
 
 	# test newer files
@@ -1583,7 +1634,8 @@ t2b_restore() {
 			cmd=("${rsync_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")
 
-			echo "Testing restore..."
+			lb_display "Testing restore..."
+			lb_display_debug ${cmd[@]}
 
 			# test to check newer files
 			"${cmd[@]}" | grep "^deleting "
