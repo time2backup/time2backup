@@ -1,6 +1,4 @@
-# time2backup Developer Guide
-
-Command guide.
+# time2backup command help
 
 ## Global command
 
@@ -12,6 +10,8 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 ### Global options
 ```
 -C, --console              execute time2backup in console mode (no dialog windows)
+-p, --portable             execute time2backup in a portable mode
+                           (no install, use local config files, meant to run from removable devices)
 -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -c, --config CONFIG_FILE   overwrite configuration with specific file
@@ -31,16 +31,19 @@ install    install time2backup
 
 ---------------------------------------------------------------
 ## backup
-Perform a backup.
+Performs a backup.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] backup [OPTIONS]
+time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH]
 ```
 
 ### Options
 ```
--h, --help  Print help
+-u, --unmount    unmount destination after backup (overrides configuration)
+-s, --shutdown   shutdown after backup (overrides configuration)
+-r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)
+-h, --help       print help
 ```
 
 ### Exit codes
@@ -54,16 +57,22 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS]
 
 ---------------------------------------------------------------
 ## restore
-Restore files/directories.
+Restore files or directories.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] restore [OPTIONS]
+time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 ```
 
 ### Options
 ```
--h, --help  Print help
+-d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
+                 by default it restores the last available backup
+--directory      path to restore is a directory (not necessary if path exists)
+                 If deleted or moved, indicate that the chosen path is a directory.
+--delete-new     delete newer files if exists for directories (restore exactly the same version)
+-f, --force      force restore; do not display confirmation
+-h, --help       print help
 ```
 
 ### Exit codes
@@ -77,7 +86,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS]
 
 ---------------------------------------------------------------
 ## history
-Print history versions of a file or directory.
+Print backup versions of a file or directory.
 
 ### Usage
 ```bash
@@ -86,7 +95,9 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 
 ### Options
 ```
--h, --help  Print help
+-a, --all    print all versions, including duplicates
+-q, --quiet  quiet mode; print only backup dates
+-h, --help   print help
 ```
 
 ### Exit codes
