@@ -291,7 +291,7 @@ lb_display_debug "Config file: $config_file"
 
 # config initialization
 if ! create_config ; then
-	lbg_display_error "Cannot create config files!"
+	lbg_display_error "$tr_error_create_config"
 	exit 3
 fi
 

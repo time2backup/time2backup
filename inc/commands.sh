@@ -508,7 +508,7 @@ t2b_backup() {
 
 	# if no sources to backup, exit
 	if [ $nbsrc == 0 ] ; then
-		lbg_display_warning "Nothing to backup!\nPlease configure time2backup sources."
+		lbg_display_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
 		return 3
 	fi
 
@@ -622,7 +622,7 @@ t2b_backup() {
 	# test if destination exists
 	if ! prepare_destination ; then
 		if ! $recurrent_backup ; then
-			lbg_display_error "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
+			lbg_display_error "$tr_backup_unreachable\n$tr_verify_media"
 		fi
 		return 4
 	fi

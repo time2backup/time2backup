@@ -22,6 +22,7 @@ tr_error_no_rsync_1="rsync is not installed. time2backup will not work."
 tr_error_no_rsync_2="Please install it and retry."
 tr_error_getting_homepath_1="Cannot get your homepath."
 tr_error_getting_homepath_2="Please install the configuration file manually."
+tr_error_create_config="Cannot create config files!"
 
 # Choose operation
 tr_choose_an_operation="Choose an operation:"
@@ -66,6 +67,10 @@ tr_frequency_syntax_error="Syntax error in your custom frequency."
 tr_errors_in_config="There are errors in your configuration. Please correct it in configuration files."
 
 # Backup
+tr_nothing_to_backup="Nothing to backup!"
+tr_please_configure_sources="Please configure sources."
+tr_backup_unreachable="Backup destination is not reachable."
+tr_verify_media="Please verify if your media is plugged in and try again."
 tr_backup_cancelled_at="Backup cancelled at %s"
 tr_report_duration="Elapsed time:"
 tr_error_unlock="Could not remove lock. Please delete it manually or further backups will fail!"

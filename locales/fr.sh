@@ -22,6 +22,7 @@ tr_error_no_rsync_1="rsync n'est pas installé. time2backup ne fonctionnera pas.
 tr_error_no_rsync_2="Veuillez l'installer puis réessayez."
 tr_error_getting_homepath_1="Impossible de trouver votre répertoire utilisateur."
 tr_error_getting_homepath_2="Veuillez installer le fichier de configuration manuellement."
+tr_error_create_config="Impossible de créer les fichiers de configuration !"
 
 # Choose operation
 tr_choose_an_operation="Choisissez une opération :"
@@ -66,6 +67,10 @@ tr_frequency_syntax_error="Il y a une erreur de syntaxe dans votre choix."
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
 
 # Backup
+tr_nothing_to_backup="Rien à sauvegarder !"
+tr_please_configure_sources="Veuillez configurer les sources."
+tr_backup_unreachable="Destination de sauvegarde introuvable."
+tr_verify_media="Veuillez vérifier si votre media branché et réessayez."
 tr_backup_cancelled_at="Sauvegarde annulée à %s"
 tr_report_duration="Temps écoulé :"
 tr_error_unlock="Impossible d'enlever le verrou. Veuillez le supprimer manuellement ou les prochaines sauvegardes échoueront !"
