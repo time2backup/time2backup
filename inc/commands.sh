@@ -928,14 +928,16 @@ t2b_backup() {
 			cmd+=(--exclude-from="$abs_src/.rsyncignore")
 		fi
 
-		# add ssh options
+		# add ssh options if ssh
 		if $source_ssh ; then
 			cmd+=(-e "ssh $ssh_options")
 		fi
 
-		# enable network compression
-		if $network_compression ; then
-			cmd+=(-z)
+		# enable network compression if network
+		if $source_network ; then
+			if $network_compression ; then
+				cmd+=(-z)
+			fi
 		fi
 
 		# if it is a directory, add '/' at the end of the path
