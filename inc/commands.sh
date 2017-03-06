@@ -731,7 +731,7 @@ t2b_backup() {
 	fi
 
 	# basic rsync command
-	rsync_cmd=(rsync -aHv --delete --progress --human-readable)
+	rsync_cmd=(rsync -aHv --delete --progress)
 
 	# get config for inclusions
 	if [ -f "$config_includes" ] ; then

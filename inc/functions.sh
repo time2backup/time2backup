@@ -901,7 +901,7 @@ prepare_destination() {
 test_backup() {
 
 	# prepare rsync in test mode
-	test_cmd=(rsync --dry-run --no-human-readable --stats)
+	test_cmd=(rsync --dry-run --stats)
 
 	# append rsync options without the first argument (=rsync)
 	test_cmd+=("${cmd[@]:1}")
