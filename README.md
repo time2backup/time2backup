@@ -1,6 +1,9 @@
 # time2backup
 ## A Bash script to backup and restore your files easely
 
+### Download
+[Download time2backup here](https://jean.prunneaux.com/time2backup/)
+
 ### Usage
 Just run the `time2backup.sh` file by clicking on it or running in a terminal:
 ```bash
