@@ -375,7 +375,7 @@ first_run() {
 	# recheck config
 	if ! install_config ; then
 		lbg_display_error "$tr_errors_in_config"
-		return 2
+		return 3
 	fi
 
 	# ask to first backup
@@ -1333,14 +1333,16 @@ t2b_history() {
 # Exit codes:
 #   0: file(s) restored
 #   1: usage error
-#   2: config error
-#   3: backup source is not reachable
-#   4: no backups available for this path
-#   5: no backup found at this date
-#   6: rsync warning while restore
-#   7: rsync critical error
-#   8: restore cancelled
-#   9: operation not supported
+#   3: config error
+#   4: backup source is not reachable
+#   5: no backups available at this path
+#   6: no backups of this file
+#   7: no backup found at this date
+#   8: cannot exclude destination
+#   9: error while restore
+#   10: some files were not restored
+#   11: restore cancelled
+#   12: operation not supported
 t2b_restore() {
 
 	# default options
@@ -1391,12 +1393,12 @@ t2b_restore() {
 
 	# load and test configuration
 	if ! load_config ; then
-		return 2
+		return 3
 	fi
 
 	# test backup destination
 	if ! prepare_destination ; then
-		return 3
+		return 4
 	fi
 
 	# test hard links
@@ -1411,7 +1413,7 @@ t2b_restore() {
 	# if no backups, exit
 	if [ ${#backups[@]} == 0 ] ; then
 		lbg_display_error "$tr_no_backups_available"
-		return 4
+		return 5
 	fi
 
 	# if no file specified, go to interactive mode
@@ -1545,7 +1547,7 @@ t2b_restore() {
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
 				lbg_display_error "$tr_path_is_not_backup"
 				lb_error "Restoring ssh/network files is not supported yet."
-				return 9
+				return 12
 			fi
 
 			# absolute path of destination
@@ -1559,7 +1561,7 @@ t2b_restore() {
 	# case of symbolic links
 	if [ -L "$file" ] ; then
 		lbg_display_error "$tr_cannot_restore_links"
-		return 9
+		return 12
 	fi
 
 	# if it is a directory, add '/' at the end of the path
@@ -1585,7 +1587,7 @@ t2b_restore() {
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
 		lbg_display_error "$tr_no_backups_for_file"
-		return 4
+		return 6
 	fi
 
 	# search for dates
@@ -1593,7 +1595,7 @@ t2b_restore() {
 		# if date was specified but not here, error
 		if ! lb_array_contains "$backup_date" "${file_history[@]}" ; then
 			lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
-			return 5
+			return 7
 		fi
 	fi
 
@@ -1651,7 +1653,7 @@ t2b_restore() {
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
 			lbg_display_error "$tr_cannot_restore_from_trash"
-			return 9
+			return 12
 		fi
 	fi
 
@@ -1689,7 +1691,7 @@ t2b_restore() {
 		if [ $? != 0 ] ; then
 			lb_error "Cannot exclude directory backup from $dest!"
 			errors+=("$dest (exclude error)")
-			lb_exitcode=6
+			lb_exitcode=8
 
 			# continue to next source
 			continue
@@ -1765,11 +1767,17 @@ t2b_restore() {
 			restore_notification="$tr_restore_finished"
 			lb_display_info "$restore_notification"
 			;;
-		*)
-			# rsync error
+		1|2|3|4|5|6)
+			# critical errors that caused backup to fail
 			restore_notification="$tr_restore_failed"
 			lb_display_error "$restore_notification"
-			lb_exitcode=6
+			lb_exitcode=9
+			;;
+		*)
+			# rsync minor error
+			restore_notification="$tr_restore_failed"
+			lb_display_error "$restore_notification"
+			lb_exitcode=10
 			;;
 	esac
 
@@ -1998,7 +2006,7 @@ t2b_install() {
 			rm -f "$config_includes"
 
 			if ! create_config ; then
-				lb_exitcode=2
+				lb_exitcode=3
 			fi
 		fi
 	fi

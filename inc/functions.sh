@@ -1185,8 +1185,8 @@ cancel_exit() {
 		# exit with cancel code without shutdown
 		clean_exit --no-shutdown 17
 	else
-		# restore mode
-		exit 8
+		# restore mode: just exit
+		exit 11
 	fi
 }
 
