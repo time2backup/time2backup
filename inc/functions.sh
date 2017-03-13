@@ -770,9 +770,14 @@ report_duration() {
 }
 
 
-# Install configuration (planned tasks)
+# Install configuration (recurrent tasks, ...)
 # Usage: install_config
 install_config() {
+
+	# do not install if in portable mode
+	if $portable_mode ; then
+		return 0
+	fi
 
 	res_install=0
 
