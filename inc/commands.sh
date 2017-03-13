@@ -948,11 +948,12 @@ t2b_backup() {
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
-		lb_display --log "Testing rsync..."
+		lb_display --log "Preparing backup..."
 
+		# display prepare notification
 		if $notifications ; then
 			if [ $s == 0 ] ; then
-				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
+				lbg_notify "$tr_notify_prepare_backup"
 			fi
 		fi
 
@@ -1020,6 +1021,13 @@ t2b_backup() {
 
 			# continue to next source
 			continue
+		fi
+
+		# display backup notification
+		if $notifications ; then
+			if [ $s == 0 ] ; then
+				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
+			fi
 		fi
 
 		lb_display_debug --log "Executing: ${cmd[@]}\n"
