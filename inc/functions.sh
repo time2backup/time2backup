@@ -394,6 +394,28 @@ create_config() {
 }
 
 
+# Upgrade configuration
+# Usage: upgrade_config CURRENT_VERSION
+# Exit codes:
+#   0: upgrade OK
+#   1: compatibility error
+upgrade_config() {
+
+	current_version="$*"
+
+	lb_display_debug "Upgrading from config v$current_version to v$version..."
+
+	case "$current_version" in
+		*)
+			# other compatible versions: replace version number
+			sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
+			;;
+	esac
+
+	return 0
+}
+
+
 # Load configuration file
 # Usage: load_config
 # Exit codes:
@@ -412,9 +434,10 @@ load_config() {
 	fi
 
 	# get config version
-	config_version="$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\s]*")"
+	config_version="$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")"
 	if [ -n "$config_version" ] ; then
-		if [ "$config_version" != "version" ] ; then
+		# compare versions
+		if [ "$config_version" != "$version" ] ; then
 			upgrade_config $config_version
 			if [ $? != 0 ] ; then
 				configok=false
@@ -459,26 +482,6 @@ load_config() {
 
 	# set backup destination
 	backup_destination="$destination/backups/$(hostname)/"
-}
-
-
-# Upgrade configuration
-# Usage: upgrade_config CURRENT_VERSION
-# Exit codes:
-#   0: upgrade OK
-#   1: compatibility error
-upgrade_config() {
-
-	current_version="$*"
-
-	case "$current_version" in
-		*)
-			# other compatible versions: replace version number
-			sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
-			;;
-	esac
-
-	return 0
 }
 
 
