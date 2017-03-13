@@ -1008,26 +1008,6 @@ clean_empty_directories() {
 }
 
 
-# Save last backup timestamp
-# Usage: save_backup_date
-# Exit codes:
-#   0: OK
-#   1: write failed
-save_backup_date() {
-
-	lb_display_debug --log "Save backup timestamp"
-
-	# save current timestamp into file
-	date '+%s' > "$last_backup_file"
-	if [ $? != 0 ] ; then
-		lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
-		return 1
-	fi
-
-	return 0
-}
-
-
 # Edit configuration
 # Usage: edit_config [OPTIONS] CONFIG_FILE
 # Options:

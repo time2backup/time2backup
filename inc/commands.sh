@@ -1062,15 +1062,11 @@ t2b_backup() {
 				# backup succeeded
 				# (ignoring vanished files in transfer)
 				success+=("$src")
-
-				save_backup_date
 				;;
 			1|2|3|4|5|6)
 				# critical errors that caused backup to fail
 				errors+=("$src (backup failed; code: $res)")
 				lb_exitcode=6
-
-				save_backup_date
 				;;
 			*)
 				# considering any other rsync error as not critical
@@ -1089,7 +1085,31 @@ t2b_backup() {
 		clean_empty_directories "$finaldest"
 	done
 
-	# final report
+	# if backup succeeded (all OK or even if warnings)
+	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 6 ] ; then
+		lb_display_debug --log "Save backup timestamp"
+
+		# save current timestamp into config/.lastbackup file
+		date '+%s' > "$last_backup_file"
+		if [ $? != 0 ] ; then
+			lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
+		fi
+
+		# create a latest link to the last backup directory
+		lb_display_debug --log "Create latest link..."
+
+		latest_link="$backup_destination/latest"
+
+		# delete link if exists
+		if [ -L "$latest_link" ] ; then
+			rm -f "$latest_link" &> /dev/null
+		fi
+
+		# create a new link (in a sub-context to avoid confusion)
+		$(cd "$backup_destination" && ln -s "$backup_date" "latest" &> /dev/null)
+	fi
+
+	# print final report
 	lb_display --log "\n********************************************"
 	lb_display --log "\nBackup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
 
