@@ -1294,6 +1294,11 @@ clean_exit() {
 
 	lb_display_debug --log "Clean exit."
 
+	# cleanup backup directory if empty
+	clean_empty_directories "$dest"
+	# if previous failed (not empty, try to clean last backup directory)
+	clean_empty_directories "$finaldest"
+
 	# delete backup lock
 	release_lock
 
