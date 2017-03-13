@@ -636,7 +636,12 @@ t2b_backup() {
 
 	# create destination if not exists
 	mkdir -p "$backup_destination" &> /dev/null
-	if [ $? != 0 ] ; then
+	if [ $? == 0 ] ; then
+		# give ownership for user, don't care of errors
+		# (useful if time2backup is executed with sudo and --user option)
+		chown "$user" "$backup_destination" &> /dev/null
+	else
+		# if mkdir failed, exit
 		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
 		return 4
 	fi
@@ -645,7 +650,6 @@ t2b_backup() {
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
 		lbg_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
-
 		return 4
 	fi
 
@@ -673,7 +677,12 @@ t2b_backup() {
 
 	# create logs directory
 	mkdir -p "$logs_directory"
-	if [ $? != 0 ] ; then
+	if [ $? == 0 ] ; then
+		# give ownership for user, don't care of errors
+		# (useful if time2backup is executed with sudo and --user option)
+		chown "$user" "$logs_directory" &> /dev/null
+	else
+		# if mkdir failed,
 		lb_error "Could not create logs directory. Please verify your access rights."
 
 		# exit without email or shutdown or delete log (does not exists)
@@ -714,8 +723,13 @@ t2b_backup() {
 		mkdir "$dest"
 	fi
 
-	# if failed to move or to create
-	if [ $? != 0 ] ; then
+	# if succeeded to move or to create
+	if [ $? == 0 ] ; then
+		# give ownership for user, don't care of errors
+		# (useful if time2backup is executed with sudo and --user option)
+		chown "$user" "$dest" &> /dev/null
+	else
+		# if failed,
 		lb_display --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 4
 	fi
@@ -853,7 +867,13 @@ t2b_backup() {
 			fi
 		fi
 
-		if [ $prepare_dest != 0 ] ; then
+		# if mkdir or mv succeeded,
+		if [ $prepare_dest == 0 ] ; then
+			# give ownership for user, don't care of errors
+			# (useful if time2backup is executed with sudo and --user option)
+			chown "$user" "$finaldest" &> /dev/null
+		else
+			# if error,
 			lb_display --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
 			# prepare report and save exit code
