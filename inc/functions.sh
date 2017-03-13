@@ -1183,7 +1183,7 @@ cancel_exit() {
 	# backup mode
 	if [ "$mode" == "backup" ] ; then
 		# exit with cancel code without shutdown
-		clean_exit --no-shutdown 11
+		clean_exit --no-shutdown 17
 	else
 		# restore mode
 		exit 8
@@ -1295,6 +1295,10 @@ clean_exit() {
 	if $unmount ; then
 		if ! unmount_destination ; then
 			lbg_display_error --log "$tr_error_unmount"
+
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=18
+			fi
 		fi
 	fi
 
@@ -1404,7 +1408,7 @@ clean_exit() {
 	# if shutdown after backup, execute it
 	if $shutdown ; then
 		if ! haltpc ; then
-			lb_exitcode=14
+			lb_exitcode=19
 		fi
 	fi
 

@@ -438,9 +438,25 @@ choose_operation() {
 # Exit codes:
 #   0: backup OK
 #   1: usage error
-#   2: config error
-#   3: no backup found for path
-#   4: backup device not reachable
+#   3: config error
+#   4: no source to backup
+#   5: before script failed
+#   6: backup device not reachable
+#   7: backup destination not writable
+#   8: backup is already running
+#   9: cannot write logs
+#   10: source does not exists
+#   11: cannot exclude directory backup from itself
+#   12: rsync test error
+#   13: not enough space for backup
+#   14: critical error (rsync failed)
+#   15: warnings in backup
+#   16: after script failed
+#   17: cancelled
+#   18: error while unmount destination backup
+#   19: shutdown error
+#   20: recurrent backups disabled
+#   21: recurrent backups: cannot get/save last backup timestamp
 t2b_backup() {
 
 	# default values and options
@@ -493,7 +509,7 @@ t2b_backup() {
 
 	# load and test configuration
 	if ! load_config ; then
-		return 2
+		return 3
 	fi
 
 	lb_display "time2backup\n"
@@ -509,7 +525,7 @@ t2b_backup() {
 	# if no sources to backup, exit
 	if [ $nbsrc == 0 ] ; then
 		lbg_display_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
-		return 3
+		return 4
 	fi
 
 	# get last backup file
@@ -530,19 +546,19 @@ t2b_backup() {
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
 			lb_display_error "Recurrent backups are disabled. You can enable it in configuration file."
-			return 12
+			return 20
 		fi
 
 		# portable mode not permitted
 		if $portable_mode ; then
 			lb_display_error "Cannot run recurrent backups in portable mode!"
-			return 12
+			return 20
 		fi
 
 		# if cannot get last timestamp, cancel (avoid to backup every minute)
 		if ! [ -w "$last_backup_file" ] ; then
 			lb_display_error "Cannot get/save the last backup timestamp."
-			return 11
+			return 21
 		fi
 
 		# compare timestamps
@@ -606,15 +622,28 @@ t2b_backup() {
 			"${exec_before[@]}"
 			# if error
 			if [ $? != 0 ] ; then
+				# if error, do not overwrite rsync exit code
+				if [ $lb_exitcode == 0 ] ; then
+					lb_exitcode=5
+				fi
+
+				# option exit if error
 				if $exec_before_block ; then
 					lb_display_debug --log "Before script exited with error."
-					clean_exit --no-unmount 8
+					clean_exit --no-unmount
 				fi
 			fi
 		else
 			lb_error "Error: cannot run command $exec_before"
+
+			# if error, do not overwrite rsync exit code
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=5
+			fi
+
+			# option exit if error
 			if $exec_before_block ; then
-				clean_exit --no-unmount 8
+				clean_exit --no-unmount
 			fi
 		fi
 	fi
@@ -624,7 +653,7 @@ t2b_backup() {
 		if ! $recurrent_backup ; then
 			lbg_display_error "$tr_backup_unreachable\n$tr_verify_media"
 		fi
-		return 4
+		return 6
 	fi
 
 	# auto unmount: unmount if it was not mounted
@@ -643,21 +672,21 @@ t2b_backup() {
 	else
 		# if mkdir failed, exit
 		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
-		return 4
+		return 7
 	fi
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
 		lbg_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
-		return 4
+		return 7
 	fi
 
 	# test if a backup is running
 	if current_lock &> /dev/null ; then
 		lbg_display_error "A backup is already running. Abording."
 		# exit
-		return 10
+		return 8
 	fi
 
 	# create lock to avoid duplicates
@@ -667,32 +696,36 @@ t2b_backup() {
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
-	# set log file directory
-	if [ -z "$logs_directory" ] ; then
-		logs_directory="$backup_destination/logs"
-	fi
+	# if we want to keep some logs,
+	if $logs_save || $keep_logs_if_error ; then
 
-	# set log file path
-	logfile="$logs_directory/time2backup_$backup_date.log"
+		# set log file directory
+		if [ -z "$logs_directory" ] ; then
+			logs_directory="$backup_destination/logs"
+		fi
 
-	# create logs directory
-	mkdir -p "$logs_directory"
-	if [ $? == 0 ] ; then
-		# give ownership for user, don't care of errors
-		# (useful if time2backup is executed with sudo and --user option)
-		chown "$user" "$logs_directory" &> /dev/null
-	else
-		# if mkdir failed,
-		lb_error "Could not create logs directory. Please verify your access rights."
+		# set log file path
+		logfile="$logs_directory/time2backup_$backup_date.log"
 
-		# exit without email or shutdown or delete log (does not exists)
-		clean_exit --no-rmlog --no-shutdown 4
-	fi
+		# create logs directory
+		mkdir -p "$logs_directory"
+		if [ $? == 0 ] ; then
+			# give ownership for user, don't care of errors
+			# (useful if time2backup is executed with sudo and --user option)
+			chown "$user" "$logs_directory" &> /dev/null
+		else
+			# if mkdir failed,
+			lb_error "Could not create logs directory. Please verify your access rights."
 
-	# create log file
-	if ! lb_set_logfile "$logfile" ; then
-		lb_error "Cannot create log file $logfile. Please verify your access rights."
-		clean_exit --no-rmlog --no-shutdown 4
+			# exit without email or shutdown or delete log (does not exists)
+			clean_exit --no-rmlog --no-shutdown 9
+		fi
+
+		# create log file
+		if ! lb_set_logfile "$logfile" ; then
+			lb_error "Cannot create log file $logfile. Please verify your access rights."
+			clean_exit --no-rmlog --no-shutdown 9
+		fi
 	fi
 
 	lb_display --log "Backup started on $current_date\n"
@@ -731,7 +764,7 @@ t2b_backup() {
 	else
 		# if failed,
 		lb_display --log "Could not prepare backup destination. Please verify your access rights."
-		clean_exit 4
+		clean_exit 7
 	fi
 
 	# check if destination supports hard links
@@ -801,7 +834,7 @@ t2b_backup() {
 						if [ $? != 0 ] ; then
 							lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
 							errors+=("$src (does not exists)")
-							lb_exitcode=5
+							lb_exitcode=10
 
 							# continue to next source
 							continue
@@ -819,7 +852,7 @@ t2b_backup() {
 				if ! [ -e "$abs_src" ] ; then
 					lb_error "Source $src does not exists!"
 					errors+=("$src (does not exists)")
-					lb_exitcode=5
+					lb_exitcode=10
 
 					# continue to next source
 					continue
@@ -877,9 +910,9 @@ t2b_backup() {
 			lb_display --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
 			# prepare report and save exit code
-			errors+=("$src (code: 4)")
+			errors+=("$src (write error)")
 			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=4
+				lb_exitcode=7
 			fi
 
 			clean_empty_directories "$finaldest"
@@ -927,7 +960,7 @@ t2b_backup() {
 			if [ $? != 0 ] ; then
 				lb_error "Cannot exclude directory backup from $src!"
 				errors+=("$src (exclude error)")
-				lb_exitcode=6
+				lb_exitcode=11
 
 				# continue to next source
 				continue
@@ -979,12 +1012,12 @@ t2b_backup() {
 
 		# test rsync and space available for backup
 		if ! test_backup ; then
-			lb_display --log "Error in your rsync syntax."
+			lb_display --log "Error in rsync test."
 
 			# prepare report and save exit code
-			errors+=("$src (code: 1)")
+			errors+=("$src (rsync test error)")
 			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=1
+				lb_exitcode=12
 			fi
 
 			clean_empty_directories "$finaldest"
@@ -1032,9 +1065,9 @@ t2b_backup() {
 			lb_display_error --log "Not enough space on device to backup. Abording."
 
 			# prepare report and save exit code
-			errors+=("$src (code: 4)")
+			errors+=("$src (not enough space left)")
 			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=4
+				lb_exitcode=13
 			fi
 
 			clean_empty_directories "$finaldest"
@@ -1066,13 +1099,13 @@ t2b_backup() {
 			1|2|3|4|5|6)
 				# critical errors that caused backup to fail
 				errors+=("$src (backup failed; code: $res)")
-				lb_exitcode=6
+				lb_exitcode=14
 				;;
 			*)
 				# considering any other rsync error as not critical
 				# (some files were not backuped)
 				warnings+=("$src (some files were not backuped; code: $res)")
-				lb_exitcode=7
+				lb_exitcode=15
 				;;
 		esac
 
@@ -1086,7 +1119,7 @@ t2b_backup() {
 	done
 
 	# if backup succeeded (all OK or even if warnings)
-	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 6 ] ; then
+	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 15 ] ; then
 		lb_display_debug --log "Save backup timestamp"
 
 		# save current timestamp into config/.lastbackup file
@@ -1161,8 +1194,8 @@ t2b_backup() {
 			"${exec_after[@]}"
 			# if error, do not overwrite rsync exit code
 			if [ $? != 0 ] ; then
-				if [ $lb_exitcode != 0 ] ; then
-					lb_exitcode=9
+				if [ $lb_exitcode == 0 ] ; then
+					lb_exitcode=16
 				fi
 				if $exec_after_block ; then
 					clean_exit
@@ -1171,8 +1204,8 @@ t2b_backup() {
 		else
 			lb_display --log "Error: cannot run command $exec_after"
 			# if error, do not overwrite rsync exit code
-			if [ $lb_exitcode != 0 ] ; then
-				lb_exitcode=9
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=16
 			fi
 			if $exec_after_block ; then
 				 clean_exit
@@ -1193,9 +1226,9 @@ t2b_backup() {
 # Exit codes:
 #   0: OK
 #   1: usage error
-#   2: config error
-#   3: backup source is not reachable
-#   4: no backup found for path
+#   3: config error
+#   4: backup source is not reachable
+#   5: no backup found for path
 t2b_history() {
 
 	# default options and variables
@@ -1235,12 +1268,12 @@ t2b_history() {
 
 	# load configuration
 	if ! load_config ; then
-		return 2
+		return 3
 	fi
 
 	# test backup destination
 	if ! prepare_destination ; then
-		return 3
+		return 4
 	fi
 
 	# get file
@@ -1252,7 +1285,7 @@ t2b_history() {
 	# no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
 		lb_error "No backup found for '$file'!"
-		return 4
+		return 5
 	fi
 
 	# print backup versions

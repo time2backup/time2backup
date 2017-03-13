@@ -257,7 +257,7 @@ if [ -z "$config_file" ] ; then
 		config_directory="$(lb_homepath $user)/.config/time2backup/"
 		if [ $? != 0 ] ; then
 			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
-			exit 2
+			exit 3
 		fi
 	fi
 
