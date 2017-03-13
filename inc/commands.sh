@@ -1764,27 +1764,19 @@ t2b_restore() {
 	case $? in
 		0)
 			# file restored
-			restore_notification="$tr_restore_finished"
-			lb_display_info "$restore_notification"
+			lbg_display_info "$tr_restore_finished"
 			;;
 		1|2|3|4|5|6)
 			# critical errors that caused backup to fail
-			restore_notification="$tr_restore_failed"
-			lb_display_error "$restore_notification"
+			lbg_display_error "$tr_restore_failed"
 			lb_exitcode=9
 			;;
 		*)
 			# rsync minor error
-			restore_notification="$tr_restore_failed"
-			lb_display_error "$restore_notification"
+			lbg_display_warning "$tr_restore_finished_warnings"
 			lb_exitcode=10
 			;;
 	esac
-
-	# display notification
-	if $notifications ; then
-		lbg_notify "$restore_notification"
-	fi
 
 	return $lb_exitcode
 }

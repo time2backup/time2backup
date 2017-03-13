@@ -102,6 +102,7 @@ tr_ask_keep_newer_files_1="Il y a des fichiers plus récents dans ce dossier. Vo
 tr_ask_keep_newer_files_2="Cliquez sur Oui pour conserver, Non pour restaurer le dossier à l'état de la sauvegarde."
 tr_confirm_restore_1="Vous allez restaurer '%s' à la sauvegarde du %s."
 tr_confirm_restore_2="Êtes-vous sûr(e) de continuer ?"
+tr_notify_restoring="Restauration de fichiers en cours..."
 tr_restore_finished="Restauration terminée."
 tr_restore_finished_warnings="Restauration terminée, mais certains fichiers n'ont pas été transférés."
 tr_restore_failed="Échec de la restauration! Réessayez dans un terminal pour voir les détails."
