@@ -40,6 +40,8 @@ force_shutdown=false
 #  DEFAULT CONFIG OPTIONS  #
 ############################
 
+destination_subdirectories=true
+
 consolemode=false
 debugmode=false
 

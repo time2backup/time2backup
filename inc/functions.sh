@@ -481,7 +481,12 @@ load_config() {
 	fi
 
 	# set backup destination
-	backup_destination="$destination/backups/$(hostname)/"
+	if $destination_subdirectories ; then
+		# add subdirectories
+		backup_destination="$destination/backups/$(hostname)/"
+	else
+		backup_destination="$destination/"
+	fi
 }
 
 
