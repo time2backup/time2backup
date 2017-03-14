@@ -983,7 +983,11 @@ t2b_backup() {
 
 		# add ssh options if ssh
 		if $source_ssh ; then
-			cmd+=(-e "ssh $ssh_options")
+			if [ -n "$ssh_options" ] ; then
+				cmd+=(-e "$ssh_options")
+			else
+				cmd+=(-e ssh)
+			fi
 		fi
 
 		# enable network compression if network
