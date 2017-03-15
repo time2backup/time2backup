@@ -153,16 +153,11 @@ get_backup_type() {
 
 	# get protocol
 	case "$protocol" in
-		ssh|fish)
+		ssh)
 			# double check protocol
-			echo "$backup_url" | grep -E "^$protocol://" &> /dev/null
+			echo "$backup_url" | grep -q -E "^$protocol://"
 			if [ $? == 0 ] ; then
-				# special case of fish = ssh
-				if [ "$protocol" == "fish" ] ; then
-					echo "ssh"
-				else
-					echo "$protocol"
-				fi
+				echo "$protocol"
 				return 0
 			fi
 			;;
@@ -625,10 +620,18 @@ get_backup_path() {
 	# if not absolute path, check protocols
 	case $(get_backup_type "$f") in
 		ssh)
-			# transform ssh://user@hostname/path/to/file -> /ssh/user@hostname/path/to/file
-			# how it works: split by colon to ssh/user@hostname/path/to/file,
-			# with no loose of potential colons then delete the last colon
-			echo "$f" | awk -F ':' '{printf $1 ; for(i=2;i<=NF;++i) printf $i ":"}' | sed 's/:$//'
+			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
+
+			# get ssh user@host
+			ssh_host="$(echo "$src" | awk -F '/' '{print $3}')"
+			ssh_hostname="$(echo "$ssh_host" | cut -d@ -f2)"
+
+			# get ssh path
+			ssh_prefix="ssh://$ssh_host"
+			ssh_path="${src#$ssh_prefix}"
+
+			# return complete path
+			echo "/ssh/$ssh_hostname/$ssh_path"
 			return 0
 			;;
 	esac

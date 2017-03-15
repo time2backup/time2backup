@@ -818,8 +818,15 @@ t2b_backup() {
 				source_ssh=true
 				source_network=true
 
+				# get ssh user@host
+				ssh_host="$(echo "$src" | awk -F '/' '{print $3}')"
+
+				# get ssh path
+				ssh_prefix="ssh://$ssh_host"
+				ssh_path="${src#$ssh_prefix}"
+
 				# do not include protocol in absolute path
-				abs_src="${src:6}"
+				abs_src="$ssh_host:$ssh_path"
 
 				# get full backup path
 				path_dest="$(get_backup_path "$src")"
@@ -961,6 +968,9 @@ t2b_backup() {
 				lb_error "Cannot exclude directory backup from $src!"
 				errors+=("$src (exclude error)")
 				lb_exitcode=11
+
+				# cleanup
+				clean_empty_directories "$finaldest"
 
 				# continue to next source
 				continue
@@ -1118,12 +1128,22 @@ t2b_backup() {
 			clean_empty_directories "$trash"
 		fi
 
-		# clean empty backup if error
+		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
 	done
 
+	# final cleanup
+	clean_empty_directories "$dest"
+
+	# if nothing was backuped, consider it as critical error
+	if ! [ -d "$dest" ] ; then
+		errors+=("nothing was backuped!")
+		lb_exitcode=14
+	fi
+
 	# if backup succeeded (all OK or even if warnings)
 	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 15 ] ; then
+
 		lb_display_debug --log "Save backup timestamp"
 
 		# save current timestamp into config/.lastbackup file
