@@ -472,7 +472,7 @@ load_config() {
 	if ! $configok ; then
 		lb_error "\nThere are errors in your configuration."
 		lb_error "Please edit your configuration with 'config' command or manually."
-		return 2
+		return 3
 	fi
 
 	# set backup destination
@@ -1032,8 +1032,8 @@ clean_empty_directories() {
 # Exit codes:
 #   0: OK
 #   1: usage error
-#   2: failed to open/save configuration
-#   3: no editor found to open configuration file
+#   3: failed to open/save configuration
+#   4: no editor found to open configuration file
 edit_config() {
 
 	# default values
@@ -1133,16 +1133,13 @@ edit_config() {
 					fi
 				fi
 			fi
-
-			# add console editors
-			all_editors+=("${editors[@]}")
 		fi
+
+		# add console editors or chosen one
+		all_editors+=("${editors[@]}")
 
 		# select a console editor
 		for e in ${all_editors[@]} ; do
-			if [ -n "$editor" ] ; then
-				break
-			fi
 			# test if editor exists
 			if lb_command_exists "$e" ; then
 				editor="$e"
@@ -1161,14 +1158,14 @@ edit_config() {
 				lb_error "Please edit $edit_file manually."
 			fi
 
-			return 3
+			return 4
 		fi
 	fi
 
 	if [ $? != 0 ] ; then
 		lb_error "Failed to open/save configuration."
 		lb_error "Please edit $edit_file manually."
-		return 2
+		return 3
 	fi
 
 	return 0

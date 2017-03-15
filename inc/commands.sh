@@ -1818,11 +1818,20 @@ t2b_restore() {
 #   -w, --wizard      display configuration wizard instead of edit
 #   -e, --editor BIN  use specified editor (e.g. vim, nano, ...)
 #   -h, --help        print help
+# Exit codes:
+#   0: config OK
+#   1: usage error
+#   3: config is not OK
+#   4: error when install config
+#   5: failed to open/save configuration
+#   6: no editor found to open configuration file
+#   7: unknown error
 t2b_config() {
 
 	# default values
 	file=""
 	op_config=""
+	cmd_opts=""
 	show_sources=false
 
 	# get options
@@ -1857,6 +1866,13 @@ t2b_config() {
 			-w|--wizard)
 				op_config="wizard"
 				shift
+				;;
+			-e|--editor)
+				if lb_test_arguments -eq 0 $2 ; then
+					return 1
+				fi
+				cmd_opts="-e $2 "
+				shift 2
 				;;
 			-h|--help)
 				print_help config
@@ -1911,11 +1927,6 @@ t2b_config() {
 
 			# run config wizard
 			config_wizard
-
-			# config is not OK (missing destination)
-			if [ $? != 0 ] ; then
-				return 3
-			fi
 			;;
 		show)
 			# if not set, file config is general config
@@ -1931,39 +1942,47 @@ t2b_config() {
 				fi
 			done < "$file"
 
-			return 0
+			if [ $? != 0 ] ; then
+				return 5
+			fi
 			;;
 		test)
 			# load and test configuration
 			echo "Testing configuration..."
 			load_config
 			lb_result
-
-			return $?
 			;;
 		*)
 			# edit configuration
 			echo "Opening configuration file..."
-			edit_config $* "$file"
+			edit_config $cmd_opts"$file"
 
-			result_config=$?
-
-			if [ $result_config != 0 ] ; then
-				return $result_config
-			fi
+			case $? in
+				0)
+					install_config
+					if [ $? != 0 ] ; then
+						return 4
+					fi
+					;;
+				3)
+					return 5
+					;;
+				4)
+					return 6
+					;;
+				*)
+					return 7
+					;;
+			esac
 			;;
 	esac
 
-	result_config=$?
-
-	if [ $result_config != 0 ] ; then
-		return $result_config
-	fi
-
-	install_config
+	# config is not OK
 	if [ $? != 0 ] ; then
 		return 3
 	fi
+
+	return 0
 }
 
 
