@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0 RC 3 (2017-03-15)
+- Fix critical bugs for SSH sources
+- Finished rewrite of exit codes
+
 ## 1.0.0 RC 2 (2017-03-13)
 - Clean empty backup if cancelled
 - Rewrite of exit codes
