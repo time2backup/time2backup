@@ -1989,8 +1989,13 @@ t2b_config() {
 # Install time2backup
 # Create a link to execute time2backup easely and create default configuration
 # Usage: t2b_install [OPTIONS]
-#   -r, --reset-config  reset configuration files to default"
-#   -h, --help          print help"
+#   -r, --reset-config  reset configuration files to default
+#   -h, --help          print help
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   3: there are errors in config
+#   4: error while creating application shortcuts
 t2b_install() {
 
 	reset_config=false
@@ -2018,15 +2023,37 @@ t2b_install() {
 
 	echo "Install time2backup..."
 
-	create_appicon time2backup
+	# create a desktop file (Linux)
+	if [ "$(lb_detect_os)" != "macOS" ] ; then
 
-	# copy desktop file to /usr/share/applications
-	if [ -d "/usr/share/applications" ] ; then
+		desktop_file="$script_directory/time2backup.desktop"
 
-		cp -f "$desktop_file" "/usr/share/applications/" &> /dev/null
-		if [ $? != 0 ] ; then
-			echo "Cannot create application link. It doesn't matter, but you can try the following command:"
-			echo "sudo cp -f \"$desktop_file\" /usr/share/applications/"
+		cat > "$desktop_file" <<EOF
+[Desktop Entry]
+Version=1.0
+Name=time2backup
+GenericName=Files backup
+Comment=Backup and restore your files
+GenericName[fr]=Sauvegarde de fichiers
+Comment[fr]=Sauvegardez et restaurez vos données
+Type=Application
+Exec=$(lb_realpath "$lb_current_script") $*
+Icon=$(lb_realpath "$script_directory/resources/icon.png")
+Terminal=false
+Categories=System;Utility;Filesystem;
+EOF
+
+		# copy desktop file to /usr/share/applications
+		if [ -d "/usr/share/applications" ] ; then
+
+			cp -f "$desktop_file" "/usr/share/applications/" &> /dev/null
+			if [ $? != 0 ] ; then
+				echo
+				echo "Cannot create application link. It's not critical, but you may not have the icon on your system."
+				echo "You can try the following command:"
+				echo "   sudo cp -f \"$desktop_file\" /usr/share/applications/"
+				lb_exitcode=4
+			fi
 		fi
 	fi
 
@@ -2046,21 +2073,44 @@ t2b_install() {
 		fi
 	fi
 
+	# if alias exists,
 	if [ -e "$cmd_alias" ] ; then
-		if [ "$(lb_realpath "$cmd_alias")" == "$current_script" ] ; then
-			echo "Already installed."
-			return 0
+		# if the same path, OK
+		if [ "$(lb_realpath "$cmd_alias")" == "$(lb_realpath "$lb_current_script")" ] ; then
+			# quit
+			return $lb_exitcode
+		fi
+
+		# delete old link
+		rm -f "$cmd_alias" &> /dev/null
+		if [ $? != 0 ] ; then
+			echo "A link to time2backup already exists and we cannot remove it. Try the following commands:"
+			echo "   sudo rm -f \"$cmd_alias\""
+			echo "   sudo ln -s \"$current_script\" \"$cmd_alias\""
+
+			# this exit code is less important
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=4
+			fi
+
+			# quit
+			return $lb_exitcode
 		fi
 	fi
-
-	# delete old link if exists
-	rm -f "$cmd_alias" &> /dev/null
 
 	# create link
 	ln -s "$current_script" "$cmd_alias" &> /dev/null
 	if [ $? != 0 ] ; then
-		echo "Cannot create command link. It doesn't matter, but you can try the following command:"
-		echo "sudo ln -s \"$current_script\" \"$cmd_alias\""
+		echo
+		echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
+		echo "You can try the following command:"
+		echo "   sudo ln -s \"$current_script\" \"$cmd_alias\""
+		echo "or add an alias in your bashrc file."
+
+		# this exit code is less important
+		if [ $lb_exitcode == 0 ] ; then
+			lb_exitcode=4
+		fi
 	fi
 
 	return $lb_exitcode

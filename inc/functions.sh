@@ -1460,34 +1460,3 @@ haltpc() {
 		return 2
 	fi
 }
-
-
-# Create an application icon for time2backup
-# Usage: create_appicon NAME [OPTIONS]
-# Options: use the time2backup options command
-# Exit codes:
-#   0: OK
-#   1: failed
-create_appicon() {
-
-	# macOS: do nothing
-	if [ "$(lb_detect_os)" == "macOS" ] ; then
-		return 1
-	fi
-
-	# create desktop file
-	cat > "$script_directory/time2backup.desktop" <<EOF
-[Desktop Entry]
-Version=1.0
-Name=time2backup
-GenericName=Files backup
-Comment=Backup and restore your files
-GenericName[fr]=Sauvegarde de fichiers
-Comment[fr]=Sauvegardez et restaurez vos données
-Type=Application
-Exec=$(lb_realpath "$lb_current_script") $*
-Icon=$(lb_realpath "$script_directory/resources/icon.png")
-Terminal=false
-Categories=System;Utility;Filesystem;
-EOF
-}
