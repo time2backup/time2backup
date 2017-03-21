@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0 RC 4 (2017-03-21)
+- Update libbash.sh to fix zenity notifications bug
+- Add uninstall command
+
 ## 1.0.0 RC 3 (2017-03-15)
 - Fix critical bugs for SSH sources
 - Finished rewrite of exit codes
