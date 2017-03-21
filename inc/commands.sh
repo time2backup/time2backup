@@ -81,6 +81,14 @@ print_help() {
 			lb_print "  -r, --reset-config  reset configuration files to default"
 			lb_print "  -h, --help          print help"
 			;;
+		uninstall)
+			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "\nUninstall time2backup"
+			lb_print "\nOptions:"
+			lb_print "  -c, --delete-config  delete configuration files"
+			lb_print "  -x, --delete         delete time2backup files"
+			lb_print "  -h, --help           print help"
+			;;
 		*)
 			lb_print "Commands:"
 			lb_print "    backup     perform a backup (default)"
@@ -88,6 +96,7 @@ print_help() {
 			lb_print "    history    displays backup history of a file or directory"
 			lb_print "    config     edit configuration"
 			lb_print "    install    install time2backup"
+			lb_print "    uninstall  uninstall time2backup"
 			lb_print "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
 			;;
 	esac
@@ -1996,6 +2005,7 @@ t2b_config() {
 #   1: usage error
 #   3: there are errors in config
 #   4: error while creating application shortcuts
+#   5: error in reset configuration
 t2b_install() {
 
 	reset_config=false
@@ -2059,17 +2069,17 @@ EOF
 
 	# reset configuration
 	if $reset_config ; then
+		# delete old config files
+		rm -f "$config_directory/*" &> /dev/null
 
-		# confirm reset
-		if lbg_yesno "Are you sure you want to reset config?" ; then
-			rm -f "$config_file"
-			rm -f "$config_sources"
-			rm -f "$config_excludes"
-			rm -f "$config_includes"
-
+		if [ $? == 0 ] ; then
+			# recreate config
 			if ! create_config ; then
 				lb_exitcode=3
 			fi
+		else
+			lb_error "Error: cannot reset configuration files!"
+			lb_exitcode=5
 		fi
 	fi
 
@@ -2114,4 +2124,110 @@ EOF
 	fi
 
 	return $lb_exitcode
+}
+
+
+# Uninstall time2backup
+# Delete link and icon
+# Usage: t2b_uninstall [OPTIONS]
+#   -c, --delete-config  delete default configuration files
+#   -x, --delete         delete time2backup files
+#   -h, --help           print help
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   3: cannot delete application link
+#   4: cannot delete command alias
+#   5: cannot delete configuration files
+#   6: cannot delete time2backup files
+t2b_uninstall() {
+
+	delete_config=false
+	delete_files=false
+
+	# get options
+	while true ; do
+		case $1 in
+			-c|--delete-config)
+				delete_config=true
+				shift
+				;;
+			-x|--delete)
+				delete_files=true
+				shift
+				;;
+			-h|--help)
+				print_help uninstall
+				return 0
+				;;
+			-*)
+				print_help uninstall
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+
+	lb_print "Uninstall time2backup..."
+
+	# delete desktop file (Linux)
+	if [ "$(lb_detect_os)" != "macOS" ] ; then
+
+		application_link="/usr/share/applications/time2backup.desktop"
+
+		# delete desktop file
+		if [ -f "$application_link" ] ; then
+			lb_print "\nDelete application link..."
+			rm -f "$application_link"
+			if [ $? != 0 ] ; then
+				echo "Cannot delete application link."
+				echo "Please retry in sudo, or run the following command:"
+				echo "   sudo rm -f \"$application_link\""
+				lb_exitcode=3
+			fi
+		fi
+	fi
+
+	# delete alias if exists
+	if [ -e "$cmd_alias" ] ; then
+		lb_print "\nDelete command alias..."
+		 rm -f "$cmd_alias"
+		if [ $? != 0 ] ; then
+			echo "Cannot delete the link to time2backup."
+			echo "Please retry in sudo, or run the following command:"
+			echo "   sudo rm -f \"$cmd_alias\""
+			lb_exitcode=4
+		fi
+	fi
+
+	# delete configuration
+	if $delete_config ; then
+		lb_print "\nDelete configuration..."
+		rm -rf "$config_directory"
+		if [ $? != 0 ] ; then
+			lb_error "Error: cannot delete configuration files!"
+			lb_exitcode=5
+		fi
+	fi
+
+	# delete files
+	if $delete_files ; then
+		lb_print "\nDelete time2backup files..."
+		rm -rf "$script_directory"
+		if [ $? != 0 ] ; then
+			lb_error "Error: cannot delete time2backup files!"
+			lb_exitcode=6
+		fi
+	fi
+
+	# simple print
+	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 5 ] ; then
+		echo
+		echo "time2backup is uninstalled"
+	fi
+
+	# we quit as soon as possible
+	exit $lb_exitcode
 }

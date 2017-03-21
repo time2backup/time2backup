@@ -331,6 +331,10 @@ case "$mode" in
 		shift
 		t2b_install $*
 		;;
+	uninstall)
+		shift
+		t2b_uninstall $*
+		;;
 	"")
 		# display choose operation dialog
 		choose_operation
