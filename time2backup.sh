@@ -244,7 +244,7 @@ if $consolemode ; then
 	lbg_set_gui console
 else
 	# try to find display (if into a cron job on Linux)
-	if [ "$lb_current_os" != "Linux" ] ; then
+	if [ "$lb_current_os" == "Linux" ] ; then
 
 		u="$user"
 

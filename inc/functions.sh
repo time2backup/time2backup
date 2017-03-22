@@ -17,7 +17,7 @@
 # Return: formatted date
 timestamp2date() {
 	# return date formatted for languages
-	if [ "$(lb_detect_os)" == "macOS" ] ; then
+	if [ "$lb_current_os" == "macOS" ] ; then
 		date -j -f "%s" "$1" +"$tr_readable_date"
 	else
 		date -d "@$1" +"$tr_readable_date"
@@ -194,7 +194,7 @@ get_backup_fulldate() {
 	bsec="${1:15:2}"
 
 	# return date formatted for languages
-	if [ "$(lb_detect_os)" == "macOS" ] ; then
+	if [ "$lb_current_os" == "macOS" ] ; then
 		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
 	else
 		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
@@ -320,7 +320,7 @@ get_backup_history() {
 			fi
 
 			# compare inodes to detect different versions
-			if [ "$(lb_detect_os)" == "macOS" ] ; then
+			if [ "$lb_current_os" == "macOS" ] ; then
 				inode=$(stat -f %i "$backup_file")
 			else
 				inode=$(stat --format %i "$backup_file")
@@ -505,7 +505,7 @@ mount_destination() {
 
 	# macOS is not supported
 	# this is not supposed to happen because macOS always mount disks
-	if [ "$(lb_detect_os)" == "macOS" ] ; then
+	if [ "$lb_current_os" == "macOS" ] ; then
 		lb_display_error --log "macOS not supported yet"
 		return 4
 	fi
@@ -1126,7 +1126,7 @@ edit_config() {
 			# open file with graphical editor
 			if ! $consolemode ; then
 				if [ "$(lbg_get_gui)" != "console" ] ; then
-					if [ "$(lb_detect_os)" == "macOS" ] ; then
+					if [ "$lb_current_os" == "macOS" ] ; then
 						all_editors+=(open)
 					else
 						all_editors+=(xdg-open)
