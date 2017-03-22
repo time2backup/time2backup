@@ -440,10 +440,10 @@ choose_operation() {
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH]
 # Options:
-#   -u, --unmount   unmount after backup (overrides configuration)
-#   -s, --shutdown  shutdown after backup (overrides configuration)
-#   -r, --recurrent   perform a recurrent backup
-#   -h, --help      print help
+#   -u, --unmount    unmount after backup (overrides configuration)
+#   -s, --shutdown   shutdown after backup (overrides configuration)
+#   -r, --recurrent  perform a recurrent backup
+#   -h, --help       print help
 # Exit codes:
 #   0: backup OK
 #   1: usage error

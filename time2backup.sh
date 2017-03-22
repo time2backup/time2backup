@@ -234,20 +234,44 @@ while true ; do
 	esac
 done
 
+# if user not set, get current user
+if [ -z "$user" ] ; then
+	user="$(whoami)"
+fi
+
 # disable dialogs if console mode
 if $consolemode ; then
 	lbg_set_gui console
+else
+	# try to find display (if into a cron job on Linux)
+	if [ "$lb_current_os" != "Linux" ] ; then
+
+		u="$user"
+
+		for i in 1 2 ; do
+			# find user X display
+			xdisplay=$(who | grep "^$u .*(:[0-9])$" | head -1 | sed "s/.*(\(:[0-9]*\))$/\1/g")
+
+			# if found,
+			if [ -n "$xdisplay" ] ; then
+				# export the X display variable
+				export DISPLAY="$xdisplay"
+
+				# reset GUI tools
+				lbg_set_gui
+				break
+			fi
+
+			# if failed, try with the current user
+			u="$(whoami)"
+		done
+	fi
 fi
 
 # test if rsync command is available
 if ! lb_command_exists rsync ; then
 	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
-fi
-
-# if user not set, get current user
-if [ -z "$user" ] ; then
-	user="$(whoami)"
 fi
 
 # set default configuration file and path
