@@ -22,16 +22,17 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 
 ### Commands
 ```
-backup     perform a backup (default)
+backup     backup your files
 restore    restore a backup of a file or directory
 history    displays backup history of a file or directory
 config     edit configuration
 install    install time2backup
+uninstall  uninstall time2backup
 ```
 
 ---------------------------------------------------------------
 ## backup
-Performs a backup.
+Backup your files
 
 ### Usage
 ```bash
@@ -57,7 +58,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH]
 
 ---------------------------------------------------------------
 ## restore
-Restore files or directories.
+Restore a backup of a file or directory
 
 ### Usage
 ```bash
@@ -86,7 +87,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 
 ---------------------------------------------------------------
 ## history
-Print backup versions of a file or directory.
+Displays backup history of a file or directory
 
 ### Usage
 ```bash

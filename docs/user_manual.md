@@ -6,6 +6,7 @@
 * [How to install time2backup](#install)
 * [Backup your files](#backup)
 * [Restore your files](#restore)
+* [Troubleshootting](#troubleshootting)
 
 ---------------------------------------------------------------
 
@@ -21,12 +22,10 @@ Linux Mint, Debian, openSuse, Mageia, macOS, ...
 
 <a name="install"></a>
 ## How to install time2backup
-Double-click on the time2backup.sh file or run it in a console with:
-```bash
-./time2backup.sh
-```
-
-Then follow the install wizard.
+1. [Download time2backup here](http://jean.prunneaux.com/projects/time2backup/)
+2. Uncompress archive where you want
+3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
+4. Then follow the instructions.
 
 <a name="backup"></a>
 ## Backup your files
@@ -38,7 +37,7 @@ If you have enabled recurrent backups, you just have to wait until backup is fin
 
 If you haven't, just run time2backup and go into backup mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh backup
+./time2backup.sh backup [OPTIONS] [PATH]
 ```
 See [command documentation](command.md) for more information and options.
 
@@ -47,10 +46,20 @@ See [command documentation](command.md) for more information and options.
 ## Restore your files
 Run time2backup and go into restore mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh restore
+./time2backup.sh restore [OPTIONS] [PATH]
 ```
 See [command documentation](command.md) for more information and options.
 
 You will have to choose the file or directory to restore, and the version date to restore.
 
 Then you will get your file(s) exactly at backup state.
+
+<a name="troubleshootting"></a>
+## Troubleshootting
+Some common bugs or issues are reported here.
+
+In any case of problem, please report any bug here: https://github.com/pruje/time2backup/issues
+
+### time2backup is stuck with message "a backup is already running"
+Sometimes, if time2backup was killed by force, a lock file may stay.
+If you are sure that no backup is currently running, you can delete the lock files named `path/to/backups/.lock_*`

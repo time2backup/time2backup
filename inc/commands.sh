@@ -29,21 +29,12 @@ print_help() {
 	case $1 in
 		backup)
 			lb_print "Command usage: $1 [OPTIONS]"
-			lb_print "\nPerform backup"
+			lb_print "\nBackup your files"
 			lb_print "\nOptions:"
 			lb_print "  -u, --unmount    unmount destination after backup (overrides configuration)"
 			lb_print "  -s, --shutdown   shutdown after backup (overrides configuration)"
 			lb_print "  -r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)"
 			lb_print "  -h, --help       print help"
-			;;
-		history)
-			lb_print "Command usage: $1 [OPTIONS] PATH"
-			lb_print "\nGet backup history of a file or directory"
-			lb_print "Warning: This feature does not detect old renamed/moved files yet."
-			lb_print "\nOptions:"
-			lb_print "  -a, --all    print all versions, including duplicates"
-			lb_print "  -q, --quiet  quiet mode; print only backup dates"
-			lb_print "  -h, --help   print help"
 			;;
 		restore)
 			lb_print "Command usage: $1 [OPTIONS] [PATH]"
@@ -58,6 +49,15 @@ print_help() {
 			lb_print "  --delete-new     delete newer files if exists for directories (restore exactly the same version)"
 			lb_print "  -f, --force      force restore; do not display confirmation"
 			lb_print "  -h, --help       print help"
+			;;
+		history)
+			lb_print "Command usage: $1 [OPTIONS] PATH"
+			lb_print "\nGet backup history of a file or directory"
+			lb_print "Warning: This feature does not detect old renamed/moved files yet."
+			lb_print "\nOptions:"
+			lb_print "  -a, --all    print all versions, including duplicates"
+			lb_print "  -q, --quiet  quiet mode; print only backup dates"
+			lb_print "  -h, --help   print help"
 			;;
 		config)
 			lb_print "Command usage: $1 [OPTIONS]"
@@ -91,7 +91,7 @@ print_help() {
 			;;
 		*)
 			lb_print "Commands:"
-			lb_print "    backup     perform a backup (default)"
+			lb_print "    backup     backup your files"
 			lb_print "    restore    restore a backup of a file or directory"
 			lb_print "    history    displays backup history of a file or directory"
 			lb_print "    config     edit configuration"
@@ -1264,109 +1264,6 @@ t2b_backup() {
 }
 
 
-# Get history/versions of a file
-# Usage: t2b_history [OPTIONS] PATH
-# Options:
-#   -a, --all    print all versions (including duplicates)
-#   -q, --quiet  quiet mode: print only backup dates
-#   -h, --help   print help
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   3: config error
-#   4: backup source is not reachable
-#   5: no backup found for path
-t2b_history() {
-
-	# default options and variables
-	quietmode=false
-	history_opts=""
-
-	# get options
-	while true ; do
-		case $1 in
-			-a|--all)
-				history_opts="-a "
-				shift
-				;;
-			-q|--quiet)
-				quietmode=true
-				shift
-				;;
-			-h|--help)
-				print_help history
-				return 0
-				;;
-			-*)
-				print_help history
-				return 1
-				;;
-			*)
-				break
-				;;
-		esac
-	done
-
-	# usage errors
-	if [ $# == 0 ] ; then
-		print_help history
-		return 1
-	fi
-
-	# load configuration
-	if ! load_config ; then
-		return 3
-	fi
-
-	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
-
-	# get file
-	file="$*"
-
-	# get backup versions of this file
-	file_history=($(get_backup_history $history_opts"$file"))
-
-	# no backup found
-	if [ ${#file_history[@]} == 0 ] ; then
-		lb_error "No backup found for '$file'!"
-		return 5
-	fi
-
-	# print backup versions
-	for b in ${file_history[@]} ; do
-		# quiet mode: just print the version
-		if $quietmode ; then
-			echo "$b"
-		else
-			# complete result: print details
-			abs_file="$(get_backup_path "$file")"
-			if [ -z "$abs_file" ] ; then
-				continue
-			fi
-
-			# get backup file
-			backup_file="$backup_destination/$b/$abs_file"
-
-			# print details of file/directory
-			echo
-			echo "$b:"
-			ls -l "$backup_file" 2> /dev/null
-		fi
-	done
-
-	# complete result (not quiet mode)
-	if ! $quietmode ; then
-		echo
-		echo "${#file_history[@]} backups found for $file"
-	fi
-
-	return 0
-}
-
-
 # Restore a file
 # Usage: t2b_restore [OPTIONS] [PATH]
 # Options:
@@ -1829,6 +1726,109 @@ t2b_restore() {
 }
 
 
+# Get history/versions of a file
+# Usage: t2b_history [OPTIONS] PATH
+# Options:
+#   -a, --all    print all versions (including duplicates)
+#   -q, --quiet  quiet mode: print only backup dates
+#   -h, --help   print help
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   3: config error
+#   4: backup source is not reachable
+#   5: no backup found for path
+t2b_history() {
+
+	# default options and variables
+	quietmode=false
+	history_opts=""
+
+	# get options
+	while true ; do
+		case $1 in
+			-a|--all)
+				history_opts="-a "
+				shift
+				;;
+			-q|--quiet)
+				quietmode=true
+				shift
+				;;
+			-h|--help)
+				print_help history
+				return 0
+				;;
+			-*)
+				print_help history
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+
+	# usage errors
+	if [ $# == 0 ] ; then
+		print_help history
+		return 1
+	fi
+
+	# load configuration
+	if ! load_config ; then
+		return 3
+	fi
+
+	# test backup destination
+	if ! prepare_destination ; then
+		return 4
+	fi
+
+	# get file
+	file="$*"
+
+	# get backup versions of this file
+	file_history=($(get_backup_history $history_opts"$file"))
+
+	# no backup found
+	if [ ${#file_history[@]} == 0 ] ; then
+		lb_error "No backup found for '$file'!"
+		return 5
+	fi
+
+	# print backup versions
+	for b in ${file_history[@]} ; do
+		# quiet mode: just print the version
+		if $quietmode ; then
+			echo "$b"
+		else
+			# complete result: print details
+			abs_file="$(get_backup_path "$file")"
+			if [ -z "$abs_file" ] ; then
+				continue
+			fi
+
+			# get backup file
+			backup_file="$backup_destination/$b/$abs_file"
+
+			# print details of file/directory
+			echo
+			echo "$b:"
+			ls -l "$backup_file" 2> /dev/null
+		fi
+	done
+
+	# complete result (not quiet mode)
+	if ! $quietmode ; then
+		echo
+		echo "${#file_history[@]} backups found for $file"
+	fi
+
+	return 0
+}
+
+
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]
 #   -g, --general     edit general configuration
@@ -2156,6 +2156,7 @@ EOF
 #   6: cannot delete time2backup files
 t2b_uninstall() {
 
+	# default options
 	delete_config=false
 	delete_files=false
 
