@@ -680,20 +680,34 @@ t2b_backup() {
 		chown "$user" "$backup_destination" &> /dev/null
 	else
 		# if mkdir failed, exit
-		lbg_display_error "Could not create destination at $backup_destination. Please verify your access rights."
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		fi
 		return 7
 	fi
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
-		lbg_display_error "You have no write access on $backup_destination directory. Please verify your access rights."
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		fi
 		return 7
 	fi
 
 	# test if a backup is running
 	if current_lock &> /dev/null ; then
-		lbg_display_error "A backup is already running. Abording."
+		if $recurrent_backup ; then
+			lb_display_error "$tr_backup_already_running"
+		else
+			lbg_display_error "$tr_backup_already_running"
+		fi
 		# exit
 		return 8
 	fi
@@ -2034,7 +2048,7 @@ t2b_install() {
 	echo "Install time2backup..."
 
 	# create a desktop file (Linux)
-	if [ "$(lb_detect_os)" != "macOS" ] ; then
+	if [ "$lb_current_os" != "macOS" ] ; then
 
 		desktop_file="$script_directory/time2backup.desktop"
 
@@ -2173,7 +2187,7 @@ t2b_uninstall() {
 	lb_print "Uninstall time2backup..."
 
 	# delete desktop file (Linux)
-	if [ "$(lb_detect_os)" != "macOS" ] ; then
+	if [ "$lb_current_os" != "macOS" ] ; then
 
 		application_link="/usr/share/applications/time2backup.desktop"
 
