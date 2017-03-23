@@ -1019,6 +1019,7 @@ t2b_backup() {
 			if [ -n "$ssh_options" ] ; then
 				cmd+=(-e "$ssh_options")
 			else
+				# security: defines default option
 				cmd+=(-e ssh)
 			fi
 		fi

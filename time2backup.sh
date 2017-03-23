@@ -49,6 +49,7 @@ mount=true
 backup_disk_uuid=""
 
 network_compression=false
+ssh_options="ssh"
 
 recurrent=false
 frequency="daily"
