@@ -494,6 +494,7 @@ load_config() {
 #   3: cannot create mount point
 #   4: command not supported
 #   5: no disk UUID set in config
+#   6: cannot delete mount point
 mount_destination() {
 
 	# if UUID not set, return error
@@ -501,7 +502,7 @@ mount_destination() {
 		return 5
 	fi
 
-	lb_display --log "Mount disk..."
+	lb_display --log "Trying to mount backup disk..."
 
 	# macOS is not supported
 	# this is not supposed to happen because macOS always mount disks
@@ -518,14 +519,15 @@ mount_destination() {
 	fi
 
 	# create mountpoint
-	if ! [ -d "$destination" ] ; then
+	if ! [ -d "$backup_disk_mountpoint" ] ; then
 
-		mkdir "$destination" 2>> "$logfile"
+		lb_display --log "Create disk mountpoint..."
+		mkdir -p "$backup_disk_mountpoint"
 
 		# if failed, try in sudo mode
 		if [ $? != 0 ] ; then
 			lb_display_debug --log "...Failed! Try with sudo..."
-			sudo mkdir "$destination" 2>> "$logfile"
+			sudo mkdir -p "$backup_disk_mountpoint"
 
 			if [ $? != 0 ] ; then
 				lb_display --log "...Failed!"
@@ -535,15 +537,27 @@ mount_destination() {
 	fi
 
 	# mount disk
-	mount "/dev/disk/by-uuid/$backup_disk_uuid" "$destination" 2>> "$logfile"
+	lb_display --log "Mount backup disk..."
+	mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Try with sudo..."
-		sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$destination" 2>> "$logfile"
+		lb_display_debug --log "...Failed! Trying in sudo..."
+		sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
 
 		if [ $? != 0 ] ; then
-			lb_display --log "...Failed!"
+			lb_display --log "...Failed! Delete mountpoint..."
+
+			# delete mount point
+			rmdir "$backup_disk_mountpoint" &> /dev/null
+			# if failed, try in sudo mode
+			if [ $? != 0 ] ; then
+				lb_display_debug --log "...Failed! Trying in sudo..."
+				sudo rmdir "$backup_disk_mountpoint" &> /dev/null
+				if [ $? != 0 ] ; then
+					lb_display --log "...Failed!"
+				fi
+			fi
 			return 1
 		fi
 	fi
@@ -589,7 +603,7 @@ unmount_destination() {
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Try with sudo..."
+		lb_display_debug --log "...Failed! Trying in sudo..."
 		sudo rmdir "$destination_mountpoint" &> /dev/null
 
 		if [ $? != 0 ] ; then
@@ -891,11 +905,15 @@ prepare_destination() {
 		destok=true
 	else
 		lb_display_debug "Destination NOT mounted."
-		# if automount
-		if $mount ; then
-			# mount disk
-			if mount_destination ; then
-				destok=true
+
+		# if backup disk mountpoint is defined,
+		if [ -n "$backup_disk_mountpoint" ] ; then
+			# and if automount set,
+			if $mount ; then
+				# try to mount disk
+				if mount_destination ; then
+					destok=true
+				fi
 			fi
 		fi
 	fi

@@ -45,7 +45,7 @@ destination_subdirectories=true
 consolemode=false
 debugmode=false
 
-mount=false
+mount=true
 backup_disk_uuid=""
 
 network_compression=false
