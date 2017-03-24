@@ -7,430 +7,6 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
-###########
-#  USAGE  #
-###########
-
-# Print help for users in console
-# Usage: print_help [COMMAND] (if empty, print global help)
-print_help() {
-	lb_print "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
-	lb_print "\nGlobal options:"
-	lb_print "  -C, --console              execute time2backup in console mode (no dialog windows)"
-	lb_print "  -p, --portable             execute time2backup in a portable mode"
-	lb_print "                             (no install, use local config files, meant to run from removable devices)"
-	lb_print "  -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
-	lb_print "  -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
-	lb_print "  -c, --config CONFIG_FILE   overwrite configuration with specific file"
-	lb_print "  -D, --debug                run in debug mode (all messages printed and logged)"
-	lb_print "  -V, --version              print version and quit"
-	lb_print "  -h, --help                 print help \n"
-
-	case $1 in
-		backup)
-			lb_print "Command usage: $1 [OPTIONS]"
-			lb_print "\nBackup your files"
-			lb_print "\nOptions:"
-			lb_print "  -u, --unmount    unmount destination after backup (overrides configuration)"
-			lb_print "  -s, --shutdown   shutdown after backup (overrides configuration)"
-			lb_print "  -r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)"
-			lb_print "  -h, --help       print help"
-			;;
-		restore)
-			lb_print "Command usage: $1 [OPTIONS] [PATH]"
-			lb_print "\nRestore a file or directory"
-			lb_print "Warning: This feature does not auto-detect renamed or moved files."
-			lb_print "         To restore a moved/deleted file, ."
-			lb_print "\nOptions:"
-			lb_print "  -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
-			lb_print "                   by default it restores the last available backup"
-			lb_print "  --directory      path to restore is a directory (not necessary if path exists)"
-			lb_print "                   If deleted or moved, indicate that the chosen path is a directory."
-			lb_print "  --delete-new     delete newer files if exists for directories (restore exactly the same version)"
-			lb_print "  -f, --force      force restore; do not display confirmation"
-			lb_print "  -h, --help       print help"
-			;;
-		history)
-			lb_print "Command usage: $1 [OPTIONS] PATH"
-			lb_print "\nGet backup history of a file or directory"
-			lb_print "Warning: This feature does not detect old renamed/moved files yet."
-			lb_print "\nOptions:"
-			lb_print "  -a, --all    print all versions, including duplicates"
-			lb_print "  -q, --quiet  quiet mode; print only backup dates"
-			lb_print "  -h, --help   print help"
-			;;
-		config)
-			lb_print "Command usage: $1 [OPTIONS]"
-			lb_print "\nEdit configuration"
-			lb_print "\nOptions:"
-			lb_print "  -g, --general     edit general configuration"
-			lb_print "  -s, --sources     edit sources file (sources to backup)"
-			lb_print "  -x, --excludes    edit excludes file (patterns to ignore)"
-			lb_print "  -i, --includes    edit includes file (patterns to include)"
-			lb_print "  -l, --show        show configuration; do not edit"
-			lb_print "                    display configuration without comments"
-			lb_print "  -t, --test        test configuration; do not edit"
-			lb_print "  -w, --wizard      display configuration wizard instead of edit"
-			lb_print "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
-			lb_print "  -h, --help        print help"
-			;;
-		install)
-			lb_print "Command usage: $1 [OPTIONS]"
-			lb_print "\nInstall time2backup"
-			lb_print "\nOptions:"
-			lb_print "  -r, --reset-config  reset configuration files to default"
-			lb_print "  -h, --help          print help"
-			;;
-		uninstall)
-			lb_print "Command usage: $1 [OPTIONS]"
-			lb_print "\nUninstall time2backup"
-			lb_print "\nOptions:"
-			lb_print "  -c, --delete-config  delete configuration files"
-			lb_print "  -x, --delete         delete time2backup files"
-			lb_print "  -h, --help           print help"
-			;;
-		*)
-			lb_print "Commands:"
-			lb_print "    backup     backup your files"
-			lb_print "    restore    restore a backup of a file or directory"
-			lb_print "    history    displays backup history of a file or directory"
-			lb_print "    config     edit configuration"
-			lb_print "    install    install time2backup"
-			lb_print "    uninstall  uninstall time2backup"
-			lb_print "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
-			;;
-	esac
-}
-
-
-#############
-#  WIZARDS  #
-#############
-
-# Configuration wizard
-# Usage: config_wizard
-# Exit codes:
-#   0: OK
-#   1: no destination chosen
-config_wizard() {
-
-	enable_recurrent=false
-
-	# set default destination directory
-	if [ -d "$destination" ] ; then
-		start_path="$destination"
-	else
-		start_path="$lb_current_path"
-	fi
-
-	# get external disk
-	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
-
-		lb_display_debug "Chosen destination: $lbg_choose_directory"
-
-		# get absolute path of the chosen directory
-		chosen_directory="$(lb_realpath "$lbg_choose_directory")"
-
-		# if chosen directory is named backups, get parent directory
-		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
-			chosen_directory="$(dirname "$chosen_directory")"
-		fi
-
-		# update destination config
-		if [ "$chosen_directory" != "$destination" ] ; then
-			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
-			if [ $? == 0 ] ; then
-				# reset destination variable
-				destination="$chosen_directory"
-			else
-				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
-			fi
-		fi
-
-		# set mountpoint in config file
-		mountpoint="$(lb_df_mountpoint "$chosen_directory")"
-		if [ -n "$mountpoint" ] ; then
-			lb_display_debug "Mount point: $mountpoint"
-
-			# update disk mountpoint config
-			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
-
-				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
-				fi
-			fi
-		else
-			lb_error "Could not find mount point of destination."
-		fi
-
-		# set mountpoint in config file
-		disk_uuid="$(lb_df_uuid "$chosen_directory")"
-		if [ -n "$disk_uuid" ] ; then
-			lb_display_debug "Disk UUID: $disk_uuid"
-
-			# update disk UUID config
-			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
-				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
-				fi
-			fi
-		else
-			lb_error "Could not find disk UUID of destination."
-		fi
-
-		# hard links support
-		if $hard_links ; then
-			# test hard links support
-			if ! test_hardlinks ; then
-
-				# NTFS/exFAT case
-				if [ "$(lb_df_fstype "$destination")" == "fuseblk" ] ; then
-
-					fhl="false"
-
-					# ask user disk format
-					if lbg_yesno "$tr_ntfs_or_exfat\n$tr_not_sure_say_no" ; then
-						fhl="true"
-					fi
-
-					# set config
-					edit_config --set "force_hard_links=$fhl" "$config_file"
-
-					res_edit=$?
-					if [ $res_edit != 0 ] ; then
-						lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-					fi
-
-				else
-					# if forced hard links in older config
-					if $force_hard_links ; then
-						# ask user to keep or not the force mode
-						if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
-
-							# set config
-							edit_config --set "force_hard_links=false" "$config_file"
-
-							res_edit=$?
-							if [ $res_edit != 0 ] ; then
-								lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-							fi
-						fi
-					fi
-				fi
-			fi
-		fi
-	else
-		lb_display_debug "Error or cancel when choosing destination directory (result code: $?)."
-
-		# if no destination set, return error
-		if [ -z "$destination" ] ; then
-			return 1
-		else
-			return 0
-		fi
-	fi
-
-	# edit sources to backup
-	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
-
-		edit_config "$config_sources"
-
-		# manage result
-		res_edit=$?
-		if [ $res_edit == 0 ] ; then
-			# display window to wait until user has finished
-			if ! $consolemode ; then
-				lbg_display_info "$tr_finished_edit"
-			fi
-		else
-			lb_error "Error in editing sources config file (result code: $res_edit)"
-		fi
-	fi
-
-	# activate recurrent backups
-	if ! $portable_mode ; then
-		if lbg_yesno "$tr_ask_activate_recurrent" ; then
-
-			# default custom frequency
-			case "$frequency" in
-				hourly|1h|60m)
-					default_frequency=1
-					;;
-				""|daily|1d|24h)
-					default_frequency=2
-					;;
-				weekly|7d)
-					default_frequency=3
-					;;
-				monthly|30d)
-					default_frequency=4
-					;;
-				*)
-					default_frequency=5
-					;;
-			esac
-
-			# choose frequency
-			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
-
-				enable_recurrent=true
-
-				# set recurrence frequency
-				case "$lbg_choose_option" in
-					1)
-						edit_config --set "frequency=\"hourly\"" "$config_file"
-						;;
-					2)
-						edit_config --set "frequency=\"daily\"" "$config_file"
-						;;
-					3)
-						edit_config --set "frequency=\"weekly\"" "$config_file"
-						;;
-					4)
-						edit_config --set "frequency=\"monthly\"" "$config_file"
-						;;
-					5)
-						# default custom frequency
-						case "$frequency" in
-							hourly)
-								frequency="1h"
-								;;
-							weekly)
-								frequency="7d"
-								;;
-							monthly)
-								frequency="30d"
-								;;
-							"")
-								# default is 24h
-								frequency="24h"
-								;;
-						esac
-
-						# display dialog to enter custom frequency
-						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
-							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
-							if [ $? == 0 ] ; then
-								edit_config --set "frequency=\"$lbg_input_text\"" "$config_file"
-							else
-								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
-							fi
-						fi
-						;;
-				esac
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter frequency (result code: $res_edit)"
-				fi
-			else
-				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
-			fi
-		fi
-	fi
-
-	# ask to edit config
-	if lbg_yesno "$tr_ask_edit_config" ; then
-
-		edit_config "$config_file"
-		if [ $? == 0 ] ; then
-			# display window to wait until user has finished
-			if ! $consolemode ; then
-				lbg_display_info "$tr_finished_edit"
-			fi
-		fi
-	fi
-
-	# enable/disable recurrence in config
-	edit_config --set "recurrent=$enable_recurrent" "$config_file"
-	res_edit=$?
-	if [ $res_edit != 0 ] ; then
-		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
-	fi
-
-	# check and install config
-	if ! install_config ; then
-		lbg_display_error "$tr_errors_in_config"
-		return 3
-	fi
-
-	# ask for backup
-	if lbg_yesno -y "$tr_ask_backup_now" ; then
-		t2b_backup
-		return $?
-	else
-		lbg_display_info "$tr_info_time2backup_ready"
-	fi
-}
-
-
-# First run wizard
-# Usage: first_run
-first_run() {
-
-	if ! $portable_mode ; then
-		# confirm install
-		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-			return 0
-		fi
-
-		# load configuration; don't care of errors
-		load_config &> /dev/null
-
-		# install time2backup (create links)
-		t2b_install
-	fi
-
-	# run config wizard
-	config_wizard
-	return $?
-}
-
-
-# Choose an operation to execute (time2backup commands)
-# Usage: choose_operation
-choose_operation() {
-
-	# display choice
-	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
-		# cancelled
-		return 0
-	fi
-
-	# run command
-	case $lbg_choose_option in
-		1)
-			mode="backup"
-			t2b_backup
-			;;
-		2)
-			mode="restore"
-			t2b_restore
-			;;
-		3)
-			t2b_config
-			;;
-		*)
-			# bad choice
-			return 1
-			;;
-	esac
-
-	# return command result
-	return $?
-}
-
-
-###################
-#  MAIN COMMANDS  #
-###################
-
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH]
 # Options:
@@ -2240,4 +1816,98 @@ t2b_uninstall() {
 
 	# we quit as soon as possible
 	exit $lb_exitcode
+}
+
+
+# Print help for users in console
+# Usage: print_help [COMMAND]
+# Options:
+#   COMMAND  sub command (if empty, print global help)
+print_help() {
+	lb_print "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
+	lb_print "\nGlobal options:"
+	lb_print "  -C, --console              execute time2backup in console mode (no dialog windows)"
+	lb_print "  -p, --portable             execute time2backup in a portable mode"
+	lb_print "                             (no install, use local config files, meant to run from removable devices)"
+	lb_print "  -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
+	lb_print "  -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
+	lb_print "  -c, --config CONFIG_FILE   overwrite configuration with specific file"
+	lb_print "  -D, --debug                run in debug mode (all messages printed and logged)"
+	lb_print "  -V, --version              print version and quit"
+	lb_print "  -h, --help                 print help \n"
+
+	case $1 in
+		backup)
+			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "\nBackup your files"
+			lb_print "\nOptions:"
+			lb_print "  -u, --unmount    unmount destination after backup (overrides configuration)"
+			lb_print "  -s, --shutdown   shutdown after backup (overrides configuration)"
+			lb_print "  -r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)"
+			lb_print "  -h, --help       print help"
+			;;
+		restore)
+			lb_print "Command usage: $1 [OPTIONS] [PATH]"
+			lb_print "\nRestore a file or directory"
+			lb_print "Warning: This feature does not auto-detect renamed or moved files."
+			lb_print "         To restore a moved/deleted file, ."
+			lb_print "\nOptions:"
+			lb_print "  -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			lb_print "                   by default it restores the last available backup"
+			lb_print "  --directory      path to restore is a directory (not necessary if path exists)"
+			lb_print "                   If deleted or moved, indicate that the chosen path is a directory."
+			lb_print "  --delete-new     delete newer files if exists for directories (restore exactly the same version)"
+			lb_print "  -f, --force      force restore; do not display confirmation"
+			lb_print "  -h, --help       print help"
+			;;
+		history)
+			lb_print "Command usage: $1 [OPTIONS] PATH"
+			lb_print "\nGet backup history of a file or directory"
+			lb_print "Warning: This feature does not detect old renamed/moved files yet."
+			lb_print "\nOptions:"
+			lb_print "  -a, --all    print all versions, including duplicates"
+			lb_print "  -q, --quiet  quiet mode; print only backup dates"
+			lb_print "  -h, --help   print help"
+			;;
+		config)
+			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "\nEdit configuration"
+			lb_print "\nOptions:"
+			lb_print "  -g, --general     edit general configuration"
+			lb_print "  -s, --sources     edit sources file (sources to backup)"
+			lb_print "  -x, --excludes    edit excludes file (patterns to ignore)"
+			lb_print "  -i, --includes    edit includes file (patterns to include)"
+			lb_print "  -l, --show        show configuration; do not edit"
+			lb_print "                    display configuration without comments"
+			lb_print "  -t, --test        test configuration; do not edit"
+			lb_print "  -w, --wizard      display configuration wizard instead of edit"
+			lb_print "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
+			lb_print "  -h, --help        print help"
+			;;
+		install)
+			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "\nInstall time2backup"
+			lb_print "\nOptions:"
+			lb_print "  -r, --reset-config  reset configuration files to default"
+			lb_print "  -h, --help          print help"
+			;;
+		uninstall)
+			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "\nUninstall time2backup"
+			lb_print "\nOptions:"
+			lb_print "  -c, --delete-config  delete configuration files"
+			lb_print "  -x, --delete         delete time2backup files"
+			lb_print "  -h, --help           print help"
+			;;
+		*)
+			lb_print "Commands:"
+			lb_print "    backup     backup your files"
+			lb_print "    restore    restore a backup of a file or directory"
+			lb_print "    history    displays backup history of a file or directory"
+			lb_print "    config     edit configuration"
+			lb_print "    install    install time2backup"
+			lb_print "    uninstall  uninstall time2backup"
+			lb_print "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
+			;;
+	esac
 }

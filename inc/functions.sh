@@ -1190,33 +1190,6 @@ edit_config() {
 }
 
 
-# Exit on cancel
-# Usage: cancel_exit
-cancel_exit() {
-
-	lb_display --log
-	lb_display_info --log "Cancelled. Exiting..."
-
-	# display notification
-	if $notifications ; then
-		if [ "$mode" == "backup" ] ; then
-			lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
-		else
-			lbg_notify "$tr_restore_cancelled"
-		fi
-	fi
-
-	# backup mode
-	if [ "$mode" == "backup" ] ; then
-		# exit with cancel code without shutdown
-		clean_exit --no-shutdown 17
-	else
-		# restore mode: just exit
-		exit 11
-	fi
-}
-
-
 # Test if lock exists
 # Usage: current_lock
 # Return: date of lock, empty if no lock
@@ -1244,7 +1217,9 @@ current_lock() {
 
 # Delete backup lock
 # Usage: remove_lock
-# Exit code: 0: OK, 1: could not delete lock
+# Exit codes:
+#   0: OK
+#   1: could not delete lock
 release_lock() {
 
 	lb_display_debug "Deleting lock..."
@@ -1258,6 +1233,10 @@ release_lock() {
 	return 0
 }
 
+
+####################
+#  EXIT FUNCTIONS  #
+####################
 
 # Clean things before exit
 # Usage: clean_exit [OPTIONS] [EXIT_CODE]
@@ -1447,6 +1426,33 @@ clean_exit() {
 }
 
 
+# Exit when cancel signal is caught
+# Usage: cancel_exit
+cancel_exit() {
+
+	lb_display --log
+	lb_display_info --log "Cancelled. Exiting..."
+
+	# display notification
+	if $notifications ; then
+		if [ "$mode" == "backup" ] ; then
+			lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
+		else
+			lbg_notify "$tr_restore_cancelled"
+		fi
+	fi
+
+	# backup mode
+	if [ "$mode" == "backup" ] ; then
+		# exit with cancel code without shutdown
+		clean_exit --no-shutdown 17
+	else
+		# restore mode: just exit
+		exit 11
+	fi
+}
+
+
 # Halt PC in 10 seconds
 # Usage: haltpc
 # Exit codes:
@@ -1477,4 +1483,331 @@ haltpc() {
 		lb_display_error "Error with shutdown command. PC is still up."
 		return 2
 	fi
+}
+
+
+#############
+#  WIZARDS  #
+#############
+
+# Choose an operation to execute (time2backup commands)
+# Usage: choose_operation
+# Exit codes: command exit code, 0 if cancelled, 1 if bad choice
+choose_operation() {
+
+	# display choice
+	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
+		# cancelled
+		return 0
+	fi
+
+	# run command
+	case $lbg_choose_option in
+		1)
+			mode="backup"
+			t2b_backup
+			;;
+		2)
+			mode="restore"
+			t2b_restore
+			;;
+		3)
+			t2b_config
+			;;
+		*)
+			# bad choice
+			return 1
+			;;
+	esac
+
+	# return command result
+	return $?
+}
+
+
+# Configuration wizard
+# Usage: config_wizard
+# Exit codes:
+#   0: OK
+#   1: no destination chosen
+config_wizard() {
+
+	enable_recurrent=false
+
+	# set default destination directory
+	if [ -d "$destination" ] ; then
+		start_path="$destination"
+	else
+		start_path="$lb_current_path"
+	fi
+
+	# get external disk
+	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
+
+		lb_display_debug "Chosen destination: $lbg_choose_directory"
+
+		# get absolute path of the chosen directory
+		chosen_directory="$(lb_realpath "$lbg_choose_directory")"
+
+		# if chosen directory is named backups, get parent directory
+		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
+			chosen_directory="$(dirname "$chosen_directory")"
+		fi
+
+		# update destination config
+		if [ "$chosen_directory" != "$destination" ] ; then
+			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
+			if [ $? == 0 ] ; then
+				# reset destination variable
+				destination="$chosen_directory"
+			else
+				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
+			fi
+		fi
+
+		# set mountpoint in config file
+		mountpoint="$(lb_df_mountpoint "$chosen_directory")"
+		if [ -n "$mountpoint" ] ; then
+			lb_display_debug "Mount point: $mountpoint"
+
+			# update disk mountpoint config
+			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
+
+				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
+				fi
+			fi
+		else
+			lb_error "Could not find mount point of destination."
+		fi
+
+		# set mountpoint in config file
+		disk_uuid="$(lb_df_uuid "$chosen_directory")"
+		if [ -n "$disk_uuid" ] ; then
+			lb_display_debug "Disk UUID: $disk_uuid"
+
+			# update disk UUID config
+			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
+				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
+				fi
+			fi
+		else
+			lb_error "Could not find disk UUID of destination."
+		fi
+
+		# hard links support
+		if $hard_links ; then
+			# test hard links support
+			if ! test_hardlinks ; then
+
+				# NTFS/exFAT case
+				if [ "$(lb_df_fstype "$destination")" == "fuseblk" ] ; then
+
+					fhl="false"
+
+					# ask user disk format
+					if lbg_yesno "$tr_ntfs_or_exfat\n$tr_not_sure_say_no" ; then
+						fhl="true"
+					fi
+
+					# set config
+					edit_config --set "force_hard_links=$fhl" "$config_file"
+
+					res_edit=$?
+					if [ $res_edit != 0 ] ; then
+						lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
+					fi
+
+				else
+					# if forced hard links in older config
+					if $force_hard_links ; then
+						# ask user to keep or not the force mode
+						if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
+
+							# set config
+							edit_config --set "force_hard_links=false" "$config_file"
+
+							res_edit=$?
+							if [ $res_edit != 0 ] ; then
+								lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
+							fi
+						fi
+					fi
+				fi
+			fi
+		fi
+	else
+		lb_display_debug "Error or cancel when choosing destination directory (result code: $?)."
+
+		# if no destination set, return error
+		if [ -z "$destination" ] ; then
+			return 1
+		else
+			return 0
+		fi
+	fi
+
+	# edit sources to backup
+	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
+
+		edit_config "$config_sources"
+
+		# manage result
+		res_edit=$?
+		if [ $res_edit == 0 ] ; then
+			# display window to wait until user has finished
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
+			fi
+		else
+			lb_error "Error in editing sources config file (result code: $res_edit)"
+		fi
+	fi
+
+	# activate recurrent backups
+	if ! $portable_mode ; then
+		if lbg_yesno "$tr_ask_activate_recurrent" ; then
+
+			# default custom frequency
+			case "$frequency" in
+				hourly|1h|60m)
+					default_frequency=1
+					;;
+				""|daily|1d|24h)
+					default_frequency=2
+					;;
+				weekly|7d)
+					default_frequency=3
+					;;
+				monthly|30d)
+					default_frequency=4
+					;;
+				*)
+					default_frequency=5
+					;;
+			esac
+
+			# choose frequency
+			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
+
+				enable_recurrent=true
+
+				# set recurrence frequency
+				case "$lbg_choose_option" in
+					1)
+						edit_config --set "frequency=\"hourly\"" "$config_file"
+						;;
+					2)
+						edit_config --set "frequency=\"daily\"" "$config_file"
+						;;
+					3)
+						edit_config --set "frequency=\"weekly\"" "$config_file"
+						;;
+					4)
+						edit_config --set "frequency=\"monthly\"" "$config_file"
+						;;
+					5)
+						# default custom frequency
+						case "$frequency" in
+							hourly)
+								frequency="1h"
+								;;
+							weekly)
+								frequency="7d"
+								;;
+							monthly)
+								frequency="30d"
+								;;
+							"")
+								# default is 24h
+								frequency="24h"
+								;;
+						esac
+
+						# display dialog to enter custom frequency
+						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
+							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
+							if [ $? == 0 ] ; then
+								edit_config --set "frequency=\"$lbg_input_text\"" "$config_file"
+							else
+								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
+							fi
+						fi
+						;;
+				esac
+
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_error "Error in setting config parameter frequency (result code: $res_edit)"
+				fi
+			else
+				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
+			fi
+		fi
+	fi
+
+	# ask to edit config
+	if lbg_yesno "$tr_ask_edit_config" ; then
+
+		edit_config "$config_file"
+		if [ $? == 0 ] ; then
+			# display window to wait until user has finished
+			if ! $consolemode ; then
+				lbg_display_info "$tr_finished_edit"
+			fi
+		fi
+	fi
+
+	# enable/disable recurrence in config
+	edit_config --set "recurrent=$enable_recurrent" "$config_file"
+	res_edit=$?
+	if [ $res_edit != 0 ] ; then
+		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
+	fi
+
+	# check and install config
+	if ! install_config ; then
+		lbg_display_error "$tr_errors_in_config"
+		return 3
+	fi
+
+	# ask for backup
+	if lbg_yesno -y "$tr_ask_backup_now" ; then
+		t2b_backup
+		return $?
+	else
+		lbg_display_info "$tr_info_time2backup_ready"
+	fi
+}
+
+
+# First run wizard
+# Usage: first_run
+# Exit codes: forwarded from config_wizard
+first_run() {
+
+	# install time2backup if not in portable mode
+	if ! $portable_mode ; then
+		# confirm install
+		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+			return 0
+		fi
+
+		# load configuration; don't care of errors
+		load_config &> /dev/null
+
+		# install time2backup (create links)
+		t2b_install
+	fi
+
+	# run config wizard
+	config_wizard
+	return $?
 }
