@@ -114,6 +114,8 @@ print_help() {
 #   1: no destination chosen
 config_wizard() {
 
+	enable_recurrent=false
+
 	# set default destination directory
 	if [ -d "$destination" ] ; then
 		start_path="$destination"
@@ -277,12 +279,7 @@ config_wizard() {
 			# choose frequency
 			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
 
-				# enable recurrence in config
-				edit_config --set "recurrent=true" "$config_file"
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
-				fi
+				enable_recurrent=true
 
 				# set recurrence frequency
 				case "$lbg_choose_option" in
@@ -335,39 +332,8 @@ config_wizard() {
 			else
 				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
 			fi
-		else
-			# disable recurrence in config
-			edit_config --set "recurrent=false" "$config_file"
-			res_edit=$?
-			if [ $res_edit != 0 ] ; then
-				lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
-			fi
 		fi
 	fi
-}
-
-
-# First run wizard
-# Usage: first_run
-first_run() {
-
-	if $portable_mode ; then
-		create_appicon -p
-	else
-		# confirm install
-		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-			return 0
-		fi
-
-		# load configuration; don't care of errors
-		load_config &> /dev/null
-
-		# install time2backup (create links)
-		t2b_install
-	fi
-
-	# config wizard
-	config_wizard
 
 	# ask to edit config
 	if lbg_yesno "$tr_ask_edit_config" ; then
@@ -381,21 +347,49 @@ first_run() {
 		fi
 	fi
 
-	# recheck config
+	# enable/disable recurrence in config
+	edit_config --set "recurrent=$enable_recurrent" "$config_file"
+	res_edit=$?
+	if [ $res_edit != 0 ] ; then
+		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
+	fi
+
+	# check and install config
 	if ! install_config ; then
 		lbg_display_error "$tr_errors_in_config"
 		return 3
 	fi
 
-	# ask to first backup
-	if lbg_yesno -y "$tr_ask_first_backup" ; then
+	# ask for backup
+	if lbg_yesno -y "$tr_ask_backup_now" ; then
 		t2b_backup
 		return $?
 	else
 		lbg_display_info "$tr_info_time2backup_ready"
 	fi
+}
 
-	return 0
+
+# First run wizard
+# Usage: first_run
+first_run() {
+
+	if ! $portable_mode ; then
+		# confirm install
+		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+			return 0
+		fi
+
+		# load configuration; don't care of errors
+		load_config &> /dev/null
+
+		# install time2backup (create links)
+		t2b_install
+	fi
+
+	# run config wizard
+	config_wizard
+	return $?
 }
 
 

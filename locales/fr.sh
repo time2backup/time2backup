@@ -33,9 +33,6 @@ tr_configure_time2backup="Configurer time2backup"
 # First run wizard
 tr_confirm_install_1="Voulez-vous installer time2backup ?"
 tr_confirm_install_2="Choisissez 'Non' si vous souhaitez l'installer manuellement."
-tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en anglais)"
-tr_ask_first_backup="Voulez-vous lancer votre première sauvegarde maintenant ?"
-tr_info_time2backup_ready="time2backup est prêt !"
 
 # Config mode
 tr_choose_config_file="Choisissez le fichier à éditer :"
@@ -65,6 +62,9 @@ tr_enter_frequency="Entrez une fréquence (h pour heures, d pour jours):"
 tr_frequency_examples="ex: 4h pour 4 heures, 2d pour 2 jours"
 tr_frequency_syntax_error="Il y a une erreur de syntaxe dans votre choix."
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
+tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en anglais)"
+tr_ask_backup_now="Voulez-vous lancer une sauvegarde maintenant ?"
+tr_info_time2backup_ready="time2backup est prêt !"
 
 # Backup
 tr_nothing_to_backup="Rien à sauvegarder !"
