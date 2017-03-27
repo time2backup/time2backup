@@ -1063,7 +1063,7 @@ edit_config() {
 	while true ; do
 		case "$1" in
 			-e|--editor)
-				if lb_test_arguments -eq 0 $2 ; then
+				if [ -z "$2" ] ; then
 					return 1
 				fi
 				editors=("$2")
@@ -1071,7 +1071,7 @@ edit_config() {
 				shift 2
 				;;
 			--set)
-				if lb_test_arguments -eq 0 $2 ; then
+				if [ -z "$2" ] ; then
 					return 1
 				fi
 				set_config="$2"

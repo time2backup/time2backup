@@ -173,7 +173,7 @@ while true ; do
 			shift
 			;;
 		-c|--config)
-			if lb_test_arguments -eq 0 $2 ; then
+			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
@@ -190,7 +190,7 @@ while true ; do
 			shift
 			;;
 		-u|--user)
-			if lb_test_arguments -eq 0 $2 ; then
+			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
@@ -198,7 +198,7 @@ while true ; do
 			shift 2
 			;;
 		-l|--log-level)
-			if lb_test_arguments -eq 0 $2 ; then
+			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
@@ -206,7 +206,7 @@ while true ; do
 			shift 2
 			;;
 		-v|--verbose-level)
-			if lb_test_arguments -eq 0 $2 ; then
+			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
@@ -333,32 +333,12 @@ if [ -z "$destination" ] ; then
 fi
 
 mode="$1"
+shift
 
 # command operations
 case "$mode" in
-	backup)
-		shift
-		t2b_backup $*
-		;;
-	history)
-		shift
-		t2b_history $*
-		;;
-	restore)
-		shift
-		t2b_restore $*
-		;;
-	config)
-		shift
-		t2b_config $*
-		;;
-	install)
-		shift
-		t2b_install $*
-		;;
-	uninstall)
-		shift
-		t2b_uninstall $*
+	backup|history|restore|config|install|uninstall)
+		t2b_$mode $*
 		;;
 	"")
 		# display choose operation dialog

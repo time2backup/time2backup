@@ -872,7 +872,7 @@ t2b_restore() {
 	while true ; do
 		case $1 in
 			-d|--date)
-				if lb_test_arguments -eq 0 $2 ; then
+				if [ -z "$2" ] ; then
 					print_help restore
 					return 1
 				fi
@@ -1462,7 +1462,7 @@ t2b_config() {
 				shift
 				;;
 			-e|--editor)
-				if lb_test_arguments -eq 0 $2 ; then
+				if [ -z "$2" ] ; then
 					return 1
 				fi
 				cmd_opts="-e $2 "
