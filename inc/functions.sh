@@ -796,8 +796,8 @@ report_duration() {
 
 
 # Install configuration (recurrent tasks, ...)
-# Usage: install_config
-install_config() {
+# Usage: apply_config
+apply_config() {
 
 	# do not install if in portable mode
 	if $portable_mode ; then
@@ -805,13 +805,6 @@ install_config() {
 	fi
 
 	res_install=0
-
-	echo "Testing configuration..."
-
-	# if config not ok, error
-	if ! load_config ; then
-		return 1
-	fi
 
 	# install cronjob
 	tmpcrontab="$config_directory/crontmp"
@@ -1772,8 +1765,8 @@ config_wizard() {
 		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
 	fi
 
-	# check and install config
-	if ! install_config ; then
+	# check and apply config
+	if ! apply_config ; then
 		lbg_display_error "$tr_errors_in_config"
 		return 3
 	fi

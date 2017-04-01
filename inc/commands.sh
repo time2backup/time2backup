@@ -1553,7 +1553,11 @@ t2b_config() {
 
 			case $? in
 				0)
-					install_config
+					load_config
+					if [ $? != 0 ] ; then
+						return 3
+					fi
+					apply_config
 					if [ $? != 0 ] ; then
 						return 4
 					fi
@@ -1583,6 +1587,7 @@ t2b_config() {
 # Install time2backup
 # Create a link to execute time2backup easely and create default configuration
 # Usage: t2b_install [OPTIONS]
+# Options:
 #   -r, --reset-config  reset configuration files to default
 #   -h, --help          print help
 # Exit codes:
@@ -1715,8 +1720,9 @@ EOF
 # Uninstall time2backup
 # Delete link and icon
 # Usage: t2b_uninstall [OPTIONS]
-#   -c, --delete-config  delete default configuration files
-#   -x, --delete         delete time2backup files
+# Options:
+#   -c, --delete-config  delete configuration files
+#   -x, --delete-files   delete time2backup files
 #   -h, --help           print help
 # Exit codes:
 #   0: OK
@@ -1738,7 +1744,7 @@ t2b_uninstall() {
 				delete_config=true
 				shift
 				;;
-			-x|--delete)
+			-x|--delete-files)
 				delete_files=true
 				shift
 				;;
