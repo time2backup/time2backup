@@ -589,8 +589,13 @@ t2b_backup() {
 			if [ -n "$ssh_options" ] ; then
 				cmd+=(-e "$ssh_options")
 			else
-				# security: defines default option
+				# if empty, defines default option
 				cmd+=(-e ssh)
+			fi
+
+			# rsync distant path option
+			if [ -n "$rsync_path" ] ; then
+				cmd+=(--rsync-path "$rsync_path")
 			fi
 		fi
 

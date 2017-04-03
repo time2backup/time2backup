@@ -81,6 +81,7 @@ shutdown_cmd=(shutdown -h now)
 hard_links=true
 force_hard_links=false
 mirror_mode=false
+rsync_path=""
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
 verbose_level="$default_verbose_level"
