@@ -641,36 +641,49 @@ t2b_backup() {
 
 		space_ok=false
 
+		# get all backups list
+		all_backups=($(get_backups))
+		nb_backups=${#all_backups[@]}
+
+		# avoid bugs to execute next loop at least one time
+		if [ $nb_backups == 0 ] ; then
+			nb_backups=1
+		fi
+
 		# test free space until it's ready
-		while true ; do
-			# if space ok, continue
+		for ((i=0; i<$nb_backups; i++)) ; do
+			lb_display_debug $i
+
+			# if space ok, quit loop to continue backup
 			if test_space $total_size ; then
 				space_ok=true
 				break
 			fi
 
-			# if clean old backups authorized in config,
-			if $clean_old_backups ; then
-
-				# get all backups list
-				old_backups=($(get_backups))
-				# avoid infinite loop and always keep one current backup
-				if [ ${#old_backups[@]} -le 1 ] ; then
-					break
-				fi
-
-				# set keep limit to
-				keep_limit=$((${#old_backups[@]} - 1 - $clean_keep))
-
-				if [ $keep_limit -le 1 ] ; then
-					break
-				fi
-
-				rotate_backups
-			else
-				# if no cleanup, continue to be stopped after
+			# if no clean old backups option in config, continue to be stopped after
+			if ! $clean_old_backups ; then
 				break
 			fi
+
+			# get actual backups list (recheck)
+			all_backups=($(get_backups))
+
+			# always keep the current backup and respect the clean limit
+			# (continue to be stopped after)
+			if [ ${#all_backups[@]} -le $clean_keep ] ; then
+				break
+			fi
+
+			# remove only one backup (nb - 1)
+			keep_limit=$((${#all_backups[@]} - 1))
+
+			# do not delete the current backup
+			if [ $keep_limit -le 1 ] ; then
+				break
+			fi
+
+			# clean backups
+			rotate_backups
 		done
 
 		# if not enough space on disk to backup, cancel

@@ -469,6 +469,9 @@ load_config() {
 		clean_keep=0
 	fi
 
+	# increment clean_keep to 1 to keep the current backup
+	clean_keep=$(($clean_keep + 1))
+
 	if ! $configok ; then
 		lb_error "\nThere are errors in your configuration."
 		lb_error "Please edit your configuration with 'config' command or manually."
