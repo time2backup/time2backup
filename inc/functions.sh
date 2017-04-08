@@ -798,26 +798,29 @@ report_duration() {
 }
 
 
-# Install configuration (recurrent tasks, ...)
-# Usage: apply_config
-apply_config() {
+# Enable/disable cron jobs
+# Usage: crontab_config enable|disable
+crontab_config() {
 
-	# do not install if in portable mode
-	if $portable_mode ; then
-		return 0
+	local crontab_enable=false
+
+	if [ $# == 0 ] ; then
+		return 1
 	fi
 
-	res_install=0
+	if [ "$1" == "enable" ] ; then
+		crontab_enable=true
+	fi
 
-	# install cronjob
+	# get crontab
 	tmpcrontab="$config_directory/crontmp"
 	crontask="* * * * *	\"$current_script\" backup --recurrent"
 
-	echo "Enable recurrent backup..."
-
 	crontab_opt=""
-	if [ -n "$user" ] ; then
-		crontab_opt="-u $user"
+	if [ "$(whoami)" == "root" ] ; then
+		if [ -n "$user" ] ; then
+			crontab_opt="-u $user"
+		fi
 	fi
 
 	# check if crontab exists
@@ -826,6 +829,13 @@ apply_config() {
 		# special case for error when no crontab
 		grep "no crontab for " "$tmpcrontab" > /dev/null
 		if [ $? == 0 ] ; then
+			# disable mode: nothing to do
+			if ! $crontab_enable ; then
+				# delete temporary crontab and exit
+				rm -f "$tmpcrontab" &> /dev/null
+				return 0
+			fi
+
 			# reset crontab
 			echo > "$tmpcrontab"
 
@@ -836,7 +846,9 @@ apply_config() {
 			fi
 		else
 			# cannot access to user crontab
-			if $recurrent ; then
+
+			# inform user to add cron job manually
+			if $crontab_enable ; then
 				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
 				lb_display --log "$crontask"
 			fi
@@ -853,7 +865,7 @@ apply_config() {
 	# cron task already exists
 	if [ $? == 0 ] ; then
 		# delete if option disabled
-		if ! $recurrent ; then
+		if ! $crontab_enable ; then
 			# avoid bugs in sed commands
 			crontask="$(echo "$crontask" | sed 's/\//\\\//g')"
 
@@ -868,7 +880,7 @@ apply_config() {
 
 	else
 		# cron task does not exists
-		if $recurrent ; then
+		if $crontab_enable ; then
 			# append command to crontab
 			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
 		fi
@@ -882,6 +894,27 @@ apply_config() {
 	rm -f "$tmpcrontab" &> /dev/null
 
 	return $res_install
+}
+
+
+# Install configuration (recurrent tasks, ...)
+# Usage: apply_config
+apply_config() {
+
+	# do not install config if in portable mode
+	if $portable_mode ; then
+		return 0
+	fi
+
+	if $recurrent ; then
+		lb_display "Enable recurrent backups..."
+		crontab_config enable
+	else
+		lb_display "Disable recurrent backups..."
+		crontab_config disable
+	fi
+
+	return $?
 }
 
 

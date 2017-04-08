@@ -1745,10 +1745,11 @@ EOF
 # Exit codes:
 #   0: OK
 #   1: usage error
-#   3: cannot delete application link
-#   4: cannot delete command alias
-#   5: cannot delete configuration files
-#   6: cannot delete time2backup files
+#   3: cannot remove cron jobs
+#   4: cannot delete application link
+#   5: cannot delete command alias
+#   6: cannot delete configuration files
+#   7: cannot delete time2backup files
 t2b_uninstall() {
 
 	# default options
@@ -1782,6 +1783,14 @@ t2b_uninstall() {
 
 	lb_print "Uninstall time2backup..."
 
+	# delete cron job
+	lb_print "\nRemove cron jobs..."
+	crontab_config disable
+	if [ $? != 0 ] ; then
+		echo "... Failed. Please remove it manually."
+		lb_exitcode=3
+	fi
+
 	# delete desktop file (Linux)
 	if [ "$lb_current_os" != "macOS" ] ; then
 
@@ -1792,10 +1801,10 @@ t2b_uninstall() {
 			lb_print "\nDelete application link..."
 			rm -f "$application_link"
 			if [ $? != 0 ] ; then
-				echo "Cannot delete application link."
+				echo "... Failed"
 				echo "Please retry in sudo, or run the following command:"
 				echo "   sudo rm -f \"$application_link\""
-				lb_exitcode=3
+				lb_exitcode=4
 			fi
 		fi
 	fi
@@ -1805,10 +1814,10 @@ t2b_uninstall() {
 		lb_print "\nDelete command alias..."
 		 rm -f "$cmd_alias"
 		if [ $? != 0 ] ; then
-			echo "Cannot delete the link to time2backup."
+			echo "... Failed"
 			echo "Please retry in sudo, or run the following command:"
 			echo "   sudo rm -f \"$cmd_alias\""
-			lb_exitcode=4
+			lb_exitcode=5
 		fi
 	fi
 
@@ -1817,8 +1826,8 @@ t2b_uninstall() {
 		lb_print "\nDelete configuration..."
 		rm -rf "$config_directory"
 		if [ $? != 0 ] ; then
-			lb_error "Error: cannot delete configuration files!"
-			lb_exitcode=5
+			echo "... Failed"
+			lb_exitcode=6
 		fi
 	fi
 
@@ -1827,8 +1836,8 @@ t2b_uninstall() {
 		lb_print "\nDelete time2backup files..."
 		rm -rf "$script_directory"
 		if [ $? != 0 ] ; then
-			lb_error "Error: cannot delete time2backup files!"
-			lb_exitcode=6
+			echo "... Failed"
+			lb_exitcode=7
 		fi
 	fi
 
