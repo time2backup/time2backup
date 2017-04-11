@@ -25,6 +25,7 @@ user=""
 sources=()
 backup_destination=""
 mounted=false
+rsync_cmd=()
 success=()
 warnings=()
 errors=()

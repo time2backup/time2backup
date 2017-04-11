@@ -370,27 +370,13 @@ t2b_backup() {
 		fi
 	fi
 
-	# basic rsync command
-	rsync_cmd=(rsync -aHv --delete --progress)
-
-	# get config for inclusions
-	if [ -f "$config_includes" ] ; then
-		rsync_cmd+=(--include-from "$config_includes")
-	fi
-
-	# get config for exclusions
-	if [ -f "$config_excludes" ] ; then
-		rsync_cmd+=(--exclude-from "$config_excludes")
-	fi
+	# prepare rsync command
+	prepare_rsync
+	rsync_cmd+=(--delete)
 
 	# add max size if specified
 	if [ -n "$max_size" ] ; then
 		rsync_cmd+=(--max-size "$max_size")
-	fi
-
-	# add user defined options
-	if [ ${#rsync_options[@]} -gt 0 ] ; then
-		rsync_cmd+=("${rsync_options[@]}")
 	fi
 
 	# execute backup for each source
@@ -716,24 +702,22 @@ t2b_backup() {
 
 		# get backup result and prepare report
 		res=${PIPESTATUS[0]}
-		case $res in
-			0|24)
-				# backup succeeded
-				# (ignoring vanished files in transfer)
-				success+=("$src")
-				;;
-			1|2|3|4|5|6)
+
+		if [ $res == 0 ] ; then
+			# backup succeeded
+			# (ignoring vanished files in transfer)
+			success+=("$src")
+		else
+			if rsync_result $res ; then
+				# rsync minor errors (partial transfers)
+				warnings+=("$src (some files were not backuped; code: $res)")
+				lb_exitcode=15
+			else
 				# critical errors that caused backup to fail
 				errors+=("$src (backup failed; code: $res)")
 				lb_exitcode=14
-				;;
-			*)
-				# considering any other rsync error as not critical
-				# (some files were not backuped)
-				warnings+=("$src (some files were not backuped; code: $res)")
-				lb_exitcode=15
-				;;
-		esac
+			fi
+		fi
 
 		# clean empty trash directories
 		if ! $hard_links ; then
@@ -1196,22 +1180,7 @@ t2b_restore() {
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# prepare rsync command
-	rsync_cmd=(rsync -aHv)
-
-	# get config for inclusions
-	if [ -f "$config_includes" ] ; then
-		rsync_cmd+=(--include-from "$config_includes")
-	fi
-
-	# get config for exclusions
-	if [ -f "$config_excludes" ] ; then
-		rsync_cmd+=(--exclude-from "$config_excludes")
-	fi
-
-	# add user defined options
-	if [ ${#rsync_options[@]} -gt 0 ] ; then
-		rsync_cmd+=("${rsync_options[@]}")
-	fi
+	prepare_rsync
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
@@ -1280,11 +1249,12 @@ t2b_restore() {
 	# prepare rsync restore command
 	cmd=("${rsync_cmd[@]}")
 
+	# delete new files
 	if $delete_newer_files ; then
 		cmd+=(--delete)
 	fi
 
-	cmd+=(--progress --human-readable "$src" "$dest")
+	cmd+=("$src" "$dest")
 
 	echo "Restore file from backup $backup_date..."
 	lb_display_debug "Executing: ${cmd[@]}"
@@ -1292,24 +1262,23 @@ t2b_restore() {
 	# execute rsync command
 	"${cmd[@]}"
 	lb_result
+	res=$?
 
 	# rsync results
-	case $? in
-		0)
-			# file restored
-			lbg_display_info "$tr_restore_finished"
-			;;
-		1|2|3|4|5|6)
+	if [ $res == 0 ] ; then
+		# file restored
+		lbg_display_info "$tr_restore_finished"
+	else
+		if rsync_result $res ; then
+			# rsync minor errors (partial transfers)
+			lbg_display_warning "$tr_restore_finished_warnings"
+			lb_exitcode=10
+		else
 			# critical errors that caused backup to fail
 			lbg_display_error "$tr_restore_failed"
 			lb_exitcode=9
-			;;
-		*)
-			# rsync minor error
-			lbg_display_warning "$tr_restore_finished_warnings"
-			lb_exitcode=10
-			;;
-	esac
+		fi
+	fi
 
 	return $lb_exitcode
 }

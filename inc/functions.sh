@@ -1263,6 +1263,60 @@ release_lock() {
 }
 
 
+# Prepare rsync command
+# Usage: prepare_rsync
+# Exit codes:
+#   0: OK
+#   1: error
+prepare_rsync() {
+
+	# basic command
+	rsync_cmd=(rsync -aHv --progress)
+
+	# get config for inclusions
+	if [ -f "$config_includes" ] ; then
+		rsync_cmd+=(--include-from "$config_includes")
+	fi
+
+	# get config for exclusions
+	if [ -f "$config_excludes" ] ; then
+		rsync_cmd+=(--exclude-from "$config_excludes")
+	fi
+
+	# add user defined options
+	if [ ${#rsync_options[@]} -gt 0 ] ; then
+		rsync_cmd+=("${rsync_options[@]}")
+	fi
+}
+
+
+# Manage rsync exit codes
+# Usage: rsync_result EXIT_CODE
+# Exit codes:
+#   0: rsync was OK
+#   1: usage error
+#   2: rsync error
+rsync_result() {
+
+	# usage error
+	if ! lb_is_integer $1 ; then
+		return 1
+	fi
+
+	# manage results
+	case $1 in
+		0|23|24)
+			# OK or partial transfer
+			return 0
+			;;
+		*)
+			# critical errors that caused backup to fail
+			return 2
+			;;
+	esac
+}
+
+
 ####################
 #  EXIT FUNCTIONS  #
 ####################
