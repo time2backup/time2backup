@@ -33,6 +33,7 @@ tr_configure_time2backup="Configure time2backup"
 # First run wizard
 tr_confirm_install_1="Do you want to install time2backup?"
 tr_confirm_install_2="Choose 'No' if you want to install manually."
+tr_ask_first_config="Do you want to configure time2backup now?"
 
 # Config mode
 tr_choose_config_file="Choose file to edit:"

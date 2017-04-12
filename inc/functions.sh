@@ -1876,18 +1876,21 @@ config_wizard() {
 # Exit codes: forwarded from config_wizard
 first_run() {
 
+	install_result=0
+
 	# install time2backup if not in portable mode
 	if ! $portable_mode ; then
 		# confirm install
-		if ! lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-			return 0
+		if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+			# install time2backup (create links)
+			t2b_install
+			install_result=$?
 		fi
+	fi
 
-		# load configuration; don't care of errors
-		load_config &> /dev/null
-
-		# install time2backup (create links)
-		t2b_install
+	# confirm config
+	if ! lbg_yesno "$tr_ask_first_config" ; then
+		return $install_result
 	fi
 
 	# run config wizard
