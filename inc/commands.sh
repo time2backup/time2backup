@@ -751,15 +751,8 @@ t2b_backup() {
 		# create a latest link to the last backup directory
 		lb_display_debug --log "Create latest link..."
 
-		latest_link="$backup_destination/latest"
-
-		# delete link if exists
-		if [ -L "$latest_link" ] ; then
-			rm -f "$latest_link" &> /dev/null
-		fi
-
 		# create a new link (in a sub-context to avoid confusion)
-		$(cd "$backup_destination" && ln -s "$backup_date" "latest" &> /dev/null)
+		$(cd "$backup_destination" && ln -s -f "$backup_date" "latest" &> /dev/null)
 	fi
 
 	# print final report
@@ -1667,26 +1660,10 @@ EOF
 			# quit
 			return $lb_exitcode
 		fi
-
-		# delete old link
-		rm -f "$cmd_alias" &> /dev/null
-		if [ $? != 0 ] ; then
-			echo "A link to time2backup already exists and we cannot remove it. Try the following commands:"
-			echo "   sudo rm -f \"$cmd_alias\""
-			echo "   sudo ln -s \"$current_script\" \"$cmd_alias\""
-
-			# this exit code is less important
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=4
-			fi
-
-			# quit
-			return $lb_exitcode
-		fi
 	fi
 
 	# create link
-	ln -s "$current_script" "$cmd_alias" &> /dev/null
+	ln -s -f "$current_script" "$cmd_alias" &> /dev/null
 	if [ $? != 0 ] ; then
 		echo
 		echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
