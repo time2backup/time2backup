@@ -400,12 +400,15 @@ upgrade_config() {
 
 	lb_display_debug "Upgrading from config v$current_version to v$version..."
 
-	case "$current_version" in
-		*)
-			# other compatible versions: replace version number
-			sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
-			;;
-	esac
+	# no migrations needed for now
+	#case "$current_version" in
+	#	*)
+	#		# no changes
+	#		;;
+	#esac
+
+	# replace version number
+	sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
 
 	return 0
 }
