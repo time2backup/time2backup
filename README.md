@@ -1,13 +1,20 @@
 # time2backup
-
 ## A powerful backup tool using rsync, written in Bash
 Backup and restore your files easely on Linux and macOS!
 
-No dependencies, just [download it](http://jean.prunneaux.com/projects/time2backup/) and run!
+No dependencies, just [download it](https://jean.prunneaux.com/projects/time2backup/) and run!
+
+
+## Why another backup tool? Why is it written in Bash?
+time2backup wants to be as light as possible, working without any dependencies.
+All you need is just bash and rsync.
+
+Run it on any Linux/macOS system, it will work out of the box.
+You can also put time2backup on a USB stick/external disk drive and use it in portable mode.
 
 
 ## Download and install
-1. [Download time2backup here](http://jean.prunneaux.com/projects/time2backup/)
+1. [Download time2backup here](https://jean.prunneaux.com/projects/time2backup/)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
@@ -56,7 +63,7 @@ time2backup is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for 
 Author: Jean Prunneaux [http://jean.prunneaux.com](http://jean.prunneaux.com)
 
 Website:
-[http://jean.prunneaux.com/projects/time2backup](http://jean.prunneaux.com/projects/time2backup)
+[http://jean.prunneaux.com/projects/time2backup](http://jean.prunneaux.com/projects/time2backup/)
 
 Source code:
 [https://github.com/pruje/time2backup](https://github.com/pruje/time2backup)

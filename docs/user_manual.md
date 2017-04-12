@@ -6,6 +6,8 @@
 * [How to install time2backup](#install)
 * [Backup your files](#backup)
 * [Restore your files](#restore)
+* [Upgrading time2backup](#upgrade)
+* [Uninstall time2backup](#uninstall)
 * [Troubleshootting](#troubleshootting)
 
 ---------------------------------------------------------------
@@ -37,7 +39,7 @@ If you have enabled recurrent backups, you just have to wait until backup is fin
 
 If you haven't, just run time2backup and go into backup mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh backup [OPTIONS] [PATH]
+/path/to/time2backup.sh backup [OPTIONS] [PATH]
 ```
 See [command documentation](command.md) for more information and options.
 
@@ -46,13 +48,28 @@ See [command documentation](command.md) for more information and options.
 ## Restore your files
 Run time2backup and go into restore mode, or run the following command in a terminal:
 ```bash
-./time2backup.sh restore [OPTIONS] [PATH]
+/path/to/time2backup.sh restore [OPTIONS] [PATH]
 ```
 See [command documentation](command.md) for more information and options.
 
 You will have to choose the file or directory to restore, and the version date to restore.
 
 Then you will get your file(s) exactly at backup state.
+
+
+<a name="upgrade"></a>
+## Upgrading time2backup
+To upgrade time2backup, download the last version here and just uncompress archive into the same folder.
+If your system is asking, choose to overwrite files.
+
+
+<a name="uninstall"></a>
+## Uninstall time2backup
+To uninstall time2backup, run the following command in a terminal:
+```bash
+/path/to/time2backup.sh uninstall [OPTIONS]
+```
+See [command documentation](command.md) for more information and options.
 
 <a name="troubleshootting"></a>
 ## Troubleshootting
