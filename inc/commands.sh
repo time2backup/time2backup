@@ -91,6 +91,9 @@ t2b_backup() {
 		return 3
 	fi
 
+	# apply configuration in quiet mode; don't care of errors
+	apply_config &> /dev/null
+
 	lb_display "time2backup\n"
 
 	# if not specified, get sources to backup
@@ -906,6 +909,9 @@ t2b_restore() {
 		return 3
 	fi
 
+	# apply configuration in quiet mode; don't care of errors
+	apply_config &> /dev/null
+
 	# test backup destination
 	if ! prepare_destination ; then
 		return 4
@@ -1330,6 +1336,9 @@ t2b_history() {
 	if ! load_config ; then
 		return 3
 	fi
+
+	# apply configuration in quiet mode; don't care of errors
+	apply_config &> /dev/null
 
 	# test backup destination
 	if ! prepare_destination ; then
