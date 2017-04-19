@@ -603,14 +603,15 @@ t2b_backup() {
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
-		lb_display --log "Preparing backup..."
-
 		# display prepare notification
 		if $notifications ; then
 			if [ $s == 0 ] ; then
+				# just display the first notification, not for every sources
 				lbg_notify "$tr_notify_prepare_backup"
 			fi
 		fi
+
+		lb_display --log "Preparing backup..."
 
 		# test rsync and space available for backup
 		if ! test_backup ; then
@@ -693,11 +694,13 @@ t2b_backup() {
 
 		# display backup notification
 		if $notifications ; then
+			# just display the first notification, not for every sources
 			if [ $s == 0 ] ; then
 				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
 			fi
 		fi
 
+		lb_display --log "Running backup..."
 		lb_display_debug --log "Executing: ${cmd[@]}\n"
 
 		# execute rsync command, print into terminal and logfile

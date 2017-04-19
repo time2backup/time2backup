@@ -872,7 +872,7 @@ crontab_config() {
 			# avoid bugs in sed commands
 			crontask="$(echo "$crontask" | sed 's/\//\\\//g')"
 
-			# delete line
+			# delete line(s)
 			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
 			if [ $? != 0 ] ; then
 				res_install=3
