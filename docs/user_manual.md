@@ -24,7 +24,7 @@ Linux Mint, Debian, openSuse, Mageia, macOS, ...
 
 <a name="install"></a>
 ## How to install time2backup
-1. [Download time2backup here](http://jean.prunneaux.com/projects/time2backup/)
+1. [Download time2backup here](https://time2backup.github.io)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
@@ -75,7 +75,7 @@ See [command documentation](command.md) for more information and options.
 ## Troubleshootting
 Some common bugs or issues are reported here.
 
-In any case of problem, please report any bug here: https://github.com/pruje/time2backup/issues
+In any case of problem, please report any bug here: https://github.com/time2backup/time2backup/issues
 
 ### time2backup is stuck with message "a backup is already running"
 Sometimes, if time2backup was killed by force, a lock file may stay.

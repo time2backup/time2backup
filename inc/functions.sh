@@ -1,7 +1,7 @@
 #
 # time2backup functions
 #
-# This file is part of time2backup (https://github.com/pruje/time2backup)
+# This file is part of time2backup (https://time2backup.github.io)
 #
 # MIT License
 # Copyright (c) 2017 Jean Prunneaux
