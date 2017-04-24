@@ -342,7 +342,7 @@ t2b_backup() {
 	# set new backup directory
 	dest="$backup_destination/$backup_date"
 
-	lb_display --log "Prepare backup..."
+	lb_display --log "Prepare backup destination..."
 
 	# if mirror mode and there is an old backup, move last backup to current directory
 	if $mirror_mode && [ -n "$last_backup" ] ; then
@@ -758,7 +758,7 @@ t2b_backup() {
 		lb_display_debug --log "Create latest link..."
 
 		# create a new link (in a sub-context to avoid confusion)
-		$(cd "$backup_destination" && ln -s -f "$backup_date" "latest" &> /dev/null)
+		$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
 	fi
 
 	# print final report
