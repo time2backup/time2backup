@@ -7,6 +7,11 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+
+###################
+#  MAIN COMMANDS  #
+###################
+
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH]
 # Options:
@@ -387,7 +392,7 @@ t2b_backup() {
 	# do not use for ... in ... syntax
 	for ((s=0; s < $nbsrc; s++)) ; do
 
-		src="${sources[$s]}"
+		src=${sources[$s]}
 
 		total_size=""
 
@@ -401,25 +406,25 @@ t2b_backup() {
 				source_network=true
 
 				# get ssh user@host
-				ssh_host="$(echo "$src" | awk -F '/' '{print $3}')"
+				ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
 
 				# get ssh path
 				ssh_prefix="ssh://$ssh_host"
-				ssh_path="${src#$ssh_prefix}"
+				ssh_path=${src#$ssh_prefix}
 
 				# do not include protocol in absolute path
 				abs_src="$ssh_host:$ssh_path"
 
 				# get full backup path
-				path_dest="$(get_backup_path "$src")"
+				path_dest=$(get_backup_path "$src")
 				;;
 			*)
 				# file or directory
 				# replace ~ by user home directory
 				if [ "${src:0:1}" == "~" ] ; then
-					homealias="$(echo "$src" | awk -F '/' '{ print $1 }')"
+					homealias=$(echo "$src" | awk -F '/' '{ print $1 }')
 					if [ "$homealias" == "~" ] ; then
-						homedir="$(lb_homepath $user)"
+						homedir=$(lb_homepath "$user")
 						if [ $? != 0 ] ; then
 							lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
 							errors+=("$src (does not exists)")
@@ -429,13 +434,13 @@ t2b_backup() {
 							continue
 						fi
 					else
-						homedir="$(lb_homepath "${homealias:1}")"
+						homedir=$(lb_homepath "${homealias:1}")
 					fi
 					src="$homedir/$(echo "$src" | sed 's/^[^/]*\///')"
 				fi
 
 				# get absolute path for source
-				abs_src="$(lb_abspath "$src")"
+				abs_src=$(lb_abspath "$src")
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
@@ -448,7 +453,7 @@ t2b_backup() {
 				fi
 
 				# get backup path
-				path_dest="$(get_backup_path "$abs_src")"
+				path_dest=$(get_backup_path "$abs_src")
 				;;
 		esac
 
@@ -472,7 +477,7 @@ t2b_backup() {
 
 				if [ -d "$old_backup_path" ] ; then
 					if ! lb_dir_is_empty "$old_backup_path" ; then
-						lastcleanbackup="${old_backups[$b]}"
+						lastcleanbackup=${old_backups[$b]}
 
 						lb_display_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${old_backups[$b]}/$path_dest"
 						break
@@ -519,7 +524,7 @@ t2b_backup() {
 				# if destination supports hard links, use incremental with hard links system
 				if $hard_links ; then
 					# revision folder
-					linkdest="$(get_relative_path "$finaldest" "$backup_destination")"
+					linkdest=$(get_relative_path "$finaldest" "$backup_destination")
 					if [ -e "$linkdest" ] ; then
 						cmd+=(--link-dest="$linkdest/$lastcleanbackup/$path_dest")
 					fi
@@ -544,7 +549,7 @@ t2b_backup() {
 		if [[ "$backup_destination" == "$abs_src"* ]] ; then
 
 			# get common path of the backup directory and source
-			common_path="$(get_common_path "$backup_destination" "$abs_src")"
+			common_path=$(get_common_path "$backup_destination" "$abs_src")
 
 			if [ $? != 0 ] ; then
 				lb_error "Cannot exclude directory backup from $src!"
@@ -559,7 +564,7 @@ t2b_backup() {
 			fi
 
 			# get relative exclude directory
-			exclude_backup_dir="${backup_destination#$common_path}"
+			exclude_backup_dir=${backup_destination#$common_path}
 
 			if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
 				exclude_backup_dir="/$exclude_backup_dir"
@@ -877,7 +882,7 @@ t2b_restore() {
 					print_help restore
 					return 1
 				fi
-				backup_date="$2"
+				backup_date=$2
 				choose_date=false
 				shift 2
 				;;
@@ -969,7 +974,7 @@ t2b_restore() {
 				;;
 			2)
 				# restore a moved file
-				starting_path="$backup_destination"
+				starting_path=$backup_destination
 				restore_moved=true
 				;;
 			3)
@@ -978,7 +983,7 @@ t2b_restore() {
 				;;
 			4)
 				# restore a moved directory
-				starting_path="$backup_destination"
+				starting_path=$backup_destination
 				directorymode=true
 				restore_moved=true
 				;;
@@ -1026,7 +1031,7 @@ t2b_restore() {
 			esac
 
 			# get path to restore
-			file="$lbg_choose_file"
+			file=$lbg_choose_file
 		fi
 
 		# restore a moved file
@@ -1039,14 +1044,14 @@ t2b_restore() {
 			fi
 
 			# remove destination path prefix
-			file="${file#$backup_destination}"
+			file=${file#$backup_destination}
 			# remove slashes
 			if [ "${file:0:1}" == "/" ] ; then
-				file="${file:1}"
+				file=${file:1}
 			fi
 
 			# get backup date
-			backup_date="$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)"
+			backup_date=$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)
 			if [ -z "$backup_date" ] ; then
 				lbg_display_error "$tr_path_is_not_backup"
 				return 1
@@ -1060,7 +1065,7 @@ t2b_restore() {
 			fi
 
 			# remove backup date path prefix
-			file="${file#$backup_date}"
+			file=${file#$backup_date}
 
 			# check if it is a file backup
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
@@ -1070,11 +1075,11 @@ t2b_restore() {
 			fi
 
 			# absolute path of destination
-			file="${file:6}"
+			file=${file:6}
 		fi
 	else
 		# get specified path
-		file="$*"
+		file=$*
 	fi
 
 	# case of symbolic links
@@ -1093,7 +1098,7 @@ t2b_restore() {
 	lb_display_debug "Path to restore: $file"
 
 	# get backup full path
-	backup_file_path="$(get_backup_path "$file")"
+	backup_file_path=$(get_backup_path "$file")
 
 	# if error, exit
 	if [ -z "$backup_file_path" ] ; then
@@ -1176,7 +1181,7 @@ t2b_restore() {
 		fi
 	fi
 
-	dest="$file"
+	dest=$file
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
@@ -1190,7 +1195,7 @@ t2b_restore() {
 	if [[ "$backup_destination" == "$dest"* ]] ; then
 
 		# get common path of the backup directory and source
-		common_path="$(get_common_path "$backup_destination" "$dest")"
+		common_path=$(get_common_path "$backup_destination" "$dest")
 
 		if [ $? != 0 ] ; then
 			lb_error "Cannot exclude directory backup from $dest!"
@@ -1202,7 +1207,7 @@ t2b_restore() {
 		fi
 
 		# get relative exclude directory
-		exclude_backup_dir="${backup_destination#$common_path}"
+		exclude_backup_dir=${backup_destination#$common_path}
 
 		if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
 			exclude_backup_dir="/$exclude_backup_dir"
@@ -1349,7 +1354,7 @@ t2b_history() {
 	fi
 
 	# get file
-	file="$*"
+	file=$*
 
 	# get backup versions of this file
 	file_history=($(get_backup_history $history_opts"$file"))
@@ -1367,7 +1372,7 @@ t2b_history() {
 			echo "$b"
 		else
 			# complete result: print details
-			abs_file="$(get_backup_path "$file")"
+			abs_file=$(get_backup_path "$file")
 			if [ -z "$abs_file" ] ; then
 				continue
 			fi
@@ -1391,6 +1396,10 @@ t2b_history() {
 	return 0
 }
 
+
+####################
+#  OTHER COMMANDS  #
+####################
 
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]
@@ -1425,19 +1434,19 @@ t2b_config() {
 	while true ; do
 		case $1 in
 			-g|--general)
-				file="$config_file"
+				file=$config_file
 				shift
 				;;
 			-x|--excludes)
-				file="$config_excludes"
+				file=$config_excludes
 				shift
 				;;
 			-i|--includes)
-				file="$config_includes"
+				file=$config_includes
 				shift
 				;;
 			-s|--sources)
-				file="$config_sources"
+				file=$config_sources
 				show_sources=true
 				shift
 				;;
@@ -1484,16 +1493,16 @@ t2b_config() {
 
 			case "$lbg_choose_option" in
 				1)
-					file="$config_file"
+					file=$config_file
 					;;
 				2)
-					file="$config_sources"
+					file=$config_sources
 					;;
 				3)
-					file="$config_excludes"
+					file=$config_excludes
 					;;
 				4)
-					file="$config_includes"
+					file=$config_includes
 					;;
 				5)
 					op_config="wizard"
@@ -1517,7 +1526,7 @@ t2b_config() {
 		show)
 			# if not set, file config is general config
 			if [ -z "$file" ] ; then
-				file="$config_file"
+				file=$config_file
 			fi
 
 			# get sources is a special case to print list without comments
@@ -1809,6 +1818,10 @@ t2b_uninstall() {
 	exit $lb_exitcode
 }
 
+
+##################
+#  HELP COMMAND  #
+##################
 
 # Print help for users in console
 # Usage: print_help [COMMAND]

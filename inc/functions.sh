@@ -42,12 +42,12 @@ get_common_path() {
 	fi
 
 	# get absolute paths
-	local gcp_dir1="$(lb_abspath "$1")"
+	local gcp_dir1=$(lb_abspath "$1")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
-	local gcp_dir2="$(lb_abspath "$2")"
+	local gcp_dir2=$(lb_abspath "$2")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
@@ -59,7 +59,7 @@ get_common_path() {
 		# if a character changes in the 2 paths,
 		if [ "${gcp_dir1:0:$i}" != "${gcp_dir2:0:$i}" ] ; then
 
-			local gcp_path="${gcp_dir1:0:$i}"
+			local gcp_path=${gcp_dir1:0:$i}
 
 			# if it's a directory, return it
 			if [ -d "$gcp_path" ] ; then
@@ -101,12 +101,12 @@ get_relative_path() {
 	fi
 
 	# get absolute paths
-	local grp_src="$(lb_abspath "$1")"
+	local grp_src=$(lb_abspath "$1")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
-	local grp_dest="$(lb_abspath "$2")"
+	local grp_dest=$(lb_abspath "$2")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
@@ -148,7 +148,7 @@ get_relative_path() {
 # Return: type of source (files/ssh)
 get_backup_type() {
 
-	backup_url="$*"
+	backup_url=$*
 	protocol=$(echo "$backup_url" | cut -d: -f1)
 
 	# get protocol
@@ -186,12 +186,12 @@ get_backup_fulldate() {
 	fi
 
 	# get date details
-	byear="${1:0:4}"
-	bmonth="${1:5:2}"
-	bday="${1:8:2}"
-	bhour="${1:11:2}"
-	bmin="${1:13:2}"
-	bsec="${1:15:2}"
+	byear=${1:0:4}
+	bmonth=${1:5:2}
+	bday=${1:8:2}
+	bhour=${1:11:2}
+	bmin=${1:13:2}
+	bsec=${1:15:2}
 
 	# return date formatted for languages
 	if [ "$lb_current_os" == "macOS" ] ; then
@@ -241,8 +241,8 @@ get_backup_history() {
 	fi
 
 	# get path
-	file="$*"
-	abs_file="$(get_backup_path "$file")"
+	file=$*
+	abs_file=$(get_backup_path "$file")
 	if [ -z "$abs_file" ] ; then
 		return 3
 	fi
@@ -252,7 +252,7 @@ get_backup_history() {
 	last_symlink_target=""
 	for ((h=${#backups[@]}-1; h>=0; h--)) ; do
 
-		backup_date="${backups[$h]}"
+		backup_date=${backups[$h]}
 
 		# check if file/directory exists
 		backup_file="$backup_destination/$backup_date/$abs_file"
@@ -281,10 +281,10 @@ get_backup_history() {
 					# return path without the last /
 					backup_dir="${backup_file:0:${#backup_file}-1}"
 				else
-					backup_dir="$backup_file"
+					backup_dir=$backup_file
 				fi
 
-				backup_file="$backup_dir"
+				backup_file=$backup_dir
 
 				# if it is really a directory and not a symlink,
 				if ! [ -L "$backup_file" ] ; then
@@ -299,13 +299,13 @@ get_backup_history() {
 
 			# detect symlinks changes
 			if [ -L "$backup_file" ] ; then
-				symlink_target="$(readlink "$backup_file")"
+				symlink_target=$(readlink "$backup_file")
 
 				if [ "$symlink_target" != "$last_symlink_target" ] ; then
 					file_history+=("$backup_date")
 
 					# save last target to compare to next one
-					last_symlink_target="$symlink_target"
+					last_symlink_target=$symlink_target
 				fi
 
 				continue
@@ -396,7 +396,7 @@ create_config() {
 #   1: compatibility error
 upgrade_config() {
 
-	current_version="$*"
+	current_version=$*
 
 	lb_display_debug "Upgrading from config v$current_version to v$version..."
 
@@ -432,7 +432,7 @@ load_config() {
 	fi
 
 	# get config version
-	config_version="$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")"
+	config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")
 	if [ -n "$config_version" ] ; then
 		# compare versions
 		if [ "$config_version" != "$version" ] ; then
@@ -583,7 +583,7 @@ unmount_destination() {
 
 	lb_display --log "Unmount destination..."
 
-	destination_mountpoint="$(lb_df_mountpoint "$destination")"
+	destination_mountpoint=$(lb_df_mountpoint "$destination")
 	if [ $? != 0 ] ; then
 		lb_display_error "Cannot get mountpoint of $destination"
 		return 1
@@ -628,7 +628,7 @@ unmount_destination() {
 get_backup_path() {
 
 	# get file
-	f="$*"
+	f=$*
 
 	# if absolute path (first character is a /)
 	if [ "${f:0:1}" == "/" ] ; then
@@ -643,12 +643,12 @@ get_backup_path() {
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
-			ssh_host="$(echo "$src" | awk -F '/' '{print $3}')"
-			ssh_hostname="$(echo "$ssh_host" | cut -d@ -f2)"
+			ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
+			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
 			ssh_prefix="ssh://$ssh_host"
-			ssh_path="${src#$ssh_prefix}"
+			ssh_path=${src#$ssh_prefix}
 
 			# return complete path
 			echo "/ssh/$ssh_hostname/$ssh_path"
@@ -703,7 +703,7 @@ test_hardlinks() {
 	no_hardlinks_fs=(vfat msdos fuseblk exfat vboxsf)
 
 	# get destination filesystem
-	dest_fstype="$(lb_df_fstype "$destination")"
+	dest_fstype=$(lb_df_fstype "$destination")
 	if [ -z "$dest_fstype" ] ; then
 		return 1
 	fi
@@ -870,7 +870,7 @@ crontab_config() {
 		# delete if option disabled
 		if ! $crontab_enable ; then
 			# avoid bugs in sed commands
-			crontask="$(echo "$crontask" | sed 's/\//\\\//g')"
+			crontask=$(echo "$crontask" | sed 's/\//\\\//g')
 
 			# delete line(s)
 			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
@@ -1033,7 +1033,7 @@ clean_empty_directories() {
 	fi
 
 	# get directory path
-	d="$*"
+	d=$*
 
 	# delete empty directories recursively
 	while true ; do
@@ -1061,7 +1061,7 @@ clean_empty_directories() {
 			rmdir "$d" &> /dev/null
 			if [ $? == 0 ] ; then
 				# go to parent directory and continue loop
-				d="$(dirname "$d")"
+				d=$(dirname "$d")
 				continue
 			fi
 		fi
@@ -1106,7 +1106,7 @@ edit_config() {
 				if [ -z "$2" ] ; then
 					return 1
 				fi
-				set_config="$2"
+				set_config=$2
 				shift 2
 				;;
 			*)
@@ -1120,7 +1120,7 @@ edit_config() {
 		return 1
 	fi
 
-	edit_file="$*"
+	edit_file=$*
 
 	# test file
 	if [ -e "$edit_file" ] ; then
@@ -1137,8 +1137,8 @@ edit_config() {
 	if [ -n "$set_config" ] ; then
 
 		# get parameter + value
-		conf_param="$(echo "$set_config" | cut -d= -f1)"
-		conf_value="$(echo "$set_config" | sed 's/\//\\\//g')"
+		conf_param=$(echo "$set_config" | cut -d= -f1)
+		conf_value=$(echo "$set_config" | sed 's/\//\\\//g')
 
 		# get config line
 		config_line=$(cat "$edit_file" | grep -n "^[# ]*$conf_param=" | cut -d: -f1)
@@ -1192,7 +1192,7 @@ edit_config() {
 		for e in ${all_editors[@]} ; do
 			# test if editor exists
 			if lb_command_exists "$e" ; then
-				editor="$e"
+				editor=$e
 				break
 			fi
 		done
@@ -1622,9 +1622,9 @@ config_wizard() {
 
 	# set default destination directory
 	if [ -d "$destination" ] ; then
-		start_path="$destination"
+		start_path=$destination
 	else
-		start_path="$lb_current_path"
+		start_path=$lb_current_path
 	fi
 
 	# get external disk
@@ -1633,11 +1633,11 @@ config_wizard() {
 		lb_display_debug "Chosen destination: $lbg_choose_directory"
 
 		# get absolute path of the chosen directory
-		chosen_directory="$(lb_realpath "$lbg_choose_directory")"
+		chosen_directory=$(lb_realpath "$lbg_choose_directory")
 
 		# if chosen directory is named backups, get parent directory
 		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
-			chosen_directory="$(dirname "$chosen_directory")"
+			chosen_directory=$(dirname "$chosen_directory")
 		fi
 
 		# update destination config
@@ -1645,14 +1645,14 @@ config_wizard() {
 			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
 			if [ $? == 0 ] ; then
 				# reset destination variable
-				destination="$chosen_directory"
+				destination=$chosen_directory
 			else
 				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
 			fi
 		fi
 
 		# set mountpoint in config file
-		mountpoint="$(lb_df_mountpoint "$chosen_directory")"
+		mountpoint=$(lb_df_mountpoint "$chosen_directory")
 		if [ -n "$mountpoint" ] ; then
 			lb_display_debug "Mount point: $mountpoint"
 
@@ -1671,7 +1671,7 @@ config_wizard() {
 		fi
 
 		# set mountpoint in config file
-		disk_uuid="$(lb_df_uuid "$chosen_directory")"
+		disk_uuid=$(lb_df_uuid "$chosen_directory")
 		if [ -n "$disk_uuid" ] ; then
 			lb_display_debug "Disk UUID: $disk_uuid"
 

@@ -61,7 +61,7 @@ clean_keep=0
 
 logs_save=false
 keep_logs_if_error=true
-log_level="$default_log_level"
+log_level=$default_log_level
 
 notifications=true
 email_report=false
@@ -85,7 +85,7 @@ mirror_mode=false
 rsync_path=""
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
-verbose_level="$default_verbose_level"
+verbose_level=$default_verbose_level
 
 
 ####################
@@ -95,13 +95,13 @@ verbose_level="$default_verbose_level"
 # get real path of the script
 if [ "$(uname)" == "Darwin" ] ; then
 	# macOS which does not support readlink -f option
-	current_script="$(perl -e 'use Cwd "abs_path";print abs_path(shift)' "$0")"
+	current_script=$(perl -e 'use Cwd "abs_path";print abs_path(shift)' "$0")
 else
-	current_script="$(readlink -f "$0")"
+	current_script=$(readlink -f "$0")
 fi
 
 # get directory of the current script
-script_directory="$(dirname "$current_script")"
+script_directory=$(dirname "$current_script")
 
 # load libbash
 source "$script_directory/libbash/libbash.sh" > /dev/null
@@ -125,10 +125,10 @@ if [ $? != 0 ] ; then
 fi
 
 # get user language
-lang="${LANG:0:2}"
+lang=${LANG:0:2}
 
 # load translations (without errors)
-case "$lang" in
+case $lang in
 	fr)
 		source "$script_directory/libbash/locales/$lang.sh" &> /dev/null
 		source "$script_directory/locales/$lang.sh" &> /dev/null
@@ -169,7 +169,7 @@ fi
 
 # get global options
 while true ; do
-	case "$1" in
+	case $1 in
 		-C|--console)
 			consolemode=true
 			shift
@@ -179,7 +179,7 @@ while true ; do
 				print_help
 				exit 1
 			fi
-			config_file="$2"
+			config_file=$2
 			# test if file exists
 			if ! [ -f "$config_file" ] ; then
 				lb_error "Configuration file $config_file does not exists!"
@@ -196,7 +196,7 @@ while true ; do
 				print_help
 				exit 1
 			fi
-			user="$2"
+			user=$2
 			shift 2
 			;;
 		-l|--log-level)
@@ -204,7 +204,7 @@ while true ; do
 				print_help
 				exit 1
 			fi
-			log_level="$2"
+			log_level=$2
 			shift 2
 			;;
 		-v|--verbose-level)
@@ -212,7 +212,7 @@ while true ; do
 				print_help
 				exit 1
 			fi
-			verbose_level="$2"
+			verbose_level=$2
 			shift 2
 			;;
 		-D|--debug)
@@ -239,7 +239,7 @@ done
 
 # if user not set, get current user
 if [ -z "$user" ] ; then
-	user="$(whoami)"
+	user=$(whoami)
 fi
 
 # disable dialogs if console mode
@@ -249,7 +249,7 @@ else
 	# try to find display (if into a cron job on Linux)
 	if [ "$lb_current_os" == "Linux" ] ; then
 
-		u="$user"
+		u=$user
 
 		for i in 1 2 ; do
 			# find user X display
@@ -266,7 +266,7 @@ else
 			fi
 
 			# if failed, try with the current user
-			u="$(whoami)"
+			u=$(whoami)
 		done
 	fi
 fi
@@ -293,7 +293,7 @@ if [ -z "$config_file" ] ; then
 	config_file="$config_directory/time2backup.conf"
 else
 	# parent directory of specified configuration file
-	config_directory="$(dirname "$config_file")"
+	config_directory=$(dirname "$config_file")
 fi
 
 # default config files
@@ -334,11 +334,11 @@ if [ -z "$destination" ] ; then
 	exit $?
 fi
 
-mode="$1"
+mode=$1
 shift
 
 # command operations
-case "$mode" in
+case $mode in
 	backup|history|restore|config|install|uninstall)
 		t2b_$mode $*
 		;;
