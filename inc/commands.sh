@@ -13,7 +13,7 @@
 ###################
 
 # Perform backup
-# Usage: t2b_backup [OPTIONS] [PATH]
+# Usage: t2b_backup [OPTIONS] [PATH...]
 # Options:
 #   -u, --unmount    unmount after backup (overrides configuration)
 #   -s, --shutdown   shutdown after backup (overrides configuration)
@@ -86,10 +86,11 @@ t2b_backup() {
 		esac
 	done
 
-	# specified source
-	if [ $# -gt 0 ] ; then
-		sources=("$*")
-	fi
+	# specified source(s)
+	while [ -n "$1" ] ; do
+		sources+=("$1")
+		shift
+	done
 
 	# load and test configuration
 	if ! load_config ; then
@@ -1842,7 +1843,7 @@ print_help() {
 
 	case $1 in
 		backup)
-			lb_print "Command usage: $1 [OPTIONS]"
+			lb_print "Command usage: $1 [OPTIONS] [PATH...]"
 			lb_print "\nBackup your files"
 			lb_print "\nOptions:"
 			lb_print "  -u, --unmount    unmount destination after backup (overrides configuration)"

@@ -47,7 +47,7 @@ Backup your files
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH]
+time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ```
 
 ### Options

@@ -340,7 +340,18 @@ shift
 # command operations
 case $mode in
 	backup|history|restore|config|install|uninstall)
-		t2b_$mode $*
+
+		# prepare command
+		t2b_cmd=(t2b_$mode)
+
+		# forward arguments in space safe mode
+		while [ -n "$1" ] ; do
+			t2b_cmd+=("$1")
+			shift
+		done
+
+		# run command
+		"${t2b_cmd[@]}"
 		;;
 	"")
 		# display choose operation dialog
