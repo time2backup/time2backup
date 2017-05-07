@@ -217,16 +217,18 @@ get_backup_history() {
 	allversions=false
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-a|--all)
 				allversions=true
-				shift
 				;;
 			*)
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# usage error
@@ -1092,7 +1094,7 @@ edit_config() {
 	set_config=""
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-e|--editor)
 				if [ -z "$2" ] ; then
@@ -1100,19 +1102,22 @@ edit_config() {
 				fi
 				editors=("$2")
 				custom_editor=true
-				shift 2
+				shift
 				;;
 			--set)
 				if [ -z "$2" ] ; then
 					return 1
 				fi
 				set_config=$2
-				shift 2
+				shift
 				;;
 			*)
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# test config file
@@ -1334,33 +1339,32 @@ rsync_result() {
 clean_exit() {
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			--no-unmount)
 				if ! $force_unmount ; then
 					unmount=false
 				fi
-				shift
 				;;
 			--no-email)
 				email_report=false
 				email_report_if_error=false
-				shift
 				;;
 			--no-rmlog)
 				logs_save=true
-				shift
 				;;
 			--no-shutdown)
 				if ! $force_shutdown ; then
 					shutdown=false
 				fi
-				shift
 				;;
 			*)
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# set exit code if specified

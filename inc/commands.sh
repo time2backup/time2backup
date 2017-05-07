@@ -56,21 +56,18 @@ t2b_backup() {
 	backup_date=$(date +%Y-%m-%d-%H%M%S)
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
-				shift
 				;;
 			-s|--shutdown)
 				force_shutdown=true
 				shutdown=true
-				shift
 				;;
 			-r|--recurrent)
 				recurrent_backup=true
-				shift
 				;;
 			-h|--help)
 				print_help backup
@@ -84,6 +81,9 @@ t2b_backup() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# specified source(s)
@@ -876,7 +876,7 @@ t2b_restore() {
 	delete_newer_files=false
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-d|--date)
 				if [ -z "$2" ] ; then
@@ -885,19 +885,16 @@ t2b_restore() {
 				fi
 				backup_date=$2
 				choose_date=false
-				shift 2
+				shift
 				;;
 			--directory)
 				directorymode=true
-				shift
 				;;
 			--delete-new)
 				delete_newer_files=true
-				shift
 				;;
 			-f|--force)
 				forcemode=true
-				shift
 				;;
 			-h|--help)
 				print_help restore
@@ -911,6 +908,9 @@ t2b_restore() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# load and test configuration
@@ -1311,15 +1311,13 @@ t2b_history() {
 	history_opts=""
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-a|--all)
 				history_opts="-a "
-				shift
 				;;
 			-q|--quiet)
 				quietmode=true
-				shift
 				;;
 			-h|--help)
 				print_help history
@@ -1333,6 +1331,9 @@ t2b_history() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# usage errors
@@ -1432,43 +1433,36 @@ t2b_config() {
 
 	# get options
 	# following other options to edit_config() function
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-g|--general)
 				file=$config_file
-				shift
 				;;
 			-x|--excludes)
 				file=$config_excludes
-				shift
 				;;
 			-i|--includes)
 				file=$config_includes
-				shift
 				;;
 			-s|--sources)
 				file=$config_sources
 				show_sources=true
-				shift
 				;;
 			-l|--show)
 				op_config="show"
-				shift
 				;;
 			-t|--test)
 				op_config="test"
-				shift
 				;;
 			-w|--wizard)
 				op_config="wizard"
-				shift
 				;;
 			-e|--editor)
 				if [ -z "$2" ] ; then
 					return 1
 				fi
 				cmd_opts="-e $2 "
-				shift 2
+				shift
 				;;
 			-h|--help)
 				print_help config
@@ -1482,6 +1476,9 @@ t2b_config() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	if [ -z "$file" ] ; then
@@ -1603,11 +1600,10 @@ t2b_install() {
 	reset_config=false
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-r|--reset-config)
 				reset_config=true
-				shift
 				;;
 			-h|--help)
 				print_help install
@@ -1621,6 +1617,9 @@ t2b_install() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	echo "Install time2backup..."
@@ -1725,15 +1724,13 @@ t2b_uninstall() {
 	delete_files=false
 
 	# get options
-	while true ; do
+	while [ -n "$1" ] ; do
 		case $1 in
 			-c|--delete-config)
 				delete_config=true
-				shift
 				;;
 			-x|--delete-files)
 				delete_files=true
-				shift
 				;;
 			-h|--help)
 				print_help uninstall
@@ -1747,6 +1744,9 @@ t2b_uninstall() {
 				break
 				;;
 		esac
+
+		# load next argument
+		shift
 	done
 
 	# confirm action
