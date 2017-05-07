@@ -57,7 +57,7 @@ t2b_backup() {
 
 	# get options
 	while true ; do
-		case "$1" in
+		case $1 in
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
@@ -152,7 +152,7 @@ t2b_backup() {
 		# compare timestamps
 		if [ -n "$last_backup_timestamp" ] ; then
 			# convert frequency in seconds
-			case "$frequency" in
+			case $frequency in
 				hourly)
 					seconds_offset=3600
 					;;
@@ -167,7 +167,7 @@ t2b_backup() {
 					;;
 				*)
 					# custom
-					case "${frequency:${#frequency}-1}" in
+					case ${frequency:${#frequency}-1} in
 						m)
 							fqunit=60
 							;;
@@ -968,7 +968,7 @@ t2b_restore() {
 		esac
 
 		# manage choosed option
-		case "$lbg_choose_option" in
+		case $lbg_choose_option in
 			1)
 				# restore a file
 				:
@@ -1492,7 +1492,7 @@ t2b_config() {
 				return 0
 			fi
 
-			case "$lbg_choose_option" in
+			case $lbg_choose_option in
 				1)
 					file=$config_file
 					;;

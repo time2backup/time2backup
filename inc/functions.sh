@@ -152,7 +152,7 @@ get_backup_type() {
 	protocol=$(echo "$backup_url" | cut -d: -f1)
 
 	# get protocol
-	case "$protocol" in
+	case $protocol in
 		ssh)
 			# double check protocol
 			echo "$backup_url" | grep -q -E "^$protocol://"
@@ -279,7 +279,7 @@ get_backup_history() {
 				# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
 				if [ "${backup_file:${#backup_file}-1}" == "/" ] ; then
 					# return path without the last /
-					backup_dir="${backup_file:0:${#backup_file}-1}"
+					backup_dir=${backup_file:0:${#backup_file}-1}
 				else
 					backup_dir=$backup_file
 				fi
@@ -401,7 +401,7 @@ upgrade_config() {
 	lb_display_debug "Upgrading from config v$current_version to v$version..."
 
 	# no migrations needed for now
-	#case "$current_version" in
+	#case $current_version in
 	#	*)
 	#		# no changes
 	#		;;
@@ -1093,7 +1093,7 @@ edit_config() {
 
 	# get options
 	while true ; do
-		case "$1" in
+		case $1 in
 			-e|--editor)
 				if [ -z "$2" ] ; then
 					return 1
@@ -1335,7 +1335,7 @@ clean_exit() {
 
 	# get options
 	while true ; do
-		case "$1" in
+		case $1 in
 			--no-unmount)
 				if ! $force_unmount ; then
 					unmount=false
@@ -1762,7 +1762,7 @@ config_wizard() {
 		if lbg_yesno "$tr_ask_activate_recurrent" ; then
 
 			# default custom frequency
-			case "$frequency" in
+			case $frequency in
 				hourly|1h|60m)
 					default_frequency=1
 					;;
@@ -1786,7 +1786,7 @@ config_wizard() {
 				enable_recurrent=true
 
 				# set recurrence frequency
-				case "$lbg_choose_option" in
+				case $lbg_choose_option in
 					1)
 						edit_config --set "frequency=\"hourly\"" "$config_file"
 						;;
@@ -1801,7 +1801,7 @@ config_wizard() {
 						;;
 					5)
 						# default custom frequency
-						case "$frequency" in
+						case $frequency in
 							hourly)
 								frequency="1h"
 								;;
