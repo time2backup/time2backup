@@ -1749,6 +1749,11 @@ t2b_uninstall() {
 		esac
 	done
 
+	# confirm action
+	if ! lb_yesno "Uninstall time2backup?" ; then
+		return 0
+	fi
+
 	lb_print "Uninstall time2backup..."
 
 	# delete cron job
