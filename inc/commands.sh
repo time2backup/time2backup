@@ -14,33 +14,6 @@
 
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH...]
-# Options:
-#   -u, --unmount    unmount after backup (overrides configuration)
-#   -s, --shutdown   shutdown after backup (overrides configuration)
-#   -r, --recurrent  perform a recurrent backup
-#   -h, --help       print help
-# Exit codes:
-#   0: backup OK
-#   1: usage error
-#   3: config error
-#   4: no source to backup
-#   5: before script failed
-#   6: backup device not reachable
-#   7: backup destination not writable
-#   8: backup is already running
-#   9: cannot write logs
-#   10: source does not exists
-#   11: cannot exclude directory backup from itself
-#   12: rsync test error
-#   13: not enough space for backup
-#   14: critical error (rsync failed)
-#   15: warnings in backup
-#   16: after script failed
-#   17: cancelled
-#   18: error while unmount destination backup
-#   19: shutdown error
-#   20: recurrent backups disabled
-#   21: recurrent backups: cannot get/save last backup timestamp
 t2b_backup() {
 
 	# default values and options
@@ -844,27 +817,6 @@ t2b_backup() {
 
 # Restore a file
 # Usage: t2b_restore [OPTIONS] [PATH]
-# Options:
-#   -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
-#                    by default it restores the last available backup
-#   --directory      path to restore is a directory (not necessary if path exists)
-#                    If deleted or moved, indicate that the chosen path is a directory.
-#   --delete-new     delete newer files if exists for directories (restore exactly the same version)
-#   -f, --force      force restore; do not display confirmation
-#   -h, --help       print help
-# Exit codes:
-#   0: file(s) restored
-#   1: usage error
-#   3: config error
-#   4: backup source is not reachable
-#   5: no backups available at this path
-#   6: no backups of this file
-#   7: no backup found at this date
-#   8: cannot exclude destination
-#   9: error while restore
-#   10: some files were not restored
-#   11: restore cancelled
-#   12: operation not supported
 t2b_restore() {
 
 	# default options
@@ -1294,16 +1246,6 @@ t2b_restore() {
 
 # Get history/versions of a file
 # Usage: t2b_history [OPTIONS] PATH
-# Options:
-#   -a, --all    print all versions (including duplicates)
-#   -q, --quiet  quiet mode: print only backup dates
-#   -h, --help   print help
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   3: config error
-#   4: backup source is not reachable
-#   5: no backup found for path
 t2b_history() {
 
 	# default options and variables
@@ -1405,24 +1347,6 @@ t2b_history() {
 
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]
-#   -g, --general     edit general configuration
-#   -s, --sources     edit sources file (sources to backup)
-#   -x, --excludes    edit excludes file (patterns to ignore)
-#   -i, --includes    edit includes file (patterns to include)
-#   -l, --show        show configuration; do not edit
-#                     display configuration without comments
-#   -t, --test        test configuration; do not edit
-#   -w, --wizard      display configuration wizard instead of edit
-#   -e, --editor BIN  use specified editor (e.g. vim, nano, ...)
-#   -h, --help        print help
-# Exit codes:
-#   0: config OK
-#   1: usage error
-#   3: config is not OK
-#   4: error when install config
-#   5: failed to open/save configuration
-#   6: no editor found to open configuration file
-#   7: unknown error
 t2b_config() {
 
 	# default values
@@ -1584,17 +1508,7 @@ t2b_config() {
 
 
 # Install time2backup
-# Create a link to execute time2backup easely and create default configuration
 # Usage: t2b_install [OPTIONS]
-# Options:
-#   -r, --reset-config  reset configuration files to default
-#   -h, --help          print help
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   3: there are errors in config
-#   4: error while creating application shortcuts
-#   5: error in reset configuration
 t2b_install() {
 
 	reset_config=false
@@ -1703,20 +1617,7 @@ EOF
 
 
 # Uninstall time2backup
-# Delete link and icon
 # Usage: t2b_uninstall [OPTIONS]
-# Options:
-#   -c, --delete-config  delete configuration files
-#   -x, --delete-files   delete time2backup files
-#   -h, --help           print help
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   3: cannot remove cron jobs
-#   4: cannot delete application link
-#   5: cannot delete command alias
-#   6: cannot delete configuration files
-#   7: cannot delete time2backup files
 t2b_uninstall() {
 
 	# default options
@@ -1831,8 +1732,6 @@ t2b_uninstall() {
 
 # Print help for users in console
 # Usage: print_help [COMMAND]
-# Options:
-#   COMMAND  sub command (if empty, print global help)
 print_help() {
 	lb_print "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	lb_print "\nGlobal options:"

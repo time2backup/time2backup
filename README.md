@@ -12,6 +12,8 @@ All you need is just bash and rsync.
 Run it on any Linux/macOS system, it will work out of the box.
 You can also put time2backup on a USB stick/external disk drive and use it in portable mode.
 
+time2backup is powered by [libbash.sh](https://github.com/pruje/libbash.sh)
+
 
 ## Download and install
 1. [Download time2backup here](https://time2backup.github.io/)

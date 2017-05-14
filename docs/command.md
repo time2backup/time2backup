@@ -5,6 +5,7 @@
 * [backup](#backup)
 * [restore](#restore)
 * [history](#history)
+* [config](#config)
 * [install](#install)
 * [uninstall](#uninstall)
 
@@ -59,7 +60,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ```
 
 ### Exit codes
-- 0: Everthing is OK
+- 0: Backup successfully completed
 - 1: Usage error
 - 3: Config error
 - 4: No sources to backup
@@ -139,6 +140,39 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 - 3: Config error
 - 4: Backup device not reachable
 - 5: No backup found for the path
+
+---------------------------------------------------------------
+<a name="config"></a>
+## config
+Configure time2backup.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] config [OPTIONS]
+```
+
+### Options
+```
+-g, --general     edit general configuration
+-s, --sources     edit sources file (sources to backup)
+-x, --excludes    edit excludes file (patterns to ignore)
+-i, --includes    edit includes file (patterns to include)
+-l, --show        show configuration; do not edit
+                  display configuration without comments
+-t, --test        test configuration; do not edit
+-w, --wizard      display configuration wizard instead of edit
+-e, --editor BIN  use specified editor (e.g. vim, nano, ...)
+-h, --help        print help
+```
+
+### Exit codes
+- 0: Config OK
+- 1: Usage error
+- 3: Configuration errors
+- 4: Error when apply config
+- 5: Failed to open/save configuration
+- 6: No editor found to open configuration file
+- 7: Unknown error
 
 ---------------------------------------------------------------
 <a name="install"></a>
