@@ -104,36 +104,21 @@ fi
 script_directory=$(dirname "$current_script")
 
 # load libbash
-source "$script_directory/libbash/libbash.sh" > /dev/null
+source "$script_directory/libbash/libbash.sh" --gui > /dev/null
 if [ $? != 0 ] ; then
 	echo >&2 "Error: cannot load libbash. Please add it to the '$script_directory/libbash' directory."
 	exit 1
 fi
 
-# load libbash GUI
-source "$script_directory/libbash/libbash_gui.sh" > /dev/null
-if [ $? != 0 ] ; then
-	echo >&2 "Error: cannot load libbash GUI. Please add it to the '$script_directory/libbash' directory."
-	exit 1
-fi
-
-# load default messages
+# load default english messages
 source "$script_directory/locales/en.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load messages!"
+	lb_error "ERROR: cannot load messages!"
 	exit 1
 fi
 
-# get user language
-lang=${LANG:0:2}
-
-# load translations (without errors)
-case $lang in
-	fr)
-		source "$script_directory/libbash/locales/$lang.sh" &> /dev/null
-		source "$script_directory/locales/$lang.sh" &> /dev/null
-		;;
-esac
+# load translation (if failed, no error)
+source "$script_directory/locales/$lb_lang.sh" &> /dev/null
 
 # change current script name
 lb_current_script_name="time2backup"
@@ -168,28 +153,26 @@ fi
 ##################
 
 # get global options
-while true ; do
+while [ -n "$1" ] ; do
 	case $1 in
 		-C|--console)
 			consolemode=true
-			shift
 			;;
 		-c|--config)
 			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
-			config_file=$2
 			# test if file exists
-			if ! [ -f "$config_file" ] ; then
-				lb_error "Configuration file $config_file does not exists!"
+			if ! [ -f "$2" ] ; then
+				lb_error "Configuration file $2 does not exists!"
 				exit 1
 			fi
-			shift 2
+			config_file=$2
+			shift
 			;;
 		-p|--portable)
 			portable_mode=true
-			shift
 			;;
 		-u|--user)
 			if [ -z "$2" ] ; then
@@ -197,7 +180,7 @@ while true ; do
 				exit 1
 			fi
 			user=$2
-			shift 2
+			shift
 			;;
 		-l|--log-level)
 			if [ -z "$2" ] ; then
@@ -205,7 +188,7 @@ while true ; do
 				exit 1
 			fi
 			log_level=$2
-			shift 2
+			shift
 			;;
 		-v|--verbose-level)
 			if [ -z "$2" ] ; then
@@ -213,11 +196,10 @@ while true ; do
 				exit 1
 			fi
 			verbose_level=$2
-			shift 2
+			shift
 			;;
 		-D|--debug)
 			debugmode=true
-			shift
 			;;
 		-V|--version)
 			echo $version
@@ -235,11 +217,12 @@ while true ; do
 			break
 			;;
 	esac
+	shift # load next argument
 done
 
 # if user not set, get current user
 if [ -z "$user" ] ; then
-	user=$(whoami)
+	user=$lb_current_user
 fi
 
 # disable dialogs if console mode
@@ -266,7 +249,7 @@ else
 			fi
 
 			# if failed, try with the current user
-			u=$(whoami)
+			u=$lb_current_user
 		done
 	fi
 fi
@@ -304,14 +287,14 @@ config_includes="$config_directory/includes.conf"
 # defines log level
 if ! $debugmode ; then
 	# if not set (unknown error), set to default level
-	if ! lb_set_loglevel "$log_level" ; then
-		lb_set_loglevel "$default_log_level"
+	if ! lb_set_log_level "$log_level" ; then
+		lb_set_log_level "$default_log_level"
 	fi
 
 	# defines verbose level
 	# if not set (unknown error), set to default level
-	if ! lb_set_loglevel "$verbose_level" ; then
-		lb_set_loglevel "$default_verbose_level"
+	if ! lb_set_display_level "$verbose_level" ; then
+		lb_set_display_level "$default_verbose_level"
 	fi
 fi
 
