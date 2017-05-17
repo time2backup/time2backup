@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 RC 6 (2017-05-17)
+- Add support to backup multiple sources specified from the command line
+- Apply configuration when running main commands (backup, restore, history)
+- Major improvements in documentation
+- Upgrade to libbash.sh 1.0
+- Various bugfixes and improvements in source code
+
 ## 1.0.0 RC 5 (2017-04-12)
 - Enable notifications in cron mode
 - Delete cron jobs when uninstall
