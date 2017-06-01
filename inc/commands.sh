@@ -372,8 +372,6 @@ t2b_backup() {
 
 		src=${sources[$s]}
 
-		total_size=""
-
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/$nbsrc)\n"
 
@@ -610,6 +608,10 @@ t2b_backup() {
 
 		# prepare backup: testing space
 		if $test_destination ; then
+
+			# reset backup size
+			total_size=0
+
 			# test rsync and space available for backup
 			if ! test_backup ; then
 				lb_display --log "Error in rsync test."
@@ -637,10 +639,9 @@ t2b_backup() {
 
 			# test free space until it's ready
 			for ((i=0; i<$nb_backups; i++)) ; do
-				lb_display_debug $i
 
 				# if space ok, quit loop to continue backup
-				if test_space $total_size ; then
+				if test_space $total_size "$destination" ; then
 					space_ok=true
 					break
 				fi
@@ -694,7 +695,7 @@ t2b_backup() {
 				# continue to next source
 				continue
 			fi
-		fi # end of tests on destination
+		fi # end of backup tests
 
 		# display notification when backup starts
 		# (just display the first notification, not for every sources)

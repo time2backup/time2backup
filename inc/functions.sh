@@ -962,10 +962,48 @@ prepare_destination() {
 }
 
 
+# Test space to be taken by folders
+# Usage: test_folders_size PATH
+# Exit codes:
+#   0: OK
+#   1: failed
+test_folders_size() {
+
+	if ! [ -e "$*" ] ; then
+		return 1
+	fi
+
+	# get number of subfolders
+	test_folders_size_nb=$(find "$*" -type d 2> /dev/null | wc -l)
+
+	# do not care of errors
+	if [ $test_folders_size_nb == 0 ] ; then
+		return 0
+	fi
+
+	# get size of folders regarding FS type (in bytes)
+	case "$(lb_df_fstype "$*")" in
+		hfs)
+			test_folders_size_weight=68
+			;;
+		*)
+			# set default to 4096 (ext*, FAT32)
+			test_folders_size_weight=4096
+			;;
+	esac
+
+	# return nb folders * size (result in bytes)
+	echo $(($test_folders_size_nb * $test_folders_size_weight)) 2> /dev/null
+}
+
+
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup
-# Exit codes: 0: command OK, 1: error in command
+# Return: size of the backup (in bytes)
+# Exit codes:
+#   0: OK
+#   1: rsync test command failed
 test_backup() {
 
 	# prepare rsync in test mode
@@ -988,36 +1026,61 @@ test_backup() {
 		return 1
 	fi
 
-	lb_display_debug --log "Backup total size (in bytes): $total_size"
+	# add the space to be taken by the folders!
+	# could be important if you have many folders; not necessary in mirror mode
+	if ! $mirror_mode ; then
 
-	# if there was an unknown error, continue
-	if ! lb_is_integer $total_size ; then
-		lb_display_debug --log "Error: '$total_size' is not a valid size in bytes. Continue..."
-		return 1
+		# get the source path from rsync command (array size - 2)
+		src_folder=${test_cmd[${#test_cmd[@]}-2]}
+
+		# get size of folders
+		folders_size=$(test_folders_size "$src_folder")
+
+		# add size of folders
+		if lb_is_integer $folders_size ; then
+			total_size=$(($total_size + $folders_size))
+		fi
 	fi
+
+	# add a security margin of 1MB for logs and future backups
+	total_size=$(($total_size + 1000000))
+
+	lb_display_debug --log "Backup total size (in bytes): $total_size"
 
 	return 0
 }
 
 
 # Test space available on destination disk
-# Usage: test_space
+# Usage: test_space BACKUP_SIZE_IN_BYTES PATH_OF_DESTINATION
+# Exit codes:
+#   0: there is space enough to backup
+#   1: not space enough
 test_space() {
-	# get space available
-	space_available=$(lb_df_space_left "$destination")
 
-	lb_display_debug --log "Space available on disk (in bytes): $space_available"
+	# if 0, always OK
+	if [ $1 == 0 ] ; then
+		return 0
+	fi
+
+	test_space_size=$1
+
+	# get space available (next argument)
+	shift
+	test_space_available=$(lb_df_space_left "$*")
 
 	# if there was an unknown error, continue
-	if ! lb_is_integer $space_available ; then
+	if ! lb_is_integer $test_space_available ; then
 		lb_display --log "Cannot get available space. Trying to backup although."
 		return 0
 	fi
 
+	lb_display_debug --log "Space available on disk (in bytes): $test_space_available"
+
 	# if space is not enough, error
-	if [ $space_available -lt $total_size ] ; then
+	if [ $test_space_available -lt $test_space_size ] ; then
 		lb_display --log "Not enough space on device!"
-		lb_display_debug --log "Needed (in bytes): $total_size/$space_available"
+		lb_display_debug --log "Needed (in bytes): $test_space_size/$test_space_available"
 		return 1
 	fi
 
