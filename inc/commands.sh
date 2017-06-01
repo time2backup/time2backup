@@ -312,6 +312,10 @@ t2b_backup() {
 
 	# clean old backup if needed
 	if [ $keep_limit -ge 0 ] ; then
+		if $notifications ; then
+			lbg_notify "$tr_notify_rotate_backup"
+		fi
+
 		rotate_backups
 	fi
 
@@ -663,7 +667,15 @@ t2b_backup() {
 					break
 				fi
 
-				# clean backups
+				# display clean notification
+				# (just display the first notification, not for every clean)
+				if $notifications ; then
+					if [ $i == 0 ] ; then
+						lbg_notify "$tr_notify_cleaning_space"
+					fi
+				fi
+
+				# clean old backups to free space
 				rotate_backups
 			done
 
