@@ -373,6 +373,16 @@ t2b_backup() {
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/$nbsrc)\n"
 
+		# display notification when preparing backups
+		# (just display the first notification, not for every sources)
+		if $notifications ; then
+			if [ $s == 0 ] ; then
+				lbg_notify "$tr_notify_prepare_backup"
+			fi
+		fi
+
+		lb_display --log "Preparing backup..."
+
 		# get backup type (normal, ssh, network shares, ...)
 		case $(get_backup_type "$src") in
 			ssh)
@@ -439,27 +449,36 @@ t2b_backup() {
 		mkdir -p "$finaldest"
 		prepare_dest=$?
 
-		# find the last backup of this source
-		# starting at last but not current (array length - 2)
+		# reset last backup date
 		lastcleanbackup=""
 
+		# if there is at least one old backup
 		if [ -n "$last_backup" ] ; then
-			# find the last successfull backup
-			old_backups=($(get_backups))
-			for ((b=${#old_backups[@]}-2; b>=0; b--)) ; do
-				old_backup_path="$backup_destination/${old_backups[$b]}/$path_dest"
 
+			# get all backup dates
+			all_backups=($(get_backups))
+
+			# find the last backup of this source
+			# starting from the latest to the oldest but ignore current date (array length - 2)
+			for ((b=${#all_backups[@]}-2; b>=0; b--)) ; do
+				old_backup_path="$backup_destination/${all_backups[$b]}/$path_dest"
+
+				# found an old backup for the current source
 				if [ -d "$old_backup_path" ] ; then
+					# must not be empty
 					if ! lb_dir_is_empty "$old_backup_path" ; then
-						lastcleanbackup=${old_backups[$b]}
 
-						lb_display_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${old_backups[$b]}/$path_dest"
+						lb_display_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${all_backups[$b]}/$path_dest"
+
+						# save last backup date and continue
+						lastcleanbackup=${all_backups[$b]}
 						break
 					fi
 				fi
 			done
 		fi
 
+		# no hard links means to use the trash mode
 		if ! $hard_links ; then
 			# move old backup as current backup, if exists
 			if [ -n "$lastcleanbackup" ] ; then
@@ -468,13 +487,13 @@ t2b_backup() {
 			fi
 		fi
 
-		# if mkdir or mv succeeded,
+		# if mkdir (hard links mode) or mv (trash mode) succeeded,
 		if [ $prepare_dest == 0 ] ; then
 			# give ownership for user, don't care of errors
-			# (useful if time2backup is executed with sudo and --user option)
+			# (this is useful if time2backup is executed with sudo and --user option)
 			chown "$user" "$finaldest" &> /dev/null
 		else
-			# if error,
+			# if error when preparing destination,
 			lb_display --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
 			# prepare report and save exit code
@@ -582,98 +601,92 @@ t2b_backup() {
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
-		# display prepare notification
-		if $notifications ; then
-			if [ $s == 0 ] ; then
-				# just display the first notification, not for every sources
-				lbg_notify "$tr_notify_prepare_backup"
-			fi
-		fi
-
-		lb_display --log "Preparing backup..."
-
-		# test rsync and space available for backup
-		if ! test_backup ; then
-			lb_display --log "Error in rsync test."
-
-			# prepare report and save exit code
-			errors+=("$src (rsync test error)")
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=12
-			fi
-
-			clean_empty_directories "$finaldest"
-
-			# continue to next source
-			continue
-		fi
-
+		# reset space free test
 		space_ok=false
 
-		# get all backups list
-		all_backups=($(get_backups))
-		nb_backups=${#all_backups[@]}
+		# prepare backup: testing space
+		if $test_destination ; then
+			# test rsync and space available for backup
+			if ! test_backup ; then
+				lb_display --log "Error in rsync test."
 
-		# avoid bugs to execute next loop at least one time
-		if [ $nb_backups == 0 ] ; then
-			nb_backups=1
-		fi
+				# prepare report and save exit code
+				errors+=("$src (rsync test error)")
+				if [ $lb_exitcode == 0 ] ; then
+					lb_exitcode=12
+				fi
 
-		# test free space until it's ready
-		for ((i=0; i<$nb_backups; i++)) ; do
-			lb_display_debug $i
+				clean_empty_directories "$finaldest"
 
-			# if space ok, quit loop to continue backup
-			if test_space $total_size ; then
-				space_ok=true
-				break
+				# continue to next source
+				continue
 			fi
 
-			# if no clean old backups option in config, continue to be stopped after
-			if ! $clean_old_backups ; then
-				break
-			fi
-
-			# get actual backups list (recheck)
+			# get all backups list (again)
 			all_backups=($(get_backups))
+			nb_backups=${#all_backups[@]}
 
-			# always keep the current backup and respect the clean limit
-			# (continue to be stopped after)
-			if [ ${#all_backups[@]} -le $clean_keep ] ; then
-				break
+			# avoid bugs to execute next loop at least one time
+			if [ $nb_backups == 0 ] ; then
+				nb_backups=1
 			fi
 
-			# remove only one backup (nb - 1)
-			keep_limit=$((${#all_backups[@]} - 1))
+			# test free space until it's ready
+			for ((i=0; i<$nb_backups; i++)) ; do
+				lb_display_debug $i
 
-			# do not delete the current backup
-			if [ $keep_limit -le 1 ] ; then
-				break
+				# if space ok, quit loop to continue backup
+				if test_space $total_size ; then
+					space_ok=true
+					break
+				fi
+
+				# if no clean old backups option in config, continue to be stopped after
+				if ! $clean_old_backups ; then
+					break
+				fi
+
+				# recheck all backups list
+				all_backups=($(get_backups))
+
+				# always keep the current backup and respect the clean limit
+				# (continue to be stopped after)
+				if [ ${#all_backups[@]} -le $clean_keep ] ; then
+					break
+				fi
+
+				# remove only one backup (nb - 1)
+				keep_limit=$((${#all_backups[@]} - 1))
+
+				# do not delete the current backup
+				if [ $keep_limit -le 1 ] ; then
+					break
+				fi
+
+				# clean backups
+				rotate_backups
+			done
+
+			# if not enough space on disk to backup, cancel
+			if ! $space_ok ; then
+				lb_display_error --log "Not enough space on device to backup. Abording."
+
+				# prepare report and save exit code
+				errors+=("$src (not enough space left)")
+				if [ $lb_exitcode == 0 ] ; then
+					lb_exitcode=13
+				fi
+
+				clean_empty_directories "$finaldest"
+
+				# continue to next source
+				continue
 			fi
+		fi # end of tests on destination
 
-			# clean backups
-			rotate_backups
-		done
-
-		# if not enough space on disk to backup, cancel
-		if ! $space_ok ; then
-			lb_display_error --log "Not enough space on device to backup. Abording."
-
-			# prepare report and save exit code
-			errors+=("$src (not enough space left)")
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=13
-			fi
-
-			clean_empty_directories "$finaldest"
-
-			# continue to next source
-			continue
-		fi
-
-		# display backup notification
+		# display notification when backup starts
+		# (just display the first notification, not for every sources)
 		if $notifications ; then
-			# just display the first notification, not for every sources
 			if [ $s == 0 ] ; then
 				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
 			fi
@@ -682,7 +695,7 @@ t2b_backup() {
 		lb_display --log "Running backup..."
 		lb_display_debug --log "Executing: ${cmd[@]}\n"
 
-		# execute rsync command, print into terminal and logfile
+		# real backup: execute rsync command, print result into terminal and logfile
 		"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
 
 		# get backup result and prepare report
@@ -711,7 +724,8 @@ t2b_backup() {
 
 		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
-	done
+
+	done # end of backup sources
 
 	# final cleanup
 	clean_empty_directories "$dest"

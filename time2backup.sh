@@ -42,6 +42,7 @@ force_shutdown=false
 ############################
 
 destination_subdirectories=true
+test_destination=true
 
 consolemode=false
 debugmode=false
