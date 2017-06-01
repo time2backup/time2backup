@@ -1079,8 +1079,7 @@ test_space() {
 
 	# if space is not enough, error
 	if [ $test_space_available -lt $test_space_size ] ; then
-		lb_display --log "Not enough space on device!"
-		lb_display_debug --log "Needed (in bytes): $test_space_size/$test_space_available"
+		lb_display_debug --log "Not enough space on device! Needed (in bytes): $test_space_size/$test_space_available"
 		return 1
 	fi
 

@@ -670,8 +670,10 @@ t2b_backup() {
 
 				# display clean notification
 				# (just display the first notification, not for every clean)
-				if $notifications ; then
-					if [ $i == 0 ] ; then
+				if [ $i == 0 ] ; then
+					lb_display --log "Not enough space on device. Clean old backups to free space..."
+
+					if $notifications ; then
 						lbg_notify "$tr_notify_cleaning_space"
 					fi
 				fi

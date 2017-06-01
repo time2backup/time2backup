@@ -226,9 +226,14 @@ if [ -z "$user" ] ; then
 	user=$lb_current_user
 fi
 
-# disable dialogs if console mode
+# set console mode
 if $consolemode ; then
+
 	lbg_set_gui console
+
+	# disable notifications by default
+	notifications=false
+
 else
 	# try to find display (if into a cron job on Linux)
 	if [ "$lb_current_os" == "Linux" ] ; then
