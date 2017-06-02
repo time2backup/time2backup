@@ -1927,19 +1927,27 @@ config_wizard() {
 		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
 	fi
 
-	# check and apply config
-	if ! apply_config ; then
+	# reload config
+	if ! load_config ; then
 		lbg_display_error "$tr_errors_in_config"
 		return 3
 	fi
 
-	# ask for backup
+	# apply configuration
+	if ! apply_config ; then
+		lbg_display_warning "$tr_cannot_install_cronjobs"
+	fi
+
+	# ask for the first backup
 	if lbg_yesno -y "$tr_ask_backup_now" ; then
 		t2b_backup
 		return $?
-	else
-		lbg_display_info "$tr_info_time2backup_ready"
 	fi
+
+	# no backup: inform user time2backup is ready
+	lbg_display_info "$tr_info_time2backup_ready"
+
+	return 0
 }
 
 

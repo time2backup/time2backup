@@ -64,6 +64,7 @@ tr_frequency_examples="ex: 4h pour 4 heures, 2d pour 2 jours"
 tr_frequency_syntax_error="Il y a une erreur de syntaxe dans votre choix."
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
 tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en anglais)"
+tr_cannot_install_cronjobs="Impossible d'activer les sauvegardes récurrentes.\nVeuillez la configurer manuellement dans votre crontab."
 tr_ask_backup_now="Voulez-vous lancer une sauvegarde maintenant ?"
 tr_info_time2backup_ready="time2backup est prêt !"
 

@@ -1437,7 +1437,7 @@ t2b_config() {
 	if [ -z "$file" ] ; then
 
 		if [ -z "$op_config" ] ; then
-			if ! lbg_choose_option -l "$tr_choose_config_file" \
+			if ! lbg_choose_option -d 1 -l "$tr_choose_config_file" \
 						"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
 				return 0
 			fi
@@ -1503,18 +1503,23 @@ t2b_config() {
 			echo "Opening configuration file..."
 			edit_config $cmd_opts"$file"
 
+			# after config,
 			case $? in
 				0)
+					# config ok: reload it
 					load_config
 					if [ $? != 0 ] ; then
 						return 3
 					fi
+
+					# apply config
 					apply_config
 					if [ $? != 0 ] ; then
 						return 4
 					fi
 					;;
 				3)
+					# errors in config
 					return 5
 					;;
 				4)
