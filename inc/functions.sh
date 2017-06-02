@@ -983,8 +983,11 @@ test_folders_size() {
 
 	# get size of folders regarding FS type (in bytes)
 	case "$(lb_df_fstype "$*")" in
-		hfs)
+		hfs|hfsplus)
 			test_folders_size_weight=68
+			;;
+		exfat)
+			test_folders_size_weight=131072
 			;;
 		*)
 			# set default to 4096 (ext*, FAT32)
