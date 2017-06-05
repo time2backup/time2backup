@@ -106,6 +106,7 @@ tr_run_to_show_history="Exécutez la commande suivante pour afficher les sauvega
 tr_no_backups_for_file="Aucune sauvegarde disponible pour ce fichier."
 tr_choose_backup_date="Choisissez une date de sauvegarde :"
 tr_cannot_restore_from_trash="Vous ne pouvez pas restaurer des dossiers en mode trash !"
+tr_notify_prepare_restore="Préparation de la restauration..."
 tr_ask_keep_newer_files_1="Il y a des fichiers plus récents dans ce dossier. Voulez-vous les conserver ?"
 tr_ask_keep_newer_files_2="Cliquez sur Oui pour conserver, Non pour restaurer le dossier à l'état de la sauvegarde."
 tr_confirm_restore_1="Vous allez restaurer '%s' à la sauvegarde du %s."

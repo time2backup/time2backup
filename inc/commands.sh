@@ -1210,10 +1210,15 @@ t2b_restore() {
 			cmd=("${rsync_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")
 
-			lb_display "Testing restore..."
+			# notify to prepare restore
+			if $notifications ; then
+				lbg_notify "$tr_notify_prepare_restore"
+			fi
+
+			lb_display "Preparing restore..."
 			lb_display_debug ${cmd[@]}
 
-			# test to check newer files
+			# test rsync to check newer files
 			"${cmd[@]}" | grep "^deleting "
 
 			if [ $? == 0 ] ; then
