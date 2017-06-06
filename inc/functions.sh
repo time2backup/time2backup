@@ -244,6 +244,8 @@ get_backup_history() {
 
 	# get path
 	file=$*
+
+	# get backup path
 	abs_file=$(get_backup_path "$file")
 	if [ -z "$abs_file" ] ; then
 		return 3
@@ -451,6 +453,16 @@ load_config() {
 	if [ -z "$destination" ] ; then
 		lb_error "Destination is not set!"
 		configok=false
+	fi
+
+	# convert destination for windows systems
+	if [ "$lb_current_os" == "Windows" ] ; then
+		destination=$(lb_realpath "$destination")
+
+		if [ $? != 0 ] ; then
+			lb_error "Error in Windows destination path!"
+			configok=false
+		fi
 	fi
 
 	# test if sources file exists

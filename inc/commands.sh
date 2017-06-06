@@ -426,7 +426,12 @@ t2b_backup() {
 				fi
 
 				# get absolute path for source
-				abs_src=$(lb_abspath "$src")
+				if [ "$lb_current_os" == "Windows" ] ; then
+					# get realpath for Windows formats
+					abs_src=$(lb_realpath "$src")
+				else
+					abs_src=$(lb_abspath "$src")
+				fi
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
@@ -994,6 +999,7 @@ t2b_restore() {
 
 			# get path to restore
 			file="$lbg_choose_directory/"
+
 		else
 			# choose a file
 			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path"
@@ -1061,7 +1067,11 @@ t2b_restore() {
 		fi
 	else
 		# get specified path
-		file=$*
+		if [ "$lb_current_os" == "Windows" ] ; then
+			file=$(lb_realpath "$*")
+		else
+			file=$*
+		fi
 	fi
 
 	# case of symbolic links
@@ -1332,7 +1342,11 @@ t2b_history() {
 	fi
 
 	# get file
-	file=$*
+	if [ "$lb_current_os" == "Windows" ] ; then
+		file=$(lb_realpath "$*")
+	else
+		file=$*
+	fi
 
 	# get backup versions of this file
 	file_history=($(get_backup_history $history_opts"$file"))
