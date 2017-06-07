@@ -148,6 +148,13 @@ if [ $? != 0 ] ; then
 	exit 1
 fi
 
+# load help
+source "$script_directory/inc/help.sh" > /dev/null
+if [ $? != 0 ] ; then
+	lb_error "Error: cannot load help!"
+	exit 1
+fi
+
 
 ##################
 #  MAIN PROGRAM  #

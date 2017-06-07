@@ -1227,7 +1227,7 @@ edit_config() {
 
 		# if found, change line
 		if [ -n "$config_line" ] ; then
-			sed -i'~' "${config_line}s/.*/$conf_value/" "$edit_file"
+			sed -i~ "${config_line}s/.*/$conf_value/" "$edit_file"
 		else
 			# if not found, append to file
 
