@@ -25,7 +25,7 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
                            (no install, use local config files, meant to run from removable devices)
 -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
--c, --config CONFIG_FILE   overwrite configuration with specific file
+-c, --config CONFIG_DIR    load and save config in the specified directory
 -D, --debug                run in debug mode (all messages printed and logged)
 -V, --version              print version and quit
 -h, --help                 print help

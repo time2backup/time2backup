@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0-rc.6 (2017-05-17)                     #
+#  Version 1.0.0 (2017-06-08)                          #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-rc.6"
+version="1.0.0"
 
 portable_mode=false
 user=""
@@ -167,22 +167,19 @@ while [ -n "$1" ] ; do
 			consolemode=true
 			;;
 		-c|--config)
+			# custom config path
 			if [ -z "$2" ] ; then
 				print_help
 				exit 1
 			fi
-			# test if file exists
-			if ! [ -f "$2" ] ; then
-				lb_error "Configuration file $2 does not exists!"
-				exit 1
-			fi
-			config_file=$2
+			config_directory=$2
 			shift
 			;;
 		-p|--portable)
 			portable_mode=true
 			;;
 		-u|--user)
+			# run as user
 			if [ -z "$2" ] ; then
 				print_help
 				exit 1
@@ -274,25 +271,23 @@ if ! lb_command_exists rsync ; then
 fi
 
 # set default configuration file and path
-if [ -z "$config_file" ] ; then
+if [ -z "$config_directory" ] ; then
 
+	# portable mode: use the script config directory
 	if $portable_mode ; then
 		config_directory="$script_directory/config/"
 	else
+		# default config directory
 		config_directory="$(lb_homepath $user)/.config/time2backup/"
 		if [ $? != 0 ] ; then
 			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
 			exit 3
 		fi
 	fi
-
-	config_file="$config_directory/time2backup.conf"
-else
-	# parent directory of specified configuration file
-	config_directory=$(dirname "$config_file")
 fi
 
-# default config files
+# define config files
+config_file="$config_directory/time2backup.conf"
 config_sources="$config_directory/sources.conf"
 config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
