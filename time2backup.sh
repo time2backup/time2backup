@@ -270,6 +270,11 @@ if ! lb_command_exists rsync ; then
 	exit 1
 fi
 
+# default options for Windows systems
+if [ "$lb_current_os" == "Windows" ] ; then
+	shutdown_cmd=(shutdown /s)
+fi
+
 # set default configuration file and path
 if [ -z "$config_directory" ] ; then
 
