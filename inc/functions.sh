@@ -12,11 +12,11 @@
 #  GLOBAL FUNCTIONS  #
 ######################
 
-# Convert timestamp to user readable date
+# Convert timestamp to an user readable date
 # Usage: timestamp2date TIMESTAMP
 # Return: formatted date
 timestamp2date() {
-	# return date formatted for languages
+	# return date formatted in user language
 	if [ "$lb_current_os" == "macOS" ] ; then
 		date -j -f "%s" "$1" +"$tr_readable_date"
 	else
@@ -226,9 +226,7 @@ get_backup_history() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# usage error
@@ -480,20 +478,20 @@ load_config() {
 		lb_error "clean_keep must be an integer!"
 		configok=false
 	fi
-
-	# correct bad values
 	if [ $clean_keep -lt 0 ] ; then
-		clean_keep=0
+		lb_error "clean_keep must be a positive integer!"
+		configok=false
+	fi
+
+	# exit with error if config is not ok
+	if ! $configok ; then
+		lb_error "\nThere are errors in your configuration."
+		lb_error "Please edit your configuration with 'config' command or manually."
+		return 2
 	fi
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
-
-	if ! $configok ; then
-		lb_error "\nThere are errors in your configuration."
-		lb_error "Please edit your configuration with 'config' command or manually."
-		return 3
-	fi
 
 	# set backup destination
 	if $destination_subdirectories ; then
@@ -639,6 +637,9 @@ unmount_destination() {
 # Get path of a file backup
 # Usage: get_backup_path PATH
 # Return: backup path
+# Exit codes:
+#   0: OK
+#   1: cannot get original path (not absolute and parent directory does not exists)
 get_backup_path() {
 
 	# get file
@@ -759,9 +760,12 @@ get_backups() {
 
 # Clean old backups if limit is reached or if space is not available
 # Usage: rotate_backups
+# Exit codes:
+#   0: rotate OK
+#   1: some error occured when removing old backup
 rotate_backups() {
 
-	local rotate_errors=0
+	local rotate_result=0
 
 	# get backups
 	old_backups=($(get_backups))
@@ -784,21 +788,22 @@ rotate_backups() {
 		for ((r=0; r<${#old_backups[@]}; r++)) ; do
 			lb_display_debug --log "Removing $backup_destination/${old_backups[$r]}..."
 
+			# delete backup path
 			rm -rf "$backup_destination/${old_backups[$r]}" 2> "$logfile"
-
 			rm_result=$?
+
 			if [ $rm_result == 0 ] ; then
 				# delete log file
 				lb_display_debug --log "Removing log file $backup_destination/logs/time2backup_${old_backups[$r]}.log..."
-				rm -rf "$backup_destination/logs/time2backup_${old_backups[$r]}.log" 2> "$logfile"
+				rm -f "$backup_destination/logs/time2backup_${old_backups[$r]}.log" 2> "$logfile"
 			else
 				lb_display_debug --log "... Failed (exit code: $rm_result)"
-				rotate_errors=$rm_result
+				rotate_result=1
 			fi
 		done
 	fi
 
-	return $rotate_errors
+	return $rotate_result
 }
 
 
@@ -916,6 +921,9 @@ crontab_config() {
 
 # Install configuration (recurrent tasks, ...)
 # Usage: apply_config
+# Exit codes:
+#   0: OK
+#   other: failed (exit code forwarded from crontab_config)
 apply_config() {
 
 	# do not install config if in portable mode
@@ -937,7 +945,9 @@ apply_config() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Exit codes: 0: destination is ready, 1: destination not reachable
+# Exit codes:
+#   0: destination is ready
+#   1: destination not reachable
 prepare_destination() {
 
 	destok=false
@@ -1104,6 +1114,9 @@ test_space() {
 
 # Delete empty directories recursively
 # Usage: clean_empty_directories PATH
+# Exit codes:
+#   0: cleaned
+#   1: usage error
 clean_empty_directories() {
 
 	# usage error
@@ -1116,14 +1129,9 @@ clean_empty_directories() {
 
 	# delete empty directories recursively
 	while true ; do
-		# if is not a directory, error
+		# if is not a directory, this is an usage error
 		if ! [ -d "$d" ] ; then
 			return 1
-		fi
-
-		# security check
-		if [ "$d" == "/" ] ; then
-			return 2
 		fi
 
 		# security check: do not delete destination path
@@ -1131,22 +1139,20 @@ clean_empty_directories() {
 			return 0
 		fi
 
-		# if directory is empty,
-		if lb_dir_is_empty "$d" ; then
-
-			lb_display_debug "Deleting empty backup: $d"
-
-			# delete directory
-			rmdir "$d" &> /dev/null
-			if [ $? == 0 ] ; then
-				# go to parent directory and continue loop
-				d=$(dirname "$d")
-				continue
-			fi
+		# if directory is not empty, quit loop
+		if ! lb_dir_is_empty "$d" ; then
+			return 0
 		fi
 
-		# if not empty, quit loop
-		return 0
+		lb_display_debug "Deleting empty backup: $d"
+
+		# delete directory
+		rmdir "$d" &> /dev/null
+		if [ $? == 0 ] ; then
+			# go to parent directory and continue loop
+			d=$(dirname "$d")
+			continue
+		fi
 	done
 
 	return 0
@@ -1659,7 +1665,10 @@ haltpc() {
 
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation
-# Exit codes: command exit code, 0 if cancelled, 1 if bad choice
+# Exit codes:
+#   - 0: cancelled
+#   - 1: bad choice
+#   - command exit code
 choose_operation() {
 
 	# display choice
@@ -1965,12 +1974,13 @@ config_wizard() {
 
 # First run wizard
 # Usage: first_run
-# Exit codes: forwarded from config_wizard
+# Exit codes:
+#   - forwarded from config_wizard or t2b_install
 first_run() {
 
 	install_result=0
 
-	# install time2backup if not in portable mode
+	# if not in portable mode
 	if ! $portable_mode ; then
 		# confirm install
 		if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
@@ -1982,6 +1992,7 @@ first_run() {
 
 	# confirm config
 	if ! lbg_yesno "$tr_ask_first_config" ; then
+		# if not continuing, return install result
 		return $install_result
 	fi
 
