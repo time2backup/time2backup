@@ -822,6 +822,12 @@ report_duration() {
 
 # Enable/disable cron jobs
 # Usage: crontab_config enable|disable
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: cannot access to crontab
+#   3: cannot install new crontab
+#   4: cannot write into the temporary crontab file
 crontab_config() {
 
 	local crontab_enable=false
@@ -838,6 +844,7 @@ crontab_config() {
 	tmpcrontab="$config_directory/crontmp"
 	crontask="* * * * *	\"$current_script\" backup --recurrent"
 
+	# if root or sudo, check if crontab must be for a specific user
 	crontab_opt=""
 	if [ "$(whoami)" == "root" ] ; then
 		if [ -n "$user" ] ; then
@@ -894,7 +901,7 @@ crontab_config() {
 			# delete line(s)
 			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
 			if [ $? != 0 ] ; then
-				res_install=3
+				res_install=4
 			fi
 
 			rm -f "$tmpcrontab~"
@@ -910,7 +917,9 @@ crontab_config() {
 
 	# install new crontab
 	crontab $crontab_opt "$tmpcrontab"
-	res_install=$?
+	if [ $? != 0 ] ; then
+		res_install=3
+	fi
 
 	# delete temporary crontab
 	rm -f "$tmpcrontab" &> /dev/null
@@ -1090,7 +1099,7 @@ test_space() {
 
 	test_space_size=$1
 
-	# get space available (next argument)
+	# get space available (destination path is the next argument)
 	shift
 	test_space_available=$(lb_df_space_left "$*")
 
@@ -1980,13 +1989,15 @@ first_run() {
 
 	install_result=0
 
-	# if not in portable mode
+	# if not in portable mode and not on Windows,
 	if ! $portable_mode ; then
-		# confirm install
-		if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-			# install time2backup (create links)
-			t2b_install
-			install_result=$?
+		if [ "$lb_current_os" != "Windows" ] ; then
+			# confirm install
+			if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+				# install time2backup (create links)
+				t2b_install
+				install_result=$?
+			fi
 		fi
 	fi
 
