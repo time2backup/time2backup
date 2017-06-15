@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 RC 7 (2017-06-16)
+- New option to not test free space on destination before backup
+- Test folders size before backup
+- Many improvements in Windows support
+- Upgrade to libbash.sh 1.1.1
+- Various improvements and bugfixes
+- Change in global options: `--config` needs now the config directory path
+
 ## 1.0.0 RC 6 (2017-05-17)
 - Add support to backup multiple sources specified from the command line
 - Apply configuration when running main commands (backup, restore, history)
