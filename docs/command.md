@@ -44,7 +44,7 @@ uninstall  uninstall time2backup
 ---------------------------------------------------------------
 <a name="backup"></a>
 ## backup
-Backup your files
+Perform a backup.
 
 ### Usage
 ```bash
@@ -85,7 +85,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ---------------------------------------------------------------
 <a name="restore"></a>
 ## restore
-Restore a backup of a file or directory
+Restore a file or directory
 
 ### Usage
 ```bash
@@ -95,10 +95,10 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 ### Options
 ```
 -d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
-                 by default it restores the last available backup
+                 By default, it restores the last available backup.
 --directory      path to restore is a directory (not necessary if path exists)
-                 If deleted or moved, indicate that the chosen path is a directory.
---delete-new     delete newer files if exists for directories (restore exactly the same version)
+                 If deleted or moved, indicates that the chosen path is a directory.
+--delete-new     delete newer files if they already exists (restore exactly the same version)
 -f, --force      force restore; do not display confirmation
 -h, --help       print help
 ```
@@ -178,8 +178,8 @@ time2backup [GLOBAL_OPTIONS] config [OPTIONS]
 <a name="install"></a>
 ## install
 Install time2backup:
-- create a `.desktop` file and tries to put it into `/usr/share/applications/`
-- creates a link into `/usr/bin/`
+- creates a `.desktop` file and tries to put it into `/usr/share/applications/` (on Linux only)
+- creates a link into `/usr/bin/` (on Linux and macOS)
 
 ### Usage
 ```bash

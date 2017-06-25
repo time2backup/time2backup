@@ -1292,9 +1292,9 @@ t2b_restore() {
 # Usage: t2b_history [OPTIONS] PATH
 t2b_history() {
 
-	# default options and variables
-	quietmode=false
-	history_opts=""
+	# default options
+	local quietmode=false
+	local history_opts=""
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1317,9 +1317,7 @@ t2b_history() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# usage errors
@@ -1399,9 +1397,8 @@ t2b_config() {
 
 	# default values
 	file=""
-	op_config=""
-	cmd_opts=""
-	show_sources=false
+	local op_config=""
+	local cmd_opts=""
 
 	# get options
 	# following other options to edit_config() function
@@ -1418,7 +1415,6 @@ t2b_config() {
 				;;
 			-s|--sources)
 				file=$config_sources
-				show_sources=true
 				;;
 			-l|--show)
 				op_config="show"
@@ -1448,9 +1444,7 @@ t2b_config() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	if [ -z "$file" ] ; then
@@ -1485,7 +1479,7 @@ t2b_config() {
 		fi
 	fi
 
-	# special operations: show and test
+	# operations to do on config
 	case $op_config in
 		wizard)
 			load_config
@@ -1564,7 +1558,7 @@ t2b_config() {
 # Usage: t2b_install [OPTIONS]
 t2b_install() {
 
-	reset_config=false
+	local reset_config=false
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1584,15 +1578,13 @@ t2b_install() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
-	echo "Install time2backup..."
+	echo "Installing time2backup..."
 
 	# create a desktop file (Linux)
-	if [ "$lb_current_os" != "macOS" ] ; then
+	if [ "$lb_current_os" == "Linux" ] ; then
 
 		desktop_file="$script_directory/time2backup.desktop"
 
@@ -1636,12 +1628,12 @@ EOF
 				lb_exitcode=3
 			fi
 		else
-			lb_error "Error: cannot reset configuration files!"
+			echo "Error: cannot reset configuration files!"
 			lb_exitcode=5
 		fi
 	fi
 
-	# if alias exists,
+	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
 		# if the same path, OK
 		if [ "$(lb_realpath "$cmd_alias")" == "$(lb_realpath "$lb_current_script")" ] ; then
@@ -1650,7 +1642,7 @@ EOF
 		fi
 	fi
 
-	# create link
+	# (re)create link
 	ln -s -f "$current_script" "$cmd_alias" &> /dev/null
 	if [ $? != 0 ] ; then
 		echo

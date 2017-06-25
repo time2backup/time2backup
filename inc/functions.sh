@@ -522,10 +522,10 @@ mount_destination() {
 
 	lb_display --log "Trying to mount backup disk..."
 
-	# macOS is not supported
-	# this is not supposed to happen because macOS always mount disks
-	if [ "$lb_current_os" == "macOS" ] ; then
-		lb_display_error --log "macOS not supported yet"
+	# macOS and Windows are not supported
+	# this is not supposed to happen because macOS and Windows always mount disks
+	if [ "$lb_current_os" != "Linux" ] ; then
+		lb_display_error --log "Mount: $lb_current_os not supported"
 		return 4
 	fi
 
@@ -549,6 +549,7 @@ mount_destination() {
 
 			if [ $? != 0 ] ; then
 				lb_display --log "...Failed!"
+				# failed to create mount point
 				return 3
 			fi
 		fi
@@ -574,8 +575,12 @@ mount_destination() {
 				sudo rmdir "$backup_disk_mountpoint" &> /dev/null
 				if [ $? != 0 ] ; then
 					lb_display --log "...Failed!"
+					# failed to remove mount directory
+					return 6
 				fi
 			fi
+
+			# mount failed
 			return 1
 		fi
 	fi
@@ -595,14 +600,14 @@ unmount_destination() {
 
 	lb_display --log "Unmount destination..."
 
+	# get mount point
 	destination_mountpoint=$(lb_df_mountpoint "$destination")
 	if [ $? != 0 ] ; then
 		lb_display_error "Cannot get mountpoint of $destination"
 		return 1
 	fi
 
-	lb_display_debug umount "$destination_mountpoint"
-
+	# unmount
 	umount "$destination_mountpoint" &> /dev/null
 
 	# if failed, try in sudo mode
@@ -704,7 +709,6 @@ get_backup_path() {
 #   2: destination does not support hard links
 test_hardlinks() {
 
-	# filesystems that does not support hard links
 	# Details:
 	#   vfat:    FAT32 on Linux systems
 	#   msdos:   FAT32 on macOS systems
@@ -1000,6 +1004,7 @@ prepare_destination() {
 #   1: failed
 test_folders_size() {
 
+	# usage error
 	if ! [ -e "$*" ] ; then
 		return 1
 	fi
@@ -1009,6 +1014,7 @@ test_folders_size() {
 
 	# do not care of errors
 	if [ $test_folders_size_nb == 0 ] ; then
+		echo 0
 		return 0
 	fi
 
@@ -1717,16 +1723,18 @@ choose_operation() {
 #   1: no destination chosen
 config_wizard() {
 
-	enable_recurrent=false
+	local enable_recurrent=false
 
 	# set default destination directory
 	if [ -d "$destination" ] ; then
+		# current config
 		start_path=$destination
 	else
+		# not defined: current path
 		start_path=$lb_current_path
 	fi
 
-	# get external disk
+	# choose destination directory
 	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
 
 		lb_display_debug "Chosen destination: $lbg_choose_directory"
