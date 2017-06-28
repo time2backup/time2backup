@@ -784,7 +784,11 @@ t2b_backup() {
 		lb_display --log "Backup finished successfully."
 
 		if $notifications ; then
-			lbg_notify "$tr_backup_finished\n$(report_duration)"
+			if [ "$lb_current_os" == Windows ] ; then
+				lbg_display_info "$tr_backup_finished\n$(report_duration)"
+			else
+				lbg_notify "$tr_backup_finished\n$(report_duration)"
+			fi
 		fi
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
@@ -802,7 +806,11 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
+				if [ "$lb_current_os" == Windows ] ; then
+					lbg_display_warning "$tr_backup_finished_warnings\n$(report_duration)"
+				else
+					lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
+				fi
 			fi
 		fi
 		if [ ${#errors[@]} -gt 0 ] ; then
@@ -812,7 +820,11 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				lbg_notify "$tr_backup_failed\n$(report_duration)"
+				if [ "$lb_current_os" == Windows ] ; then
+					lbg_display_error "$tr_backup_failed\n$(report_duration)"
+				else
+					lbg_notify "$tr_backup_failed\n$(report_duration)"
+				fi
 			fi
 		fi
 
