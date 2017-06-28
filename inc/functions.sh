@@ -710,16 +710,10 @@ get_backup_path() {
 test_hardlinks() {
 
 	# Details:
-	#   vfat:    FAT32 on Linux systems
-	#   msdos:   FAT32 on macOS systems
-	#   fuseblk: NTFS/exFAT on Linux systems
-	#   exfat:   exFAT on macOS systems
+	#   vfat:    FAT16/32 on Linux systems
+	#   msdos:   FAT16/32 on macOS systems
 	#   vboxsf:  VirtualBox shared folder on Linux guests
-	# Note: NTFS supports hard links, but exFAT does not.
-	#       Therefore, both are identified on Linux as 'fuseblk' filesystems.
-	#       So for safety usage, NTFS will be set with no hard links by default.
-	#       Users can set config option force_hard_links=true in this case.
-	no_hardlinks_fs=(vfat msdos fuseblk exfat vboxsf)
+	no_hardlinks_fs=(vfat msdos exfat vboxsf)
 
 	# get destination filesystem
 	dest_fstype=$(lb_df_fstype "$destination")
@@ -1797,40 +1791,20 @@ config_wizard() {
 
 		# hard links support
 		if $hard_links ; then
-			# test hard links support
+			# if hard links not supported by destination,
 			if ! test_hardlinks ; then
 
-				# NTFS/exFAT case
-				if [ "$(lb_df_fstype "$destination")" == "fuseblk" ] ; then
+				# if forced hard links in config
+				if $force_hard_links ; then
+					# ask user to keep or not the force mode
+					if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
 
-					fhl="false"
+						# set config
+						edit_config --set "force_hard_links=false" "$config_file"
 
-					# ask user disk format
-					if lbg_yesno "$tr_ntfs_or_exfat\n$tr_not_sure_say_no" ; then
-						fhl="true"
-					fi
-
-					# set config
-					edit_config --set "force_hard_links=$fhl" "$config_file"
-
-					res_edit=$?
-					if [ $res_edit != 0 ] ; then
-						lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-					fi
-
-				else
-					# if forced hard links in older config
-					if $force_hard_links ; then
-						# ask user to keep or not the force mode
-						if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
-
-							# set config
-							edit_config --set "force_hard_links=false" "$config_file"
-
-							res_edit=$?
-							if [ $res_edit != 0 ] ; then
-								lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-							fi
+						res_edit=$?
+						if [ $res_edit != 0 ] ; then
+							lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
 						fi
 					fi
 				fi

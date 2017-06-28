@@ -48,7 +48,6 @@ tr_choose_backup_destination="Choisissez le dossier de destination des sauvegard
 tr_error_set_destination="Erreur lors de l'enregistrement de la destination."
 tr_edit_config_manually="Veuillez éditer le fichier de configuration manuellement."
 tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
-tr_ntfs_or_exfat="Le volume de destination des sauvegardes est-il au format NTFS ?"
 tr_ask_edit_sources="Voulez-vous choisir les éléments à sauvegarder ?"
 tr_default_source="Par défaut, tout votre répertoire personnel sera sauvegardé."
 tr_finished_edit="Si vous avez terminé l'édition du fichier de configuration, enregistrez le fichier et cliquez sur OK."
