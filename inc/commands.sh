@@ -104,6 +104,12 @@ t2b_backup() {
 	# if recurrent, check frequency
 	if $recurrent_backup ; then
 
+		# disabled on Windows
+		if [ "$lb_current_os" == Windows ] ; then
+			lb_display_error "Recurrent backups are disabled on Windows"
+			return 20
+		fi
+
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
 			lb_display_error "Recurrent backups are disabled. You can enable it in configuration file."
@@ -784,12 +790,17 @@ t2b_backup() {
 		lb_display --log "Backup finished successfully."
 
 		if $notifications ; then
+			# Windows: display dialogs instead of notifications
 			if [ "$lb_current_os" == Windows ] ; then
-				lbg_display_info "$tr_backup_finished\n$(report_duration)"
+				# do not prevent from shutdown
+				if ! $shutdown ; then
+					lbg_display_info "$tr_backup_finished\n$(report_duration)"
+				fi
 			else
 				lbg_notify "$tr_backup_finished\n$(report_duration)"
 			fi
 		fi
+
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
@@ -799,6 +810,7 @@ t2b_backup() {
 				report_details+="   - ${success[$i]}\n"
 			done
 		fi
+
 		if [ ${#warnings[@]} -gt 0 ] ; then
 			report_details+="Warnings: (${#warnings[@]}/$nbsrc)\n"
 			for ((i=0; i<${#warnings[@]}; i++)) ; do
@@ -806,13 +818,18 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
+				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
-					lbg_display_warning "$tr_backup_finished_warnings\n$(report_duration)"
+					# do not prevent from shutdown
+					if ! $shutdown ; then
+						lbg_display_warning "$tr_backup_finished_warnings\n$(report_duration)"
+					fi
 				else
 					lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
 				fi
 			fi
 		fi
+
 		if [ ${#errors[@]} -gt 0 ] ; then
 			report_details+="Errors: (${#errors[@]}/$nbsrc)\n"
 			for ((i=0; i<${#errors[@]}; i++)) ; do
@@ -820,14 +837,17 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
+				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
-					lbg_display_error "$tr_backup_failed\n$(report_duration)"
+					# do not prevent from shutdown
+					if ! $shutdown ; then
+						lbg_display_error "$tr_backup_failed\n$(report_duration)"
+					fi
 				else
 					lbg_notify "$tr_backup_failed\n$(report_duration)"
 				fi
 			fi
 		fi
-
 		lb_display --log "$report_details"
 	fi
 
