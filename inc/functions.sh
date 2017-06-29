@@ -403,11 +403,12 @@ upgrade_config() {
 	lb_display_debug "Upgrading from config v$current_version to v$version..."
 
 	# no migrations needed for now
-	#case $current_version in
-	#	*)
-	#		# no changes
-	#		;;
-	#esac
+	case $current_version in
+		1.0.*)
+			# add new config values
+			sed -i~ "/#*test_destination=.*/a \\\n# Resume after a cancelled backup\\\n# Default: true\\\n#resume_cancelled=true\\\n\\\n\\\n# Resume after a failed backup\\\n# Default: false\\\n#resume_failed=false" "$config_file"
+			;;
+	esac
 
 	# replace version number
 	sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
