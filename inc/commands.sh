@@ -964,6 +964,7 @@ t2b_restore() {
 
 		restore_opts=("$tr_restore_existing_file" "$tr_restore_moved_file")
 
+		# if hard links supported, add directory restore features
 		if $hard_links ; then
 			restore_opts+=("$tr_restore_existing_directory" "$tr_restore_moved_directory")
 		fi
@@ -1192,19 +1193,17 @@ t2b_restore() {
 
 	# if source is a directory
 	if [ -d "$src" ] ; then
-		directorymode=true
-	fi
-
-	# prepare destination
-	if $directorymode ; then
-
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
 			lbg_display_error "$tr_cannot_restore_from_trash"
 			return 12
+		else
+			# enable directory mode
+			directorymode=true
 		fi
 	fi
 
+	# prepare destination
 	dest=$file
 
 	# catch term signals
@@ -1479,6 +1478,7 @@ t2b_config() {
 		shift # load next argument
 	done
 
+	# if config file not defined, ask user to choose which file to edit
 	if [ -z "$file" ] ; then
 
 		if [ -z "$op_config" ] ; then
