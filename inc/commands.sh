@@ -1220,12 +1220,8 @@ t2b_restore() {
 		common_path=$(get_common_path "$backup_destination" "$dest")
 
 		if [ $? != 0 ] ; then
-			lb_error "Cannot exclude directory backup from $dest!"
-			errors+=("$dest (exclude error)")
-			lb_exitcode=8
-
-			# continue to next source
-			continue
+			lbg_display_error "Cannot exclude directory backup from $dest!"
+			return 8
 		fi
 
 		# get relative exclude directory
