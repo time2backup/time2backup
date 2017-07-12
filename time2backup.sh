@@ -323,6 +323,28 @@ fi
 # load configuration; don't care of errors
 load_config &> /dev/null
 
+# get main command
+mode=$1
+shift
+
+# install/uninstall time2backup
+case $mode in
+	install|uninstall)
+		# prepare command
+		t2b_cmd=(t2b_$mode)
+
+		# forward arguments in space safe mode
+		while [ -n "$1" ] ; do
+			t2b_cmd+=("$1")
+			shift
+		done
+
+		# run command and exit
+		"${t2b_cmd[@]}"
+		exit $?
+		;;
+esac
+
 # if configuration is not set (destination empty),
 # run first wizard and exit
 if [ -z "$destination" ] ; then
@@ -330,12 +352,9 @@ if [ -z "$destination" ] ; then
 	exit $?
 fi
 
-mode=$1
-shift
-
-# command operations
+# main command operations
 case $mode in
-	backup|history|restore|config|install|uninstall)
+	backup|history|restore|config)
 
 		# prepare command
 		t2b_cmd=(t2b_$mode)
@@ -349,10 +368,12 @@ case $mode in
 		# run command
 		"${t2b_cmd[@]}"
 		;;
+
 	"")
 		# display choose operation dialog
 		choose_operation
 		;;
+
 	*)
 		print_help
 		exit 1
