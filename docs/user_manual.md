@@ -15,12 +15,13 @@
 <a name="whatisit"></a>
 ## What is time2backup?
 time2backup is a program to easy backup and restore your files.
-It wants to be as simple as Time Machine on macOS.
+
 
 <a name="requirements"></a>
 ## What do I need to install time2backup?
-Nothing but rsync program, which is installed on most popular systems like Ubuntu,
+Nothing else but the rsync program, which is installed on most popular systems like Ubuntu,
 Linux Mint, Debian, openSuse, Mageia, macOS, ...
+
 
 <a name="install"></a>
 ## How to install time2backup
@@ -28,6 +29,7 @@ Linux Mint, Debian, openSuse, Mageia, macOS, ...
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
+
 
 <a name="backup"></a>
 ## Backup your files
@@ -59,7 +61,8 @@ Then you will get your file(s) exactly at backup state.
 
 <a name="upgrade"></a>
 ## Upgrading time2backup
-To upgrade time2backup, download the last version here and just uncompress archive into the same folder.
+To upgrade time2backup, download the last version on the [official website](https://time2backup.github.io),
+and uncompress the archive into the same folder.
 If your system is asking, choose to overwrite files.
 
 
@@ -69,13 +72,14 @@ To uninstall time2backup, run the following command in a terminal:
 ```bash
 /path/to/time2backup.sh uninstall [OPTIONS]
 ```
-See [command documentation](command.md) for more information and options.
+See [command documentation](command.md) for more information about options.
+
 
 <a name="troubleshootting"></a>
 ## Troubleshootting
 Some common bugs or issues are reported here.
 
-In any case of problem, please report any bug here: https://github.com/time2backup/time2backup/issues
+In case of problem, please report your bugs here: https://github.com/time2backup/time2backup/issues
 
 ### time2backup is stuck with message "a backup is already running"
 Sometimes, if time2backup was killed by force, a lock file may stay.
