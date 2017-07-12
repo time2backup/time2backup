@@ -54,9 +54,7 @@ t2b_backup() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# specified source(s)
@@ -106,13 +104,13 @@ t2b_backup() {
 
 		# disabled on Windows
 		if [ "$lb_current_os" == Windows ] ; then
-			lb_display_error "Recurrent backups are disabled on Windows"
+			lb_display_warning "Recurrent backups are disabled on Windows."
 			return 20
 		fi
 
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
-			lb_display_error "Recurrent backups are disabled. You can enable it in configuration file."
+			lb_display_warning "Recurrent backups are disabled. You can enable it in configuration file."
 			return 20
 		fi
 
@@ -180,14 +178,16 @@ t2b_backup() {
 				lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
 			fi
 		fi
-	fi
+	fi # recurrent backups
 
 	# execute before backup command/script
 	if [ ${#exec_before[@]} -gt 0 ] ; then
 		# test command/script
 		if lb_command_exists "${exec_before[0]}" ; then
+
+			# run command/script
 			"${exec_before[@]}"
-			# if error
+
 			if [ $? != 0 ] ; then
 				# if error, do not overwrite rsync exit code
 				if [ $lb_exitcode == 0 ] ; then
@@ -201,6 +201,7 @@ t2b_backup() {
 				fi
 			fi
 		else
+			# if command/script not found
 			lb_error "Error: cannot run command $exec_before"
 
 			# if error, do not overwrite rsync exit code
@@ -926,9 +927,7 @@ t2b_restore() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# load and test configuration
@@ -1722,9 +1721,7 @@ t2b_uninstall() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# confirm action
