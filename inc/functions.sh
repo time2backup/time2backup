@@ -1727,11 +1727,6 @@ config_wizard() {
 		# get absolute path of the chosen directory
 		chosen_directory=$(lb_realpath "$lbg_choose_directory")
 
-		# if chosen directory is named backups, get parent directory
-		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
-			chosen_directory=$(dirname "$chosen_directory")
-		fi
-
 		# update destination config
 		if [ "$chosen_directory" != "$destination" ] ; then
 			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
