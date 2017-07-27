@@ -589,8 +589,8 @@ t2b_backup() {
 			fi
 
 			# rsync distant path option
-			if [ -n "$rsync_path" ] ; then
-				cmd+=(--rsync-path "$rsync_path")
+			if [ -n "$rsync_remote_path" ] ; then
+				cmd+=(--rsync-path "$rsync_remote_path")
 			fi
 		fi
 

@@ -1363,7 +1363,7 @@ release_lock() {
 prepare_rsync() {
 
 	# basic command
-	rsync_cmd=(rsync -aHv --progress)
+	rsync_cmd=("$rsync_path" -aHv --progress)
 
 	# get config for inclusions
 	if [ -f "$config_includes" ] ; then

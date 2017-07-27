@@ -81,6 +81,7 @@ shutdown_cmd=(shutdown -h now)
 hard_links=true
 force_hard_links=false
 mirror_mode=false
+rsync_path=rsync
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
 verbose_level=$default_verbose_level
@@ -129,7 +130,7 @@ lb_current_script_name="time2backup"
 # load functions
 source "$script_directory/inc/functions.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load functions!"
+	lb_error "Error: cannot load functions file!"
 	exit 1
 fi
 
@@ -141,7 +142,7 @@ fi
 # load commands
 source "$script_directory/inc/commands.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load tools!"
+	lb_error "Error: cannot load commands file!"
 	exit 1
 fi
 
@@ -262,7 +263,7 @@ else
 fi
 
 # test if rsync command is available
-if ! lb_command_exists rsync ; then
+if ! lb_command_exists "$rsync_path" ; then
 	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
 fi
