@@ -1264,7 +1264,7 @@ edit_config() {
 		# if no custom editor,
 		if ! $custom_editor ; then
 			# open file with graphical editor
-			if ! $consolemode ; then
+			if ! $console_mode ; then
 				# check if we are using something else than a console
 				if [ "$(lbg_get_gui)" != console ] ; then
 					if [ "$lb_current_os" == macOS ] ; then
@@ -1589,7 +1589,7 @@ clean_exit() {
 		fi
 	fi
 
-	if $debugmode ; then
+	if $debug_mode ; then
 		echo
 		lb_display_debug "Exited with code: $lb_exitcode"
 	fi
@@ -1816,7 +1816,7 @@ config_wizard() {
 		res_edit=$?
 		if [ $res_edit == 0 ] ; then
 			# display window to wait until user has finished
-			if ! $consolemode ; then
+			if ! $console_mode ; then
 				lbg_display_info "$tr_finished_edit"
 			fi
 		else
@@ -1912,7 +1912,7 @@ config_wizard() {
 		edit_config "$config_file"
 		if [ $? == 0 ] ; then
 			# display window to wait until user has finished
-			if ! $consolemode ; then
+			if ! $console_mode ; then
 				lbg_display_info "$tr_finished_edit"
 			fi
 		fi

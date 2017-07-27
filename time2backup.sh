@@ -44,8 +44,8 @@ force_shutdown=false
 destination_subdirectories=true
 test_destination=true
 
-consolemode=false
-debugmode=false
+console_mode=false
+debug_mode=false
 
 mount=true
 backup_disk_uuid=""
@@ -164,7 +164,7 @@ fi
 while [ -n "$1" ] ; do
 	case $1 in
 		-C|--console)
-			consolemode=true
+			console_mode=true
 			;;
 		-c|--config)
 			# custom config path
@@ -204,7 +204,7 @@ while [ -n "$1" ] ; do
 			shift
 			;;
 		-D|--debug)
-			debugmode=true
+			debug_mode=true
 			;;
 		-V|--version)
 			echo $version
@@ -231,7 +231,7 @@ if [ -z "$user" ] ; then
 fi
 
 # set console mode
-if $consolemode ; then
+if $console_mode ; then
 
 	lbg_set_gui console
 
@@ -298,7 +298,7 @@ config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
 # defines log level
-if ! $debugmode ; then
+if ! $debug_mode ; then
 	# if not set (unknown error), set to default level
 	if ! lb_set_log_level "$log_level" ; then
 		lb_set_log_level "$default_log_level"
@@ -382,7 +382,7 @@ esac
 
 lb_exitcode=$?
 
-if $debugmode ; then
+if $debug_mode ; then
 	echo
 	lb_display_debug "Exited with code: $lb_exitcode"
 fi
