@@ -1505,7 +1505,13 @@ clean_exit() {
 				fi
 
 				# prepare email content
-				email_subject="time2backup - "
+				email_subject="$email_subject_prefix"
+
+				if [ -n "$email_subject_prefix" ] ; then
+					email_subject+=" "
+				fi
+
+				email_subject+="time2backup report: "
 				email_content="Dear user,\n\n"
 
 				if [ $lb_exitcode == 0 ] ; then
