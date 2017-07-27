@@ -1359,7 +1359,7 @@ release_lock() {
 
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
-# Usage: prepare_rsync
+# Usage: prepare_rsync backup|restore
 prepare_rsync() {
 
 	# basic command
@@ -1378,6 +1378,17 @@ prepare_rsync() {
 	# add user defined options
 	if [ ${#rsync_options[@]} -gt 0 ] ; then
 		rsync_cmd+=("${rsync_options[@]}")
+	fi
+
+	# command-specific options
+	if [ "$1" == backup ] ; then
+		# delete newer files
+		rsync_cmd+=(--delete)
+
+		# add max size if specified
+		if [ -n "$max_size" ] ; then
+			rsync_cmd+=(--max-size "$max_size")
+		fi
 	fi
 }
 

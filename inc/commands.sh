@@ -364,13 +364,7 @@ t2b_backup() {
 	fi
 
 	# prepare rsync command
-	prepare_rsync
-	rsync_cmd+=(--delete)
-
-	# add max size if specified
-	if [ -n "$max_size" ] ; then
-		rsync_cmd+=(--max-size "$max_size")
-	fi
+	prepare_rsync backup
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
@@ -1209,7 +1203,7 @@ t2b_restore() {
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# prepare rsync command
-	prepare_rsync
+	prepare_rsync restore
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path

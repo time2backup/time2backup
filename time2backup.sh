@@ -48,7 +48,6 @@ console_mode=false
 debug_mode=false
 
 mount=true
-backup_disk_uuid=""
 
 network_compression=false
 ssh_options="ssh"
@@ -82,7 +81,6 @@ shutdown_cmd=(shutdown -h now)
 hard_links=true
 force_hard_links=false
 mirror_mode=false
-rsync_path=""
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
 verbose_level=$default_verbose_level
