@@ -65,8 +65,7 @@ keep_logs_if_error=true
 log_level=$default_log_level
 
 notifications=true
-email_report=false
-email_report_if_error=false
+email_report=none
 
 exec_before_block=false
 exec_after_block=false

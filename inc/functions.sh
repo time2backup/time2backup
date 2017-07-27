@@ -1431,8 +1431,7 @@ clean_exit() {
 				fi
 				;;
 			--no-email)
-				email_report=false
-				email_report_if_error=false
+				email_report=none
 				;;
 			--no-rmlog)
 				logs_save=true
@@ -1479,18 +1478,14 @@ clean_exit() {
 		fi
 	fi
 
-	if $email_report ; then
-		email_report_if_error=true
-	fi
-
 	# send email report
-	if $email_report_if_error ; then
+	if [ "$email_report" == "on_error" ] || [ "$email_report" == "always" ] ; then
 
-		# if email recipient is set
+		# if email recipient is set,
 		if [ -n "$email_recipient" ] ; then
 
-			# if report or error, send email
-			if $email_report || [ $lb_exitcode != 0 ] ; then
+			# if report is set or there was an error
+			if [ "$email_report" == "always" ] || [ $lb_exitcode != 0 ] ; then
 
 				# email options
 				email_opts=()
@@ -1538,7 +1533,7 @@ clean_exit() {
 			fi
 		else
 			# email not sent
-			lb_log_error --log "Email recipient not set, do not send email report."
+			lb_display_error --log "Email recipient not set, do not send email report."
 		fi
 	fi
 
