@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0-rc.7 (2017-06-16)                     #
+#  Version 1.0.0-rc.8 (2017-08-01)                     #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-rc.7"
+version="1.0.0-rc.8"
 
 portable_mode=false
 user=""
@@ -230,12 +230,10 @@ fi
 
 # set console mode
 if $console_mode ; then
-
 	lbg_set_gui console
 
 	# disable notifications by default
 	notifications=false
-
 else
 	# try to find display (if into a cron job on Linux)
 	if [ "$lb_current_os" == "Linux" ] ; then
