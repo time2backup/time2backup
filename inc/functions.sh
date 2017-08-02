@@ -448,6 +448,11 @@ load_config() {
 		lb_display_warning --log "Cannot get config version."
 	fi
 
+	# if destination is overrriden, set it
+	if [ -n "$force_destination" ] ; then
+		destination=$force_destination
+	fi
+
 	# test if destination is defined
 	if [ -z "$destination" ] ; then
 		lb_error "Destination is not set!"

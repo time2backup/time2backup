@@ -31,6 +31,14 @@ t2b_backup() {
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
+			--destination)
+				if [ -z "$2" ] ; then
+					print_help backup
+					return 1
+				fi
+				force_destination=$2
+				shift
+				;;
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
@@ -908,6 +916,14 @@ t2b_restore() {
 				;;
 			-f|--force)
 				forcemode=true
+				;;
+			--destination)
+				if [ -z "$2" ] ; then
+					print_help restore
+					return 1
+				fi
+				force_destination=$2
+				shift
 				;;
 			-h|--help)
 				print_help restore
