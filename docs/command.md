@@ -73,8 +73,8 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 - 11: Cannot exclude directory backup from itself
 - 12: rsync test failed
 - 13: Not enough space for backup
-- 14: rsync failed (critical error)
-- 15: Warnings in backup (some files may not be transfered)
+- 14: rsync failed with a critical error
+- 15: Warnings in backup (some files may not be transferred)
 - 16: After script failed
 - 17: Backup was cancelled
 - 18: Error while unmount destination backup

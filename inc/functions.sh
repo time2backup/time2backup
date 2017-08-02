@@ -642,7 +642,7 @@ unmount_destination() {
 
 # Get path of a file backup
 # Usage: get_backup_path PATH
-# Return: backup path
+# Return: backup path (e.g. /home/user -> /files/home/user)
 # Exit codes:
 #   0: OK
 #   1: cannot get original path (not absolute and parent directory does not exists)
@@ -1044,7 +1044,7 @@ test_backup() {
 	# prepare rsync in test mode
 	test_cmd=(rsync --dry-run --stats)
 
-	# append rsync options without the first argument (=rsync)
+	# append rsync options without the first argument (rsync)
 	test_cmd+=("${cmd[@]:1}")
 
 	# rsync test
@@ -1126,19 +1126,15 @@ test_space() {
 # Usage: clean_empty_directories PATH
 # Exit codes:
 #   0: cleaned
-#   1: usage error
+#   1: usage error or path is not a directory
 clean_empty_directories() {
-
-	# usage error
-	if [ $# == 0 ] ; then
-		return 1
-	fi
 
 	# get directory path
 	d=$*
 
 	# delete empty directories recursively
 	while true ; do
+
 		# if is not a directory, this is an usage error
 		if ! [ -d "$d" ] ; then
 			return 1
@@ -1154,18 +1150,18 @@ clean_empty_directories() {
 			return 0
 		fi
 
-		lb_display_debug "Deleting empty backup: $d"
+		lb_display_debug --log "Deleting empty directory: $d"
 
 		# delete directory
 		rmdir "$d" &> /dev/null
-		if [ $? == 0 ] ; then
-			# go to parent directory and continue loop
-			d=$(dirname "$d")
-			continue
+		if [ $? != 0 ] ; then
+			# if command failed, quit
+			return 0
 		fi
-	done
 
-	return 0
+		# go to parent directory and continue loop
+		d=$(dirname "$d")
+	done
 }
 
 
@@ -1208,9 +1204,7 @@ edit_config() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# test config file
@@ -1270,11 +1264,11 @@ edit_config() {
 
 		# if no custom editor,
 		if ! $custom_editor ; then
-
 			# open file with graphical editor
-			if ! $consolemode ; then
-				if [ "$(lbg_get_gui)" != "console" ] ; then
-					if [ "$lb_current_os" == "macOS" ] ; then
+			if ! $console_mode ; then
+				# check if we are using something else than a console
+				if [ "$(lbg_get_gui)" != console ] ; then
+					if [ "$lb_current_os" == macOS ] ; then
 						all_editors+=(open)
 					else
 						all_editors+=(xdg-open)
@@ -1295,6 +1289,7 @@ edit_config() {
 			fi
 		done
 
+		# run text editor and wait for it to close
 		if [ -n "$editor" ] ; then
 			"$editor" "$edit_file" 2> /dev/null
 			wait $!
@@ -1320,7 +1315,7 @@ edit_config() {
 }
 
 
-# Test if lock exists
+# Return date of the current lock (if exists)
 # Usage: current_lock
 # Return: date of lock, empty if no lock
 # Exit code:
@@ -1364,15 +1359,12 @@ release_lock() {
 }
 
 
-# Prepare rsync command
-# Usage: prepare_rsync
-# Exit codes:
-#   0: OK
-#   1: error
+# Prepare rsync command and arguments in the $rsync_cmd variable
+# Usage: prepare_rsync backup|restore
 prepare_rsync() {
 
 	# basic command
-	rsync_cmd=(rsync -aHv --progress)
+	rsync_cmd=("$rsync_path" -aHv --progress)
 
 	# get config for inclusions
 	if [ -f "$config_includes" ] ; then
@@ -1387,6 +1379,17 @@ prepare_rsync() {
 	# add user defined options
 	if [ ${#rsync_options[@]} -gt 0 ] ; then
 		rsync_cmd+=("${rsync_options[@]}")
+	fi
+
+	# command-specific options
+	if [ "$1" == backup ] ; then
+		# delete newer files
+		rsync_cmd+=(--delete)
+
+		# add max size if specified
+		if [ -n "$max_size" ] ; then
+			rsync_cmd+=(--max-size "$max_size")
+		fi
 	fi
 }
 
@@ -1440,8 +1443,7 @@ clean_exit() {
 				fi
 				;;
 			--no-email)
-				email_report=false
-				email_report_if_error=false
+				email_report=none
 				;;
 			--no-rmlog)
 				logs_save=true
@@ -1455,9 +1457,7 @@ clean_exit() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# set exit code if specified
@@ -1490,18 +1490,14 @@ clean_exit() {
 		fi
 	fi
 
-	if $email_report ; then
-		email_report_if_error=true
-	fi
-
 	# send email report
-	if $email_report_if_error ; then
+	if [ "$email_report" == "on_error" ] || [ "$email_report" == "always" ] ; then
 
-		# if email recipient is set
+		# if email recipient is set,
 		if [ -n "$email_recipient" ] ; then
 
-			# if report or error, send email
-			if $email_report || [ $lb_exitcode != 0 ] ; then
+			# if report is set or there was an error
+			if [ "$email_report" == "always" ] || [ $lb_exitcode != 0 ] ; then
 
 				# email options
 				email_opts=()
@@ -1510,7 +1506,13 @@ clean_exit() {
 				fi
 
 				# prepare email content
-				email_subject="time2backup - "
+				email_subject="$email_subject_prefix"
+
+				if [ -n "$email_subject_prefix" ] ; then
+					email_subject+=" "
+				fi
+
+				email_subject+="time2backup report: "
 				email_content="Dear user,\n\n"
 
 				if [ $lb_exitcode == 0 ] ; then
@@ -1544,14 +1546,12 @@ clean_exit() {
 
 				email_content+="Regards,\ntime2backup"
 
-				# send email
-				if ! lb_email "${email_opts[@]}"-s "$email_subject" "$email_recipient" "$email_report_content" ; then
-					lb_log_error "Email could not be sent."
-				fi
+				# send email without managing errors and without blocking script
+				lb_email "${email_opts[@]}"-s "$email_subject" "$email_recipient" "$email_report_content" &
 			fi
 		else
 			# email not sent
-			lb_log_error "Email recipient not set, do not send email report."
+			lb_display_error --log "Email recipient not set, do not send email report."
 		fi
 	fi
 
@@ -1569,7 +1569,7 @@ clean_exit() {
 		fi
 
 		if $delete_logs ; then
-			lb_display_debug "Deleting log file..."
+			lb_display_debug ---log "Deleting log file..."
 
 			# delete file
 			rm -f "$logfile" &> /dev/null
@@ -1596,11 +1596,13 @@ clean_exit() {
 	# if shutdown after backup, execute it
 	if $shutdown ; then
 		if ! haltpc ; then
-			lb_exitcode=19
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=19
+			fi
 		fi
 	fi
 
-	if $debugmode ; then
+	if $debug_mode ; then
 		echo
 		lb_display_debug "Exited with code: $lb_exitcode"
 	fi
@@ -1716,6 +1718,7 @@ choose_operation() {
 # Exit codes:
 #   0: OK
 #   1: no destination chosen
+#   3: there are errors in configuration file
 config_wizard() {
 
 	local enable_recurrent=false
@@ -1736,11 +1739,6 @@ config_wizard() {
 
 		# get absolute path of the chosen directory
 		chosen_directory=$(lb_realpath "$lbg_choose_directory")
-
-		# if chosen directory is named backups, get parent directory
-		if [ "$(basename "$chosen_directory")" == "backups" ] ; then
-			chosen_directory=$(dirname "$chosen_directory")
-		fi
 
 		# update destination config
 		if [ "$chosen_directory" != "$destination" ] ; then
@@ -1765,11 +1763,11 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
+					lb_display_debug "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
 				fi
 			fi
 		else
-			lb_error "Could not find mount point of destination."
+			lb_display_debug "Could not find mount point of destination."
 		fi
 
 		# set mountpoint in config file
@@ -1783,11 +1781,11 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
+					lb_display_debug "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
 				fi
 			fi
 		else
-			lb_error "Could not find disk UUID of destination."
+			lb_display_debug "Could not find disk UUID of destination."
 		fi
 
 		# hard links support
@@ -1805,7 +1803,7 @@ config_wizard() {
 
 						res_edit=$?
 						if [ $res_edit != 0 ] ; then
-							lb_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
+							lb_display_debug "Error in setting config parameter force_hard_links (result code: $res_edit)"
 						fi
 					fi
 				fi
@@ -1831,7 +1829,7 @@ config_wizard() {
 		res_edit=$?
 		if [ $res_edit == 0 ] ; then
 			# display window to wait until user has finished
-			if ! $consolemode ; then
+			if ! $console_mode ; then
 				lbg_display_info "$tr_finished_edit"
 			fi
 		else
@@ -1913,7 +1911,7 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_error "Error in setting config parameter frequency (result code: $res_edit)"
+					lb_display_debug "Error in setting config parameter frequency (result code: $res_edit)"
 				fi
 			else
 				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
@@ -1927,7 +1925,7 @@ config_wizard() {
 		edit_config "$config_file"
 		if [ $? == 0 ] ; then
 			# display window to wait until user has finished
-			if ! $consolemode ; then
+			if ! $console_mode ; then
 				lbg_display_info "$tr_finished_edit"
 			fi
 		fi
@@ -1937,7 +1935,7 @@ config_wizard() {
 	edit_config --set "recurrent=$enable_recurrent" "$config_file"
 	res_edit=$?
 	if [ $res_edit != 0 ] ; then
-		lb_error "Error in setting config parameter recurrent (result code: $res_edit)"
+		lb_display_debug "Error in setting config parameter recurrent (result code: $res_edit)"
 	fi
 
 	# reload config

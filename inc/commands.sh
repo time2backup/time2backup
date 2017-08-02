@@ -54,9 +54,7 @@ t2b_backup() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# specified source(s)
@@ -106,13 +104,13 @@ t2b_backup() {
 
 		# disabled on Windows
 		if [ "$lb_current_os" == Windows ] ; then
-			lb_display_error "Recurrent backups are disabled on Windows"
+			lb_display_warning "Recurrent backups are disabled on Windows."
 			return 20
 		fi
 
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
-			lb_display_error "Recurrent backups are disabled. You can enable it in configuration file."
+			lb_display_warning "Recurrent backups are disabled. You can enable it in configuration file."
 			return 20
 		fi
 
@@ -180,14 +178,16 @@ t2b_backup() {
 				lb_display_critical "Last backup is more recent than today. Are you a time traveller?"
 			fi
 		fi
-	fi
+	fi # recurrent backups
 
 	# execute before backup command/script
 	if [ ${#exec_before[@]} -gt 0 ] ; then
 		# test command/script
 		if lb_command_exists "${exec_before[0]}" ; then
+
+			# run command/script
 			"${exec_before[@]}"
-			# if error
+
 			if [ $? != 0 ] ; then
 				# if error, do not overwrite rsync exit code
 				if [ $lb_exitcode == 0 ] ; then
@@ -201,6 +201,7 @@ t2b_backup() {
 				fi
 			fi
 		else
+			# if command/script not found
 			lb_error "Error: cannot run command $exec_before"
 
 			# if error, do not overwrite rsync exit code
@@ -363,13 +364,7 @@ t2b_backup() {
 	fi
 
 	# prepare rsync command
-	prepare_rsync
-	rsync_cmd+=(--delete)
-
-	# add max size if specified
-	if [ -n "$max_size" ] ; then
-		rsync_cmd+=(--max-size "$max_size")
-	fi
+	prepare_rsync backup
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
@@ -594,8 +589,8 @@ t2b_backup() {
 			fi
 
 			# rsync distant path option
-			if [ -n "$rsync_path" ] ; then
-				cmd+=(--rsync-path "$rsync_path")
+			if [ -n "$rsync_remote_path" ] ; then
+				cmd+=(--rsync-path "$rsync_remote_path")
 			fi
 		fi
 
@@ -926,9 +921,7 @@ t2b_restore() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# load and test configuration
@@ -964,6 +957,7 @@ t2b_restore() {
 
 		restore_opts=("$tr_restore_existing_file" "$tr_restore_moved_file")
 
+		# if hard links supported, add directory restore features
 		if $hard_links ; then
 			restore_opts+=("$tr_restore_existing_directory" "$tr_restore_moved_directory")
 		fi
@@ -1192,26 +1186,24 @@ t2b_restore() {
 
 	# if source is a directory
 	if [ -d "$src" ] ; then
-		directorymode=true
-	fi
-
-	# prepare destination
-	if $directorymode ; then
-
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
 			lbg_display_error "$tr_cannot_restore_from_trash"
 			return 12
+		else
+			# enable directory mode
+			directorymode=true
 		fi
 	fi
 
+	# prepare destination
 	dest=$file
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# prepare rsync command
-	prepare_rsync
+	prepare_rsync restore
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
@@ -1222,12 +1214,8 @@ t2b_restore() {
 		common_path=$(get_common_path "$backup_destination" "$dest")
 
 		if [ $? != 0 ] ; then
-			lb_error "Cannot exclude directory backup from $dest!"
-			errors+=("$dest (exclude error)")
-			lb_exitcode=8
-
-			# continue to next source
-			continue
+			lbg_display_error "Cannot exclude directory backup from $dest!"
+			return 8
 		fi
 
 		# get relative exclude directory
@@ -1479,6 +1467,7 @@ t2b_config() {
 		shift # load next argument
 	done
 
+	# if config file not defined, ask user to choose which file to edit
 	if [ -z "$file" ] ; then
 
 		if [ -z "$op_config" ] ; then
@@ -1722,9 +1711,7 @@ t2b_uninstall() {
 				break
 				;;
 		esac
-
-		# load next argument
-		shift
+		shift # load next argument
 	done
 
 	# confirm action

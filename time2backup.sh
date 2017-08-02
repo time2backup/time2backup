@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0-rc.7 (2017-06-16)                     #
+#  Version 1.0.0-rc.8 (2017-08-01)                     #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-rc.7"
+version="1.0.0-rc.8"
 
 portable_mode=false
 user=""
@@ -44,11 +44,10 @@ force_shutdown=false
 destination_subdirectories=true
 test_destination=true
 
-consolemode=false
-debugmode=false
+console_mode=false
+debug_mode=false
 
 mount=true
-backup_disk_uuid=""
 
 network_compression=false
 ssh_options="ssh"
@@ -65,8 +64,7 @@ keep_logs_if_error=true
 log_level=$default_log_level
 
 notifications=true
-email_report=false
-email_report_if_error=false
+email_report=none
 
 exec_before_block=false
 exec_after_block=false
@@ -83,7 +81,7 @@ shutdown_cmd=(shutdown -h now)
 hard_links=true
 force_hard_links=false
 mirror_mode=false
-rsync_path=""
+rsync_path=rsync
 rsync_options=()
 cmd_alias="/usr/bin/time2backup"
 verbose_level=$default_verbose_level
@@ -132,7 +130,7 @@ lb_current_script_name="time2backup"
 # load functions
 source "$script_directory/inc/functions.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load functions!"
+	lb_error "Error: cannot load functions file!"
 	exit 1
 fi
 
@@ -144,7 +142,7 @@ fi
 # load commands
 source "$script_directory/inc/commands.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load tools!"
+	lb_error "Error: cannot load commands file!"
 	exit 1
 fi
 
@@ -164,7 +162,7 @@ fi
 while [ -n "$1" ] ; do
 	case $1 in
 		-C|--console)
-			consolemode=true
+			console_mode=true
 			;;
 		-c|--config)
 			# custom config path
@@ -204,7 +202,7 @@ while [ -n "$1" ] ; do
 			shift
 			;;
 		-D|--debug)
-			debugmode=true
+			debug_mode=true
 			;;
 		-V|--version)
 			echo $version
@@ -231,13 +229,11 @@ if [ -z "$user" ] ; then
 fi
 
 # set console mode
-if $consolemode ; then
-
+if $console_mode ; then
 	lbg_set_gui console
 
 	# disable notifications by default
 	notifications=false
-
 else
 	# try to find display (if into a cron job on Linux)
 	if [ "$lb_current_os" == "Linux" ] ; then
@@ -265,7 +261,7 @@ else
 fi
 
 # test if rsync command is available
-if ! lb_command_exists rsync ; then
+if ! lb_command_exists "$rsync_path" ; then
 	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
 fi
@@ -298,7 +294,7 @@ config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
 # defines log level
-if ! $debugmode ; then
+if ! $debug_mode ; then
 	# if not set (unknown error), set to default level
 	if ! lb_set_log_level "$log_level" ; then
 		lb_set_log_level "$default_log_level"
@@ -323,6 +319,28 @@ fi
 # load configuration; don't care of errors
 load_config &> /dev/null
 
+# get main command
+mode=$1
+shift
+
+# install/uninstall time2backup
+case $mode in
+	install|uninstall)
+		# prepare command
+		t2b_cmd=(t2b_$mode)
+
+		# forward arguments in space safe mode
+		while [ -n "$1" ] ; do
+			t2b_cmd+=("$1")
+			shift
+		done
+
+		# run command and exit
+		"${t2b_cmd[@]}"
+		exit $?
+		;;
+esac
+
 # if configuration is not set (destination empty),
 # run first wizard and exit
 if [ -z "$destination" ] ; then
@@ -330,12 +348,9 @@ if [ -z "$destination" ] ; then
 	exit $?
 fi
 
-mode=$1
-shift
-
-# command operations
+# main command operations
 case $mode in
-	backup|history|restore|config|install|uninstall)
+	backup|history|restore|config)
 
 		# prepare command
 		t2b_cmd=(t2b_$mode)
@@ -349,10 +364,12 @@ case $mode in
 		# run command
 		"${t2b_cmd[@]}"
 		;;
+
 	"")
 		# display choose operation dialog
 		choose_operation
 		;;
+
 	*)
 		print_help
 		exit 1
@@ -361,7 +378,7 @@ esac
 
 lb_exitcode=$?
 
-if $debugmode ; then
+if $debug_mode ; then
 	echo
 	lb_display_debug "Exited with code: $lb_exitcode"
 fi

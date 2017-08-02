@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 RC 8 (2017-08-01)
+- Add popup dialogs on Windows when backup/restore finished
+- Upgrade to libbash.sh 1.2.2
+- New option: `email_subject_prefix` to set a prefix to email reports subjects
+- Changed `email_report` config system (can broke your config, see config example file)
+- Rename `consolemode` config value to `console_mode`
+- Improve documentation and source code comments
+- Various minor improvements
+
 ## 1.0.0 RC 7 (2017-06-16)
 - New option to not test free space on destination before backup
 - Test folders size before backup
