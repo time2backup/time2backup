@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0-rc.8 (2017-08-01)                     #
+#  Version 1.0.0 (2017-08-09)                          #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-rc.8"
+version="1.0.0"
 
 portable_mode=false
 user=""

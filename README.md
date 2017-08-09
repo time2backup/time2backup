@@ -1,7 +1,7 @@
 # time2backup
 
 ## A simple and powerful backup tool using rsync
-Backup and restore your files easely with time2backup on Linux, macOS and Windows!
+Backup and restore your files easily with time2backup on Linux, macOS and Windows!
 
 time2backup wants to be as light as possible and needs only rsync installed.
 Download it and run it!
@@ -16,7 +16,7 @@ a library of functions for Bash scripts.
 
 
 ## Download and install
-1. [Download time2backup here](https://time2backup.github.io/)
+1. [Download time2backup here](https://time2backup.github.io)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
@@ -33,7 +33,7 @@ For global usage, see the [user manual](docs/user_manual.md).
 For more usage, see the [command help](docs/command.md).
 
 
-## Install from sources (developers edition)
+## Install from sources
 Follow theses steps to install time2backup from last sources:
 1. Clone this repository:
 ```bash
@@ -46,11 +46,6 @@ cd time2backup
 3. Initialize and update the libbash submodule:
 ```bash
 git submodule update --init
-```
-
-If you want to use the unstable version, go on the `unstable` branch:
-```bash
-git checkout unstable
 ```
 
 To download the last updates, do:
