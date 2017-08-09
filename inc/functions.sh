@@ -1433,6 +1433,16 @@ rsync_result() {
 #   --no-shutdown  Do not halt PC
 clean_exit() {
 
+	delete_logs=false
+
+	if [ "$keep_logs" == "none" ] ; then
+		delete_logs=true
+	else
+		if [ "$keep_logs" == "on_error" ] && [ $lb_exitcode == 0 ] ; then
+			delete_logs=true
+		fi
+	fi
+
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
@@ -1445,7 +1455,7 @@ clean_exit() {
 				email_report=none
 				;;
 			--no-rmlog)
-				logs_save=true
+				delete_logs=false
 				;;
 			--no-shutdown)
 				if ! $force_shutdown ; then
@@ -1530,16 +1540,7 @@ clean_exit() {
 				fi
 
 				# if logs are kept,
-				email_logs=false
-				if $logs_save ; then
-					email_logs=true
-				else
-					if $keep_logs_if_error && [ $lb_exitcode != 0 ] ; then
-						email_logs=true
-					fi
-				fi
-
-				if $email_logs ; then
+				if ! $delete_logs ; then
 					email_content+="See the log file for more details.\n\n"
 				fi
 
@@ -1555,39 +1556,27 @@ clean_exit() {
 	fi
 
 	# delete log file
-	if ! $logs_save ; then
+	if $delete_logs ; then
 
-		delete_logs=false
+		lb_display_debug ---log "Deleting log file..."
 
-		if [ $lb_exitcode == 0 ] ; then
-			delete_logs=true
-		else
-			if ! $keep_logs_if_error ; then
-				delete_logs=true
-			fi
+		# delete file
+		rm -f "$logfile" &> /dev/null
+
+		# if failed
+		if [ $? != 0 ] ; then
+			lb_display_debug "...Failed!"
 		fi
 
-		if $delete_logs ; then
-			lb_display_debug ---log "Deleting log file..."
+		# delete logs directory if empty
+		if lb_dir_is_empty "$logs_directory" ; then
+			lb_display_debug "Deleting log directory..."
 
-			# delete file
-			rm -f "$logfile" &> /dev/null
+			rmdir "$logs_directory" &> /dev/null
 
 			# if failed
 			if [ $? != 0 ] ; then
 				lb_display_debug "...Failed!"
-			fi
-
-			# delete logs directory if empty
-			if lb_dir_is_empty "$logs_directory" ; then
-				lb_display_debug "Deleting log directory..."
-
-				rmdir "$logs_directory" &> /dev/null
-
-				# if failed
-				if [ $? != 0 ] ; then
-					lb_display_debug "...Failed!"
-				fi
 			fi
 		fi
 	fi

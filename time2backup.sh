@@ -59,8 +59,7 @@ keep_limit=-1
 clean_old_backups=true
 clean_keep=0
 
-logs_save=false
-keep_logs_if_error=true
+keep_logs=on_error
 log_level=$default_log_level
 
 notifications=true

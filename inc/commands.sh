@@ -279,7 +279,7 @@ t2b_backup() {
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# if we want to keep some logs,
-	if $logs_save || $keep_logs_if_error ; then
+	if [ "$keep_logs" == "on_error" ] || [ "$keep_logs" == "always" ] ; then
 
 		# set log file directory
 		if [ -z "$logs_directory" ] ; then
