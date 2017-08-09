@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.0.0-rc.8 (2017-08-01)                     #
+#  Version 1.0.0 (2017-08-09)                          #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version="1.0.0-rc.8"
+version="1.0.0"
 
 portable_mode=false
 user=""
@@ -59,8 +59,7 @@ keep_limit=-1
 clean_old_backups=true
 clean_keep=0
 
-logs_save=false
-keep_logs_if_error=true
+keep_logs=on_error
 log_level=$default_log_level
 
 notifications=true

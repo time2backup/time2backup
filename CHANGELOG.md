@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.0 (2017-08-09)
+- Changed `logs_save` to `keep_logs` with an enum (can broke your config, see config example file)
+
 ## 1.0.0 RC 8 (2017-08-01)
 - Add popup dialogs on Windows when backup/restore finished
 - Upgrade to libbash.sh 1.2.2
