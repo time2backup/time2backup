@@ -1461,6 +1461,9 @@ t2b_config() {
 			-w|--wizard)
 				op_config="wizard"
 				;;
+			-r|--reset)
+				op_config="reset"
+				;;
 			-e|--editor)
 				if [ -z "$2" ] ; then
 					return 1
@@ -1547,6 +1550,12 @@ t2b_config() {
 			echo "Testing configuration..."
 			load_config
 			lb_result
+			;;
+		reset)
+			# reset config file
+			if lb_yesno "$tr_confirm_reset_config" ; then
+				cat "$script_directory/config/time2backup.example.conf" > "$config_file"
+			fi
 			;;
 		*)
 			# edit configuration

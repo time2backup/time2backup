@@ -42,6 +42,7 @@ tr_sources_config="Elements to backup"
 tr_excludes_config="Excluded files"
 tr_includes_config="Included files (not used in most cases)"
 tr_run_config_wizard="Run configuration wizard"
+tr_confirm_reset_config="Do you really want to reset configuration?"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups:"

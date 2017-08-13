@@ -42,6 +42,7 @@ tr_sources_config="Éléments à sauvegarder"
 tr_excludes_config="Fichiers exclus"
 tr_includes_config="Fichiers inclus (souvent peu utile)"
 tr_run_config_wizard="Lancer l'assistant de configuration"
+tr_confirm_reset_config="Voulez-vous vraiment réinitialiser la configuration ?"
 
 # Config wizard
 tr_choose_backup_destination="Choisissez le dossier de destination des sauvegardes :"

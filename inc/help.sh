@@ -70,6 +70,7 @@ print_help() {
 			echo -e "                    display configuration without comments"
 			echo -e "  -t, --test        test configuration; do not edit"
 			echo -e "  -w, --wizard      display configuration wizard instead of edit"
+			echo -e "  -r, --reset       reset configuration file"
 			echo -e "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
 			echo -e "  -h, --help        print help"
 			;;

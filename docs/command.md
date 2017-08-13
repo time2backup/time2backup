@@ -163,6 +163,7 @@ time2backup [GLOBAL_OPTIONS] config [OPTIONS]
                   display configuration without comments
 -t, --test        test configuration; do not edit
 -w, --wizard      display configuration wizard instead of edit
+-r, --reset       reset configuration file
 -e, --editor BIN  use specified editor (e.g. vim, nano, ...)
 -h, --help        print help
 ```
