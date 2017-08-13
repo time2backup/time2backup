@@ -25,6 +25,7 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
                            (no install, use local config files, meant to run from removable devices)
 -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
+-d, --destination PATH     set a custom destination path (overrides configuration)
 -c, --config CONFIG_DIR    load and save config in the specified directory
 -D, --debug                run in debug mode (all messages printed and logged)
 -V, --version              print version and quit
@@ -56,7 +57,6 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 -u, --unmount           unmount destination after backup (overrides configuration)
 -s, --shutdown          shutdown after backup (overrides configuration)
 -r, --recurrent         perform a recurrent backup (used in cron jobs, not available in portable mode)
--d, --destination PATH  set a custom destination path (overrides configuration)
 -h, --help              print help
 ```
 
@@ -99,7 +99,6 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
                    By default, it restores the last available backup.
 --directory        path to restore is a directory (not necessary if path exists)
                    If deleted or moved, indicates that the chosen path is a directory.
--s, --source PATH  set a custom source path (overrides destination configuration)"
 --delete-new       delete newer files if they already exists (restore exactly the same version)
 -f, --force        force restore; do not display confirmation
 -h, --help         print help

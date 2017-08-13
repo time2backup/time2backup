@@ -163,15 +163,6 @@ while [ -n "$1" ] ; do
 		-C|--console)
 			console_mode=true
 			;;
-		-c|--config)
-			# custom config path
-			if [ -z "$2" ] ; then
-				print_help
-				exit 1
-			fi
-			config_directory=$2
-			shift
-			;;
 		-p|--portable)
 			portable_mode=true
 			;;
@@ -198,6 +189,23 @@ while [ -n "$1" ] ; do
 				exit 1
 			fi
 			verbose_level=$2
+			shift
+			;;
+		-d|--destination)
+			if [ -z "$2" ] ; then
+				print_help
+				return 1
+			fi
+			force_destination=$2
+			shift
+			;;
+		-c|--config)
+			# custom config path
+			if [ -z "$2" ] ; then
+				print_help
+				exit 1
+			fi
+			config_directory=$2
 			shift
 			;;
 		-D|--debug)

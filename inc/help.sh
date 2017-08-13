@@ -7,7 +7,6 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
-
 # Print help for users in console
 # Usage: print_help [COMMAND]
 print_help() {
@@ -18,6 +17,7 @@ print_help() {
 	echo -e "                             (no install, use local config files, meant to run from removable devices)"
 	echo -e "  -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	echo -e "  -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
+	echo -e "  -d, --destination PATH     set a custom destination path (overrides configuration)"
 	echo -e "  -c, --config CONFIG_DIR    load and save config in the specified directory"
 	echo -e "  -D, --debug                run in debug mode (all messages printed and logged)"
 	echo -e "  -V, --version              print version and quit"
@@ -31,7 +31,6 @@ print_help() {
 			echo -e "  -u, --unmount           unmount destination after backup (overrides configuration)"
 			echo -e "  -s, --shutdown          shutdown after backup (overrides configuration)"
 			echo -e "  -r, --recurrent         perform a recurrent backup (used in cron jobs, not available in portable mode)"
-			echo -e "  -d, --destination PATH  set a custom destination path (overrides configuration)"
 			echo -e "  -h, --help              print help"
 			;;
 		restore)
@@ -44,7 +43,6 @@ print_help() {
 			echo -e "                     by default it restores the last available backup"
 			echo -e "  --directory        path to restore is a directory (not necessary if path exists)"
 			echo -e "                     If deleted or moved, indicate that the chosen path is a directory."
-			echo -e "  -s, --source PATH  set a custom source path (overrides destination configuration)"
 			echo -e "  --delete-new       delete newer files if exists for directories (restore exactly the same version)"
 			echo -e "  -f, --force        force restore; do not display confirmation"
 			echo -e "  -h, --help         print help"
