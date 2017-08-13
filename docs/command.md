@@ -53,10 +53,11 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 
 ### Options
 ```
--u, --unmount    unmount destination after backup (overrides configuration)
--s, --shutdown   shutdown after backup (overrides configuration)
--r, --recurrent  perform a recurrent backup (used in cron jobs, not available in portable mode)
--h, --help       print help
+-u, --unmount           unmount destination after backup (overrides configuration)
+-s, --shutdown          shutdown after backup (overrides configuration)
+-r, --recurrent         perform a recurrent backup (used in cron jobs, not available in portable mode)
+-d, --destination PATH  set a custom destination path (overrides configuration)
+-h, --help              print help
 ```
 
 ### Exit codes
@@ -94,13 +95,14 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 
 ### Options
 ```
--d, --date DATE  restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
-                 By default, it restores the last available backup.
---directory      path to restore is a directory (not necessary if path exists)
-                 If deleted or moved, indicates that the chosen path is a directory.
---delete-new     delete newer files if they already exists (restore exactly the same version)
--f, --force      force restore; do not display confirmation
--h, --help       print help
+-d, --date DATE    restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
+                   By default, it restores the last available backup.
+--directory        path to restore is a directory (not necessary if path exists)
+                   If deleted or moved, indicates that the chosen path is a directory.
+-s, --source PATH  set a custom source path (overrides destination configuration)"
+--delete-new       delete newer files if they already exists (restore exactly the same version)
+-f, --force        force restore; do not display confirmation
+-h, --help         print help
 ```
 
 ### Exit codes

@@ -31,7 +31,7 @@ t2b_backup() {
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
-			--destination)
+			-d|--destination)
 				if [ -z "$2" ] ; then
 					print_help backup
 					return 1
@@ -917,7 +917,7 @@ t2b_restore() {
 			-f|--force)
 				forcemode=true
 				;;
-			--destination)
+			-s|--source)
 				if [ -z "$2" ] ; then
 					print_help restore
 					return 1
