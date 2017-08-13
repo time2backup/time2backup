@@ -5,6 +5,7 @@
 * [backup](#backup)
 * [restore](#restore)
 * [history](#history)
+* [status](#status)
 * [config](#config)
 * [install](#install)
 * [uninstall](#uninstall)
@@ -141,6 +142,29 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 - 3: Config error
 - 4: Backup device not reachable
 - 5: No backup found for the path
+
+---------------------------------------------------------------
+<a name="status"></a>
+## status
+Check if a backup is currently running
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] status [OPTIONS]
+```
+
+### Options
+```
+-q, --quiet  quiet mode; print only backup dates
+-h, --help   print help
+```
+
+### Exit codes
+- 0: No backup currently running
+- 1: Usage error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: A backup is currently running
 
 ---------------------------------------------------------------
 <a name="config"></a>

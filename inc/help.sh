@@ -56,6 +56,13 @@ print_help() {
 			echo -e "  -q, --quiet  quiet mode; print only backup dates"
 			echo -e "  -h, --help   print help"
 			;;
+		status)
+			echo -e "Command usage: $1 [OPTIONS]"
+			echo -e "\nCheck if a backup is currently running"
+			echo -e "\nOptions:"
+			echo -e "  -q, --quiet  quiet mode; print only backup dates"
+			echo -e "  -h, --help   print help"
+			;;
 		config)
 			echo -e "Command usage: $1 [OPTIONS]"
 			echo -e "\nEdit configuration"
@@ -92,6 +99,7 @@ print_help() {
 			echo -e "    backup     backup your files"
 			echo -e "    restore    restore a backup of a file or directory"
 			echo -e "    history    displays backup history of a file or directory"
+			echo -e "    status     check if a backup is currently running"
 			echo -e "    config     edit configuration"
 			echo -e "    install    install time2backup"
 			echo -e "    uninstall  uninstall time2backup"

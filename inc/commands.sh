@@ -1407,6 +1407,61 @@ t2b_history() {
 }
 
 
+# Chack if a backup is currently running
+# Usage: t2b_status [OPTIONS]
+t2b_status() {
+
+	# default options
+	quiet_mode=false
+
+	# get options
+	while [ -n "$1" ] ; do
+		case $1 in
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help status
+				return 0
+				;;
+			-*)
+				print_help status
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# load and test configuration
+	if ! load_config ; then
+		return 3
+	fi
+
+	# apply configuration in quiet mode; don't care of errors
+	apply_config &> /dev/null
+
+	# test backup destination
+	if ! prepare_destination ; then
+		return 4
+	fi
+
+	# test if a backup is running
+	if current_lock &> /dev/null ; then
+		if ! $quiet_mode ; then
+			echo "backup is running"
+		fi
+		return 5
+	else
+		if ! $quiet_mode ; then
+			echo "backup is not running"
+		fi
+	fi
+}
+
+
 ####################
 #  OTHER COMMANDS  #
 ####################

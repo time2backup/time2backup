@@ -357,7 +357,7 @@ fi
 
 # main command operations
 case $mode in
-	backup|history|restore|config)
+	backup|restore|history|status|config)
 
 		# prepare command
 		t2b_cmd=(t2b_$mode)
