@@ -126,17 +126,12 @@ lb_current_script_name="time2backup"
 #  FUNCTIONS  #
 ###############
 
-# load functions
-source "$script_directory/inc/functions.sh" > /dev/null
+# load utils functions
+source "$script_directory/inc/utils.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load functions file!"
+	lb_error "Error: cannot load utils file!"
 	exit 1
 fi
-
-
-#######################
-#  COMMAND FUNCTIONS  #
-#######################
 
 # load commands
 source "$script_directory/inc/commands.sh" > /dev/null
