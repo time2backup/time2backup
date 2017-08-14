@@ -44,6 +44,9 @@ force_shutdown=false
 destination_subdirectories=true
 test_destination=true
 
+resume_cancelled=true
+resume_failed=false
+
 console_mode=false
 debug_mode=false
 
