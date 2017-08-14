@@ -18,6 +18,7 @@
 #      get_backup_history
 #      create_config
 #      upgrade_config
+#      test_config
 #      load_config
 #      mount_destination
 #      unmount_destination
@@ -458,6 +459,51 @@ upgrade_config() {
 }
 
 
+# Test configuration
+# Usage: test_config
+# Exit codes:
+#   0: OK
+#   1: there are errors in config
+test_config() {
+
+	# test if destination is defined
+	if [ -z "$destination" ] ; then
+		lb_error "Destination is not set!"
+		return 1
+	fi
+
+	# convert destination for windows systems
+	if [ "$lb_current_os" == "Windows" ] ; then
+		destination=$(lb_realpath "$destination")
+
+		if [ $? != 0 ] ; then
+			lb_error "Error in Windows destination path!"
+			return 1
+		fi
+	fi
+
+	# test if sources file exists
+	if ! [ -f "$config_sources" ] ; then
+		lb_error "No sources file found!"
+		return 1
+	fi
+
+	# test integer values
+	if ! lb_is_integer $keep_limit ; then
+		lb_error "keep_limit must be an integer!"
+		return 1
+	fi
+	if ! lb_is_integer $clean_keep ; then
+		lb_error "clean_keep must be an integer!"
+		return 1
+	fi
+	if [ $clean_keep -lt 0 ] ; then
+		lb_error "clean_keep must be a positive integer!"
+		return 1
+	fi
+}
+
+
 # Load configuration file
 # Usage: load_config
 # Exit codes:
@@ -494,39 +540,8 @@ load_config() {
 		destination=$force_destination
 	fi
 
-	# test if destination is defined
-	if [ -z "$destination" ] ; then
-		lb_error "Destination is not set!"
-		configok=false
-	fi
-
-	# convert destination for windows systems
-	if [ "$lb_current_os" == "Windows" ] ; then
-		destination=$(lb_realpath "$destination")
-
-		if [ $? != 0 ] ; then
-			lb_error "Error in Windows destination path!"
-			configok=false
-		fi
-	fi
-
-	# test if sources file exists
-	if ! [ -f "$config_sources" ] ; then
-		lb_error "No sources file found!"
-		configok=false
-	fi
-
-	# test integer values
-	if ! lb_is_integer $keep_limit ; then
-		lb_error "keep_limit must be an integer!"
-		configok=false
-	fi
-	if ! lb_is_integer $clean_keep ; then
-		lb_error "clean_keep must be an integer!"
-		configok=false
-	fi
-	if [ $clean_keep -lt 0 ] ; then
-		lb_error "clean_keep must be a positive integer!"
+	# test configuration
+	if ! test_config ; then
 		configok=false
 	fi
 
