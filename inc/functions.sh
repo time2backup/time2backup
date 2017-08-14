@@ -488,15 +488,27 @@ test_config() {
 		return 1
 	fi
 
+	# test config values
+
+	# test boolean values
+	test_boolean=(destination_subdirectories test_destination resume_cancelled resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications console_mode network_compression hard_links force_hard_links)
+	for v in ${test_boolean[@]} ; do
+		if ! lb_is_boolean ${!v} ; then
+			lb_error "$v must be a boolean!"
+			return 1
+		fi
+	done
+
 	# test integer values
-	if ! lb_is_integer $keep_limit ; then
-		lb_error "keep_limit must be an integer!"
-		return 1
-	fi
-	if ! lb_is_integer $clean_keep ; then
-		lb_error "clean_keep must be an integer!"
-		return 1
-	fi
+	test_integer=(keep_limit clean_keep)
+	for v in ${test_integer[@]} ; do
+		if ! lb_is_integer ${!v} ; then
+			lb_error "$v must be an integer!"
+			return 1
+		fi
+	done
+
+	# other specific tests
 	if [ $clean_keep -lt 0 ] ; then
 		lb_error "clean_keep must be a positive integer!"
 		return 1
