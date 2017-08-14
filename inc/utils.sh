@@ -1,5 +1,5 @@
 #
-# time2backup functions
+# time2backup utils functions
 #
 # This file is part of time2backup (https://time2backup.github.io)
 #
@@ -11,9 +11,6 @@
 #
 #   Global functions
 #      timestamp2date
-#      get_common_path
-#      get_relative_path
-#      get_backup_type
 #      get_backup_fulldate
 #      get_backup_history
 #      create_config
@@ -23,7 +20,6 @@
 #      mount_destination
 #      unmount_destination
 #      get_backup_path
-#      test_hardlinks
 #      get_sources
 #      get_backups
 #      rotate_backups
@@ -31,15 +27,12 @@
 #      crontab_config
 #      apply_config
 #      prepare_destination
-#      test_folders_size
 #      test_backup
-#      test_space
 #      clean_empty_directories
 #      edit_config
 #      current_lock
 #      release_lock
 #      prepare_rsync
-#      rsync_result
 #   Exit functions
 #      clean_exit
 #      cancel_exit
@@ -64,149 +57,6 @@ timestamp2date() {
 	else
 		date -d "@$1" +"$tr_readable_date"
 	fi
-}
-
-
-# Get common path of 2 paths
-# e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
-# will return /home/user/my/
-# Usage: get_common_path PATH_1 PATH_2
-# Return: absolute path of the common directory
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   2: error with paths
-get_common_path() {
-
-	# usage error
-	if [ $# -lt 2 ] ; then
-		return 1
-	fi
-
-	# get absolute paths
-	local gcp_dir1=$(lb_abspath "$1")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
-
-	local gcp_dir2=$(lb_abspath "$2")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
-
-	# compare characters of paths one by one
-	declare -i i=0
-	while true ; do
-
-		# if a character changes in the 2 paths,
-		if [ "${gcp_dir1:0:$i}" != "${gcp_dir2:0:$i}" ] ; then
-
-			local gcp_path=${gcp_dir1:0:$i}
-
-			# if it's a directory, return it
-			if [ -d "$gcp_path" ] ; then
-
-				if [ "${gcp_path:${#gcp_path}-1}" == "/" ] ; then
-					# return path without the last /
-					echo "${gcp_path:0:${#gcp_path}-1}"
-				else
-					echo "$gcp_path"
-				fi
-			else
-				# if not, return parent directory
-				dirname "$gcp_path"
-			fi
-
-			# quit function
-			return 0
-		fi
-		i+=1
-	done
-}
-
-
-# Get relative path to reach second path from a first one
-# e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
-# will return ../../second/path
-# Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
-# Return: relative path
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   2: error with paths
-#   3: unknown cd error (may be access rights issue)
-get_relative_path() {
-
-	# usage error
-	if [ $# -lt 2 ] ; then
-		return 1
-	fi
-
-	# get absolute paths
-	local grp_src=$(lb_abspath "$1")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
-
-	local grp_dest=$(lb_abspath "$2")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
-
-	# get common path
-	local grp_common_path=$(get_common_path "$grp_src" "$grp_dest")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
-
-	# go into the first path
-	cd "$grp_src" 2> /dev/null
-	if [ $? != 0 ] ; then
-		return 3
-	fi
-
-	local grp_relative_path="./"
-
-	# loop to find common path
-	while [ "$(pwd)" != "$grp_common_path" ] ; do
-
-		# go to upper directory
-		cd .. 2> /dev/null
-		if [ $? != 0 ] ; then
-			return 3
-		fi
-
-		# append double dots to relative path
-		grp_relative_path+="../"
-	done
-
-	# print relative path
-	echo "$grp_relative_path/"
-}
-
-
-# Get backup type to check if a backup source is a file or a protocol (ssh, smb, ...)
-# Usage: get_backup_type SOURCE_URL
-# Return: type of source (files/ssh)
-get_backup_type() {
-
-	backup_url=$*
-	protocol=$(echo "$backup_url" | cut -d: -f1)
-
-	# get protocol
-	case $protocol in
-		ssh)
-			# double check protocol
-			echo "$backup_url" | grep -q -E "^$protocol://"
-			if [ $? == 0 ] ; then
-				echo "$protocol"
-				return 0
-			fi
-			;;
-	esac
-
-	# if not found or error of protocol, it is regular file
-	echo "files"
 }
 
 
@@ -358,7 +208,7 @@ get_backup_history() {
 			#  REGULAR FILES
 
 			# if no hardlinks, no need to test inodes
-			if ! test_hardlinks ; then
+			if ! test_hardlinks "$destination" ; then
 				file_history+=("$backup_date")
 				continue
 			fi
@@ -775,35 +625,6 @@ get_backup_path() {
 }
 
 
-# Test if backup destination support hard links
-# Usage: test_hardlinks
-# Exit codes:
-#   0: destination supports hard links
-#   1: cannot get filesystem type
-#   2: destination does not support hard links
-test_hardlinks() {
-
-	# Details:
-	#   vfat:    FAT16/32 on Linux systems
-	#   msdos:   FAT16/32 on macOS systems
-	#   vboxsf:  VirtualBox shared folder on Linux guests
-	no_hardlinks_fs=(vfat msdos exfat vboxsf)
-
-	# get destination filesystem
-	dest_fstype=$(lb_df_fstype "$destination")
-	if [ -z "$dest_fstype" ] ; then
-		return 1
-	fi
-
-	# if destination filesystem does not support hard links, return error
-	if lb_array_contains "$dest_fstype" "${no_hardlinks_fs[@]}" ; then
-		return 2
-	fi
-
-	return 0
-}
-
-
 # Get list of sources to backup
 # Usage: get_sources
 # Return: array of sources
@@ -1065,46 +886,6 @@ prepare_destination() {
 }
 
 
-# Test space to be taken by folders
-# Usage: test_folders_size PATH
-# Exit codes:
-#   0: OK
-#   1: failed
-test_folders_size() {
-
-	# usage error
-	if ! [ -e "$*" ] ; then
-		return 1
-	fi
-
-	# get number of subfolders
-	test_folders_size_nb=$(find "$*" -type d 2> /dev/null | wc -l)
-
-	# do not care of errors
-	if [ $test_folders_size_nb == 0 ] ; then
-		echo 0
-		return 0
-	fi
-
-	# get size of folders regarding FS type (in bytes)
-	case "$(lb_df_fstype "$*")" in
-		hfs|hfsplus)
-			test_folders_size_weight=68
-			;;
-		exfat)
-			test_folders_size_weight=131072
-			;;
-		*)
-			# set default to 4096 (ext*, FAT32)
-			test_folders_size_weight=4096
-			;;
-	esac
-
-	# return nb folders * size (result in bytes)
-	echo $(($test_folders_size_nb * $test_folders_size_weight)) 2> /dev/null
-}
-
-
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup
@@ -1142,7 +923,7 @@ test_backup() {
 		src_folder=${test_cmd[${#test_cmd[@]}-2]}
 
 		# get size of folders
-		folders_size=$(test_folders_size "$src_folder")
+		folders_size=$(folders_size "$src_folder")
 
 		# add size of folders
 		if lb_is_integer $folders_size ; then
@@ -1154,42 +935,6 @@ test_backup() {
 	total_size=$(($total_size + 1000000))
 
 	lb_display_debug --log "Backup total size (in bytes): $total_size"
-
-	return 0
-}
-
-
-# Test space available on destination disk
-# Usage: test_space BACKUP_SIZE_IN_BYTES PATH_OF_DESTINATION
-# Exit codes:
-#   0: there is space enough to backup
-#   1: not space enough
-test_space() {
-
-	# if 0, always OK
-	if [ $1 == 0 ] ; then
-		return 0
-	fi
-
-	test_space_size=$1
-
-	# get space available (destination path is the next argument)
-	shift
-	test_space_available=$(lb_df_space_left "$*")
-
-	# if there was an unknown error, continue
-	if ! lb_is_integer $test_space_available ; then
-		lb_display --log "Cannot get available space. Trying to backup although."
-		return 0
-	fi
-
-	lb_display_debug --log "Space available on disk (in bytes): $test_space_available"
-
-	# if space is not enough, error
-	if [ $test_space_available -lt $test_space_size ] ; then
-		lb_display_debug --log "Not enough space on device! Needed (in bytes): $test_space_size/$test_space_available"
-		return 1
-	fi
 
 	return 0
 }
@@ -1464,33 +1209,6 @@ prepare_rsync() {
 			rsync_cmd+=(--max-size "$max_size")
 		fi
 	fi
-}
-
-
-# Manage rsync exit codes
-# Usage: rsync_result EXIT_CODE
-# Exit codes:
-#   0: rsync was OK
-#   1: usage error
-#   2: rsync error
-rsync_result() {
-
-	# usage error
-	if ! lb_is_integer $1 ; then
-		return 1
-	fi
-
-	# manage results
-	case $1 in
-		0|23|24)
-			# OK or partial transfer
-			return 0
-			;;
-		*)
-			# critical errors that caused backup to fail
-			return 2
-			;;
-	esac
 }
 
 
@@ -1853,7 +1571,7 @@ config_wizard() {
 		# hard links support
 		if $hard_links ; then
 			# if hard links not supported by destination,
-			if ! test_hardlinks ; then
+			if ! test_hardlinks "$destination" ; then
 
 				# if forced hard links in config
 				if $force_hard_links ; then

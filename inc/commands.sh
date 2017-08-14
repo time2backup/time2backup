@@ -363,7 +363,7 @@ t2b_backup() {
 	# check if destination supports hard links
 	if $hard_links ; then
 		if ! $force_hard_links ; then
-			if ! test_hardlinks ; then
+			if ! test_hardlinks "$destination" ; then
 				lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
 				hard_links=false
 			fi
@@ -654,7 +654,7 @@ t2b_backup() {
 			for ((i=0; i<$nb_backups; i++)) ; do
 
 				# if space ok, quit loop to continue backup
-				if test_space $total_size "$destination" ; then
+				if test_space_available $total_size "$destination" ; then
 					space_ok=true
 					break
 				fi
@@ -946,7 +946,7 @@ t2b_restore() {
 
 	# test hard links
 	if ! $force_hard_links ; then
-		if ! test_hardlinks ; then
+		if ! test_hardlinks "$destination" ; then
 			hard_links=false
 		fi
 	fi
