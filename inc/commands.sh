@@ -7,10 +7,17 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+# Index of functions
+#
+#   t2b_backup
+#   t2b_restore
+#   t2b_history
+#   t2b_status
+#   t2b_config
+#   t2b_install
+#   t2b_uninstall
+#   t2b_uninstall
 
-###################
-#  MAIN COMMANDS  #
-###################
 
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH...]
@@ -1461,10 +1468,6 @@ t2b_status() {
 	fi
 }
 
-
-####################
-#  OTHER COMMANDS  #
-####################
 
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]

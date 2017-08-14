@@ -7,6 +7,47 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+# Index of functions
+#
+#   Global functions
+#      timestamp2date
+#      get_common_path
+#      get_relative_path
+#      get_backup_type
+#      get_backup_fulldate
+#      get_backup_history
+#      create_config
+#      upgrade_config
+#      load_config
+#      mount_destination
+#      unmount_destination
+#      get_backup_path
+#      test_hardlinks
+#      get_sources
+#      get_backups
+#      rotate_backups
+#      report_duration
+#      crontab_config
+#      apply_config
+#      prepare_destination
+#      test_folders_size
+#      test_backup
+#      test_space
+#      clean_empty_directories
+#      edit_config
+#      current_lock
+#      release_lock
+#      prepare_rsync
+#      rsync_result
+#   Exit functions
+#      clean_exit
+#      cancel_exit
+#      haltpc
+#   Wizards
+#      choose_operation
+#      config_wizard
+#      first_run
+
 
 ######################
 #  GLOBAL FUNCTIONS  #
