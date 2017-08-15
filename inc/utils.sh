@@ -633,8 +633,8 @@ get_sources() {
 	# reset variable
 	sources=()
 
-	# read sources.conf file line by line
-	while read line ; do
+	# read sources.conf file line by line; backslashes are not escaped
+	while read -r line ; do
 		# append source if line is not a comment
 		if ! lb_is_comment $line ; then
 			sources+=("$line")

@@ -1577,7 +1577,7 @@ t2b_config() {
 
 			# get sources is a special case to print list without comments
 			# read sources.conf file line by line
-			while read line ; do
+			while read -r line ; do
 				if ! lb_is_comment $line ; then
 					echo "$line"
 				fi
