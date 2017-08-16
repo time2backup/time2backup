@@ -691,12 +691,12 @@ rotate_backups() {
 				rm -f "$backup_destination/logs/time2backup_${old_backups[$r]}.log" 2> "$logfile"
 			else
 				lb_display_debug --log "... Failed (exit code: $rm_result)"
-				rotate_result=1
+				return 1
 			fi
 		done
 	fi
 
-	return $rotate_result
+	return 0
 }
 
 
