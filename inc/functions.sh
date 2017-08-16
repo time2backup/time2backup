@@ -71,7 +71,7 @@ get_common_path() {
 			# quit function
 			return 0
 		fi
-		i+=1
+		gcp_i+=1
 	done
 }
 
