@@ -1225,15 +1225,7 @@ prepare_rsync() {
 #   --no-shutdown  Do not halt PC
 clean_exit() {
 
-	delete_logs=false
-
-	if [ "$keep_logs" == "none" ] ; then
-		delete_logs=true
-	else
-		if [ "$keep_logs" == "on_error" ] && [ $lb_exitcode == 0 ] ; then
-			delete_logs=true
-		fi
-	fi
+	delete_logs=true
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1264,6 +1256,15 @@ clean_exit() {
 	# set exit code if specified
 	if [ -n "$1" ] ; then
 		lb_exitcode=$1
+	fi
+
+	# prevent from deleting logs
+	if $delete_logs ; then
+		if [ "$keep_logs" == "always" ] ; then
+			delete_logs=false
+		elif [ "$keep_logs" == "on_error" ] && [ $lb_exitcode != 0 ] ; then
+			delete_logs=false
+		fi
 	fi
 
 	lb_display_debug --log "Clean exit."
