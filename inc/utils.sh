@@ -1339,7 +1339,7 @@ clean_exit() {
 				email_content+="Regards,\ntime2backup"
 
 				# send email without managing errors and without blocking script
-				lb_email "${email_opts[@]}"-s "$email_subject" "$email_recipient" "$email_report_content" &
+				lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &
 			fi
 		else
 			# email not sent
@@ -1350,7 +1350,7 @@ clean_exit() {
 	# delete log file
 	if $delete_logs ; then
 
-		lb_display_debug ---log "Deleting log file..."
+		lb_display_debug --log "Deleting log file..."
 
 		# delete file
 		rm -f "$logfile" &> /dev/null
