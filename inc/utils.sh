@@ -291,7 +291,17 @@ create_config() {
 #   2: write error
 upgrade_config() {
 
-	old_config_version=$1
+	# get config version
+	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")
+	if [ -z "$old_config_version" ] ; then
+		lb_display_error "Cannot get config version."
+		return 1
+	fi
+
+	# if current version, OK
+	if [ "$old_config_version" == "$version" ] ; then
+		return 0
+	fi
 
 	lb_display_debug "Upgrading from config v$old_config_version to v$version..."
 
@@ -428,20 +438,6 @@ load_config() {
 	if [ $? != 0 ] ; then
 		lb_display_error "Config file is corrupted or can not be read!"
 		return 1
-	fi
-
-	# get config version
-	config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")
-	if [ -n "$config_version" ] ; then
-		# compare versions
-		if [ "$config_version" != "$version" ] ; then
-			upgrade_config $config_version
-			if [ $? != 0 ] ; then
-				configok=false
-			fi
-		fi
-	else
-		lb_display_warning --log "Cannot get config version."
 	fi
 
 	# if destination is overriden, set it
@@ -1506,38 +1502,32 @@ haltpc() {
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation
 # Exit codes:
-#   - 0: cancelled
+#   - 0: OK
 #   - 1: bad choice
-#   - command exit code
+#   - 2: cancelled
 choose_operation() {
 
 	# display choice
 	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
-		# cancelled
-		return 0
+		return 2
 	fi
 
 	# run command
 	case $lbg_choose_option in
 		1)
-			mode="backup"
-			t2b_backup
+			echo backup
 			;;
 		2)
-			mode="restore"
-			t2b_restore
+			echo restore
 			;;
 		3)
-			t2b_config
+			echo config
 			;;
 		*)
 			# bad choice
 			return 1
 			;;
 	esac
-
-	# return command result
-	return $?
 }
 
 

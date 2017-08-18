@@ -328,8 +328,12 @@ if ! create_config ; then
 	exit 3
 fi
 
-# load configuration; don't care of errors
-load_config &> /dev/null
+# load configuration
+source "$config_file" > /dev/null
+if [ $? != 0 ] ; then
+	lb_display_error "Config file is corrupted or can not be read!"
+	exit 3
+fi
 
 # get main command
 mode=$1
@@ -353,6 +357,12 @@ case $mode in
 		;;
 esac
 
+# upgrade configuration file
+if ! upgrade_config ; then
+	lbg_display_error "$tr_error_upgrade_config"
+	exit 3
+fi
+
 # if configuration is not set (destination empty),
 # run first wizard and exit
 if [ -z "$destination" ] ; then
@@ -360,26 +370,30 @@ if [ -z "$destination" ] ; then
 	exit $?
 fi
 
+# display choose operation dialog if not set
+if [ -z "$mode" ] ; then
+	mode=$(choose_operation)
+	if [ $? != 0 ] ; then
+		# cancelled
+		exit
+	fi
+fi
+
 # main command operations
 case $mode in
-	backup|restore|history|status|config)
+	backup|restore|history|status)
 
-		# prepare command
-		t2b_cmd=(t2b_$mode)
+		# load and test configuration
+		if ! load_config ; then
+			exit 3
+		fi
 
-		# forward arguments in space safe mode
-		while [ -n "$1" ] ; do
-			t2b_cmd+=("$1")
-			shift
-		done
-
-		# run command
-		"${t2b_cmd[@]}"
+		# apply configuration in quiet mode; don't care of errors
+		apply_config &> /dev/null
 		;;
 
-	"")
-		# display choose operation dialog
-		choose_operation
+	config)
+		# do nothing
 		;;
 
 	*)
@@ -388,10 +402,21 @@ case $mode in
 		;;
 esac
 
+# prepare command
+t2b_cmd=(t2b_$mode)
+
+# forward arguments in space safe mode
+while [ -n "$1" ] ; do
+	t2b_cmd+=("$1")
+	shift
+done
+
+# run command
+"${t2b_cmd[@]}"
+
 lb_exitcode=$?
 
 if $debug_mode ; then
-	echo
 	lb_display_debug "Exited with code: $lb_exitcode"
 fi
 
