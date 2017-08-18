@@ -288,23 +288,70 @@ create_config() {
 # Exit codes:
 #   0: upgrade OK
 #   1: compatibility error
+#   2: write error
 upgrade_config() {
 
-	current_version=$*
+	old_config_version=$1
 
-	lb_display_debug "Upgrading from config v$current_version to v$version..."
+	lb_display_debug "Upgrading from config v$old_config_version to v$version..."
 
-	# no migrations needed for now
-	case $current_version in
-		1.0.*)
-			# add new config values
-			sed -i~ "/#*test_destination=.*/a \\\n# Resume after a cancelled backup\\\n# Default: true\\\n#resume_cancelled=true\\\n\\\n\\\n# Resume after a failed backup\\\n# Default: false\\\n#resume_failed=false" "$config_file"
-			;;
-	esac
+	# specific changes per version
 
-	# replace version number
-	sed -i~ "s/time2backup configuration file v$current_version/time2backup configuration file v$version/" "$config_file"
+	# e.g. a parameter that needs to be renamed
+	# (nothing for now)
+	#case $old_config_version in
+	#	1.0.*)
+	#		sed -i~ "s/^old_param=/new_param=/" "$config_file"
+	#		;;
+	#esac
+	#
+	#if [ $? != 0 ] ; then
+	#	lb_display_error "Your configuration file is not compatible with this version. Please reconfigure manually."
+	#	return 1
+	#fi
 
+	# replace config by new one
+
+	# save old config file
+	old_config="$config_file.v$old_config_version"
+
+	lb_display_debug "Save old config..."
+	cp -p "$config_file" "$old_config"
+	if [ $? != 0 ] ; then
+		lb_display_error "Cannot save old config! Please check your access rights."
+		return 2
+	fi
+
+	lb_display_debug "Replace by new config..."
+	cat "$script_directory/config/time2backup.example.conf" > "$config_file"
+	if [ $? != 0 ] ; then
+		lb_display_error "$tr_error_upgrade_config"
+		return 2
+	fi
+
+	# read old config
+	while read -r config_line ; do
+		# ignore comments
+	  if lb_is_comment $config_line ; then
+			continue
+		fi
+
+		config_param=$(echo $config_line | cut -d= -f1)
+		config_line=$(echo "$config_line" | sed 's/\\/\\\\/g; s/\//\\\//g')
+
+		lb_display_debug "Upgrade $config_param..."
+
+		sed -i~ "s/^#*$config_param=.*/$config_line/" "$config_file"
+		if [ $? != 0 ] ; then
+			lb_display_error "$tr_error_upgrade_config"
+			return 2
+		fi
+	done < "$old_config"
+
+	# delete old config
+	rm -f "$old_config" &> /dev/null
+
+	# do not care of errors
 	return 0
 }
 
@@ -376,10 +423,10 @@ load_config() {
 
 	configok=true
 
-	# load global config
+	# load config
 	source "$config_file" > /dev/null
 	if [ $? != 0 ] ; then
-		lb_error "Config file does not exists!"
+		lb_display_error "Config file is corrupted or can not be read!"
 		return 1
 	fi
 
@@ -397,7 +444,7 @@ load_config() {
 		lb_display_warning --log "Cannot get config version."
 	fi
 
-	# if destination is overrriden, set it
+	# if destination is overriden, set it
 	if [ -n "$force_destination" ] ; then
 		destination=$force_destination
 	fi
