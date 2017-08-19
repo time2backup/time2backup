@@ -1650,7 +1650,6 @@ EOF
 
 		# copy desktop file to /usr/share/applications
 		if [ -d "/usr/share/applications" ] ; then
-
 			cp -f "$desktop_file" "/usr/share/applications/" &> /dev/null
 			if [ $? != 0 ] ; then
 				echo
@@ -1666,7 +1665,6 @@ EOF
 	if $reset_config ; then
 		# delete old config files
 		rm -f "$config_directory/*" &> /dev/null
-
 		if [ $? == 0 ] ; then
 			# recreate config
 			if ! create_config ; then
@@ -1677,6 +1675,9 @@ EOF
 			lb_exitcode=5
 		fi
 	fi
+
+	# considering that we are installed (don't care of errors)
+	cat "$version" > "$script_directory/config/.install" 2> /dev/null
 
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
@@ -1809,6 +1810,6 @@ t2b_uninstall() {
 		echo "time2backup is uninstalled"
 	fi
 
-	# we quit as soon as possible
+	# we quit as soon as possible (do not use libbash that may be deleted)
 	exit $lb_exitcode
 }

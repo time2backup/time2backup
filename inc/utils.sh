@@ -34,6 +34,7 @@
 #      current_lock
 #      release_lock
 #      prepare_rsync
+#      is_installed
 #   Exit functions
 #      clean_exit
 #      cancel_exit
@@ -432,8 +433,6 @@ test_config() {
 #   2: there are errors in config
 load_config() {
 
-	configok=true
-
 	# load config
 	source "$config_file" > /dev/null
 	if [ $? != 0 ] ; then
@@ -448,11 +447,6 @@ load_config() {
 
 	# test configuration
 	if ! test_config ; then
-		configok=false
-	fi
-
-	# exit with error if config is not ok
-	if ! $configok ; then
 		lb_error "\nThere are errors in your configuration."
 		lb_error "Please edit your configuration with 'config' command or manually."
 		return 2
@@ -1287,6 +1281,16 @@ prepare_rsync() {
 }
 
 
+# Test if time2backup is installed
+# Usage: is_installed
+# Exit codes:
+#   0: installed
+#   1: not installed
+is_installed() {
+	[ -f "$script_directory/config/.install" ]
+}
+
+
 ####################
 #  EXIT FUNCTIONS  #
 ####################
@@ -1823,11 +1827,13 @@ first_run() {
 	# if not in portable mode and not on Windows,
 	if ! $portable_mode ; then
 		if [ "$lb_current_os" != "Windows" ] ; then
-			# confirm install
-			if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-				# install time2backup (create links)
-				t2b_install
-				install_result=$?
+			if ! is_installed ; then
+				# confirm install
+				if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+					# install time2backup (create links)
+					t2b_install
+					install_result=$?
+				fi
 			fi
 		fi
 	fi
