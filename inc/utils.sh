@@ -305,6 +305,7 @@ upgrade_config() {
 		return 0
 	fi
 
+	echo
 	lb_display_info "$tr_upgrade_config"
 	lb_display_debug "Upgrading config v$old_config_version -> v$version"
 
@@ -363,6 +364,8 @@ upgrade_config() {
 
 	# delete old config
 	rm -f "$old_config" &> /dev/null
+
+	echo
 
 	# do not care of errors
 	return 0
