@@ -409,16 +409,23 @@ t2b_backup() {
 
 					if [ "$lb_current_os" == "Windows" ] ; then
 						# path of the config is in c:\Users\{user}\AppData\Roaming\time2backup
-						# so we can get the user path
+						# so we can go up to c:\Users
 						homedir=$config_directory
-						for ((d=1; d<=3; d++)) ; do
+						for ((d=1; d<=4; d++)) ; do
 							homedir=$(dirname "$homedir")
 							lb_display_debug "Finding windows homedir: $homedir"
 						done
+
+						# then complete by \{user}
+						homedir="$homedir/$homeuser"
+						# and test it
+						[ -d "$homedir" ]
 					else
-						homedir=$(lb_homepath "$user")
+						# get home path of the user
+						homedir=$(lb_homepath $homeuser)
 					fi
 
+					# if path is ok
 					if [ $? != 0 ] ; then
 						lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
 						errors+=("$src (does not exists)")
