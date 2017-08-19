@@ -23,6 +23,7 @@ tr_error_no_rsync_2="Please install it and retry."
 tr_error_getting_homepath_1="Cannot get your homepath."
 tr_error_getting_homepath_2="Please install the configuration file manually."
 tr_error_create_config="Cannot create config files!"
+tr_upgrade_config="Upgrading your configuration file..."
 tr_error_upgrade_config="Cannot upgrade your configuration file. Please do it manually."
 
 # Choose operation

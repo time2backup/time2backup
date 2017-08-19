@@ -305,7 +305,8 @@ upgrade_config() {
 		return 0
 	fi
 
-	lb_display_debug "Upgrading from config v$old_config_version to v$version..."
+	lb_display_info "$tr_upgrade_config"
+	lb_display_debug "Upgrading config v$old_config_version -> v$version"
 
 	# specific changes per version
 
@@ -351,7 +352,7 @@ upgrade_config() {
 		config_param=$(echo $config_line | cut -d= -f1)
 		config_line=$(echo "$config_line" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
-		lb_display_debug "Upgrade $config_param..."
+		lb_display_debug "Upgrade $config_line..."
 
 		sed -i~ "s/^#*$config_param=.*/$config_line/" "$config_file"
 		if [ $? != 0 ] ; then

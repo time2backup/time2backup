@@ -23,6 +23,7 @@ tr_error_no_rsync_2="Veuillez l'installer puis réessayez."
 tr_error_getting_homepath_1="Impossible de trouver votre répertoire utilisateur."
 tr_error_getting_homepath_2="Veuillez installer le fichier de configuration manuellement."
 tr_error_create_config="Impossible de créer les fichiers de configuration !"
+tr_upgrade_config="Mise à jour de votre fichier de configuration..."
 tr_error_upgrade_config="Impossible de mettre à jour votre configuration. Veuillez le faire manuellement."
 
 # Choose operation
