@@ -1393,30 +1393,31 @@ clean_exit() {
 					email_subject+=" "
 				fi
 
-				email_subject+="time2backup report: "
-				email_content="Dear user,\n\n"
+				email_subject+="$tr_email_report_subject "
+				email_content="$tr_email_report_greetings\n\n"
 
 				if [ $lb_exitcode == 0 ] ; then
-					email_subject+="Backup succeeded on $(hostname)"
-					email_content+="A backup succeeded on $(hostname)."
+					email_subject+=$(printf "$tr_email_report_subject_success" $(hostname))
+					email_content+=$(printf "$tr_email_report_success" $(hostname))
 				else
-					email_subject+="Backup failed on $(hostname)"
-					email_content+="A backup failed on $(hostname) (exit code: $lb_exitcode)"
+					email_subject+=$(printf "$tr_email_report_subject_failed" $(hostname))
+					email_content+=$(printf "$tr_email_report_failed" $(hostname) $lb_exitcode)
 				fi
 
-				email_content+="\n\nBackup started on $current_date\n$(report_duration)\n\n"
+				email_content+="\n\n$(printf "$tr_email_report_details" "$current_date")"
+				email_content+="\n$(report_duration)\n\n"
 
 				# error report
 				if [ $lb_exitcode != 0 ] ; then
-					email_content+="User: $user\n$report_details\n\n"
+					email_content+="$report_details\n\n"
 				fi
 
 				# if logs are kept,
 				if ! $delete_logs ; then
-					email_content+="See the log file for more details.\n\n"
+					email_content+="$tr_email_report_see_logs\n\n"
 				fi
 
-				email_content+="Regards,\ntime2backup"
+				email_content+="$tr_email_report_regards\ntime2backup"
 
 				# send email without managing errors and without blocking script
 				lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &

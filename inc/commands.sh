@@ -1194,7 +1194,8 @@ t2b_restore() {
 		common_path=$(get_common_path "$backup_destination" "$dest")
 
 		if [ $? != 0 ] ; then
-			lbg_display_error "Cannot exclude directory backup from $dest!"
+			lb_display_debug "Cannot exclude directory backup from $dest!"
+			lbg_display_error "$tr_restore_unknown_error"
 			return 8
 		fi
 
