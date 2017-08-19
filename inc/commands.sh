@@ -277,53 +277,35 @@ t2b_backup() {
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
-	# if we want to keep some logs,
-	if [ "$keep_logs" == "on_error" ] || [ "$keep_logs" == "always" ] ; then
+	# set log file directory
+	if [ -z "$logs_directory" ] ; then
+		logs_directory="$backup_destination/logs"
+	fi
 
-		# set log file directory
-		if [ -z "$logs_directory" ] ; then
-			logs_directory="$backup_destination/logs"
-		fi
+	# set log file path
+	logfile="$logs_directory/time2backup_$backup_date.log"
 
-		# set log file path
-		logfile="$logs_directory/time2backup_$backup_date.log"
+	# create logs directory
+	mkdir -p "$logs_directory"
+	if [ $? == 0 ] ; then
+		# give ownership for user, don't care of errors
+		# (useful if time2backup is executed with sudo and --user option)
+		chown "$user" "$logs_directory" &> /dev/null
+	else
+		# if mkdir failed,
+		lb_error "Could not create logs directory. Please verify your access rights."
 
-		# create logs directory
-		mkdir -p "$logs_directory"
-		if [ $? == 0 ] ; then
-			# give ownership for user, don't care of errors
-			# (useful if time2backup is executed with sudo and --user option)
-			chown "$user" "$logs_directory" &> /dev/null
-		else
-			# if mkdir failed,
-			lb_error "Could not create logs directory. Please verify your access rights."
+		# exit without email or shutdown or delete log (does not exists)
+		clean_exit --no-rmlog --no-shutdown 9
+	fi
 
-			# exit without email or shutdown or delete log (does not exists)
-			clean_exit --no-rmlog --no-shutdown 9
-		fi
-
-		# create log file
-		if ! lb_set_logfile "$logfile" ; then
-			lb_error "Cannot create log file $logfile. Please verify your access rights."
-			clean_exit --no-rmlog --no-shutdown 9
-		fi
+	# create log file
+	if ! lb_set_logfile "$logfile" ; then
+		lb_error "Cannot create log file $logfile. Please verify your access rights."
+		clean_exit --no-rmlog --no-shutdown 9
 	fi
 
 	lb_display --log "Backup started on $current_date\n"
-
-	# if keep limit to 0, we are in mirror mode
-	if [ $keep_limit == 0 ] ; then
-		mirror_mode=true
-	fi
-
-	# clean old backup if needed
-	if [ $keep_limit -ge 0 ] ; then
-		if $notifications ; then
-			lbg_notify "$tr_notify_rotate_backup"
-		fi
-
-		rotate_backups
-	fi
 
 	# get last backup
 	last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
@@ -332,6 +314,11 @@ t2b_backup() {
 	dest="$backup_destination/$backup_date"
 
 	lb_display --log "Prepare backup destination..."
+
+	# if keep limit to 0, we are in a mirror mode
+	if [ $keep_limit == 0 ] ; then
+		mirror_mode=true
+	fi
 
 	# if mirror mode and there is an old backup, move last backup to current directory
 	if $mirror_mode && [ -n "$last_backup" ] ; then
@@ -608,12 +595,11 @@ t2b_backup() {
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
-		# reset space free test
-		space_ok=false
-
 		# prepare backup: testing space
 		if $test_destination ; then
 
+			# reset space free test
+			space_ok=false
 			# reset backup size
 			total_size=0
 
@@ -629,21 +615,15 @@ t2b_backup() {
 
 				clean_empty_directories "$finaldest"
 
-				# continue to next source
+				# continue to the next backup source
 				continue
 			fi
 
-			# get all backups list (again)
+			# get all backups list
 			all_backups=($(get_backups))
-			nb_backups=${#all_backups[@]}
-
-			# avoid bugs to execute next loop at least one time
-			if [ $nb_backups == 0 ] ; then
-				nb_backups=1
-			fi
 
 			# test free space until it's ready
-			for ((i=0; i<$nb_backups; i++)) ; do
+			for ((i=0; i<=${#all_backups[@]}; i++)) ; do
 
 				# if space ok, quit loop to continue backup
 				if test_space_available $total_size "$destination" ; then
@@ -651,25 +631,13 @@ t2b_backup() {
 					break
 				fi
 
+				# if there is only 1 backup (current), do nothing
+				if [ ${#all_backups[@]} -lt 2 ] ; then
+					break
+				fi
+
 				# if no clean old backups option in config, continue to be stopped after
 				if ! $clean_old_backups ; then
-					break
-				fi
-
-				# recheck all backups list
-				all_backups=($(get_backups))
-
-				# always keep the current backup and respect the clean limit
-				# (continue to be stopped after)
-				if [ ${#all_backups[@]} -le $clean_keep ] ; then
-					break
-				fi
-
-				# remove only one backup (nb - 1)
-				keep_limit=$((${#all_backups[@]} - 1))
-
-				# do not delete the current backup
-				if [ $keep_limit -le 1 ] ; then
 					break
 				fi
 
@@ -683,8 +651,17 @@ t2b_backup() {
 					fi
 				fi
 
-				# clean old backups to free space
-				rotate_backups
+				# recheck all backups list (more safety)
+				all_backups=($(get_backups))
+
+				# always keep the current backup and respect the clean limit
+				# (continue to be stopped after)
+				if [ ${#all_backups[@]} -le $clean_keep ] ; then
+					break
+				fi
+
+				# clean oldest backup to free space
+				delete_backup ${all_backups[0]}
 			done
 
 			# if not enough space on disk to backup, cancel
@@ -702,7 +679,7 @@ t2b_backup() {
 				# continue to next source
 				continue
 			fi
-		fi # end of backup tests
+		fi # end of free space tests
 
 		# display notification when backup starts
 		# (just display the first notification, not for every sources)
@@ -747,13 +724,25 @@ t2b_backup() {
 
 	done # end of backup sources
 
+	lb_display --log "\n********************************************\n"
+
 	# final cleanup
 	clean_empty_directories "$dest"
 
-	# if nothing was backuped, consider it as critical error
+	# if nothing was backuped, consider it as a critical error
+	# and do not rotate backups
 	if ! [ -d "$dest" ] ; then
 		errors+=("nothing was backuped!")
 		lb_exitcode=14
+	else
+		# rotate backups
+		if [ $keep_limit -ge 0 ] ; then
+			if $notifications ; then
+				lbg_notify "$tr_notify_rotate_backup"
+			fi
+
+			rotate_backups $keep_limit
+		fi
 	fi
 
 	# if backup succeeded (all OK or even if warnings)
@@ -775,8 +764,7 @@ t2b_backup() {
 	fi
 
 	# print final report
-	lb_display --log "\n********************************************"
-	lb_display --log "\nBackup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
+	lb_display --log "Backup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
 
 	lb_display --log "$(report_duration)\n"
 
@@ -842,6 +830,7 @@ t2b_backup() {
 				fi
 			fi
 		fi
+
 		lb_display --log "$report_details"
 	fi
 

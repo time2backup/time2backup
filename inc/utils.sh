@@ -22,6 +22,7 @@
 #      get_backup_path
 #      get_sources
 #      get_backups
+#      delete_backup
 #      rotate_backups
 #      report_duration
 #      crontab_config
@@ -690,55 +691,86 @@ get_sources() {
 # Usage: get_backups
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 get_backups() {
-	ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" 2> /dev/null
+	ls "$backup_destination" 2> /dev/null | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
+}
+
+
+# Delete a backup
+# Usage: delete_backup DATE_REFERENCE
+# Exit codes:
+#   0: delete OK
+#   1: usage error
+#   2: rm error
+delete_backup() {
+
+	if [ -z "$1" ] ; then
+		return 1
+	fi
+
+	lb_display_debug --log "Removing $backup_destination/$1..."
+
+	# delete backup path
+	rm -rf "$backup_destination/$1" 2> "$logfile"
+
+	if [ $? != 0 ] ; then
+		lb_display_debug --log "... Failed!"
+		return 2
+	fi
+
+	# delete log file
+	lb_display_debug --log "Removing log file time2backup_$1.log..."
+	rm -f "$logs_directory/time2backup_$1.log" 2> "$logfile"
+
+	# don't care of rm log errors
+	return 0
 }
 
 
 # Clean old backups if limit is reached or if space is not available
-# Usage: rotate_backups
+# Usage: rotate_backups NB_TO_KEEP
 # Exit codes:
 #   0: rotate OK
-#   1: some error occured when removing old backup
+#   1: usage error
+#   2: rm error
 rotate_backups() {
 
-	local rotate_result=0
+	if ! lb_is_integer $1 ; then
+		lb_display_error "rotate_backups: $1 is not a number"
+		return 1
+	fi
 
-	# get backups
-	old_backups=($(get_backups))
-	nbold=${#old_backups[@]}
-
-	# avoid to delete current backup
-	if [ $nbold -le 1 ] ; then
-		lb_display_debug --log "Rotate backups: There is only one backup."
+	# if unlimited, do not rotate
+	if [ $1 -lt 0 ] ; then
 		return 0
 	fi
 
-	# if limit reached
-	if [ $nbold -gt $keep_limit ] ; then
-		lb_display --log "Cleaning old backups..."
-		lb_display_debug "Clean to keep $keep_limit/$nbold"
+	# always keep nb + 1 (do not delete current backup)
+	rb_keep=$(($1 + 1))
 
-		old_backups=(${old_backups[@]:0:$(($nbold - $keep_limit))})
+	# get backups
+	rb_backups=($(get_backups))
+	rb_nb=${#rb_backups[@]}
 
-		# remove backups from older to newer
-		for ((r=0; r<${#old_backups[@]}; r++)) ; do
-			lb_display_debug --log "Removing $backup_destination/${old_backups[$r]}..."
-
-			# delete backup path
-			rm -rf "$backup_destination/${old_backups[$r]}" 2> "$logfile"
-			rm_result=$?
-
-			if [ $rm_result == 0 ] ; then
-				# delete log file
-				lb_display_debug --log "Removing log file $backup_destination/logs/time2backup_${old_backups[$r]}.log..."
-				rm -f "$backup_destination/logs/time2backup_${old_backups[$r]}.log" 2> "$logfile"
-			else
-				lb_display_debug --log "... Failed (exit code: $rm_result)"
-				return 1
-			fi
-		done
+	# if limit not reached, do nothing
+	if [ $rb_nb -le $rb_keep ] ; then
+		return 0
 	fi
 
+	lb_display --log "Cleaning old backups..."
+	lb_display_debug --log "Clean to keep $rb_keep/$rb_nb"
+
+	rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
+
+	# remove backups from older to newer
+	for ((rb_i=0; rb_i<${#rb_clean[@]}; rb_i++)) ; do
+		if ! delete_backup ${rb_clean[$rb_i]} ; then
+			lb_display_error "$tr_error_clean_backups"
+		fi
+	done
+
+	lb_display --log "" # line jump
+
+	# don't care of other errors
 	return 0
 }
 
