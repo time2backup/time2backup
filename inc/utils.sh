@@ -1025,18 +1025,14 @@ test_free_space() {
 
 	# get all backups list
 	all_backups=($(get_backups))
+	nb_backups=${#all_backups[@]}
 
 	# test free space until it's ready
-	for ((i=0; i<=${#all_backups[@]}; i++)) ; do
+	for ((i=0; i<=$nb_backups; i++)) ; do
 
 		# if space ok, quit loop to continue backup
 		if test_space_available $total_size "$destination" ; then
 			return 0
-		fi
-
-		# if there is only 1 backup (current), do nothing
-		if [ ${#all_backups[@]} -lt 2 ] ; then
-			return 1
 		fi
 
 		# if no clean old backups option in config, continue to be stopped after
@@ -1057,10 +1053,22 @@ test_free_space() {
 		# recheck all backups list (more safety)
 		all_backups=($(get_backups))
 
+		# do not remove the last backup, nor the current
+		if [ ${#all_backups[@]} -le 2 ] ; then
+			return 1
+		fi
+
 		# always keep the current backup and respect the clean limit
 		# (continue to be stopped after)
-		if [ ${#all_backups[@]} -le $clean_keep ] ; then
-			return 1
+		if [ $clean_keep -gt 0 ] ; then
+			if [ ${#all_backups[@]} -le $clean_keep ] ; then
+				return 1
+			fi
+		fi
+
+		# do not delete the last clean backup that will be used for hard links
+		if [ "${all_backups[0]}" == "$lastcleanbackup" ] ; then
+			continue
 		fi
 
 		# clean oldest backup to free space

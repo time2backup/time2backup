@@ -332,7 +332,9 @@ t2b_backup() {
 	if [ $? == 0 ] ; then
 		# give ownership for user, don't care of errors
 		# (useful if time2backup is executed with sudo and --user option)
-		chown "$user" "$dest" &> /dev/null
+		if [ "$lb_current_os" != Windows ] ; then
+			chown "$user" "$dest" &> /dev/null
+		fi
 	else
 		# if failed,
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
