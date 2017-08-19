@@ -982,7 +982,7 @@ test_backup() {
 	# which is in format 999,999,999 so then we delete the commas
 	lb_display_debug --log "Testing rsync in dry-run mode: ${test_cmd[@]}..."
 
-	total_size=$("${test_cmd[@]}" 2>> "$logfile" | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
+	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
