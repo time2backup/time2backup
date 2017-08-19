@@ -29,6 +29,7 @@
 #      apply_config
 #      prepare_destination
 #      test_backup
+#      test_free_space
 #      clean_empty_directories
 #      edit_config
 #      current_lock
@@ -1012,6 +1013,62 @@ test_backup() {
 	lb_display_debug --log "Backup total size (in bytes): $total_size"
 
 	return 0
+}
+
+
+# Test free space on disk to run backups
+# Usage: test_free_space
+# Exit codes:
+#   0: ok
+#   1: not OK
+test_free_space() {
+
+	# get all backups list
+	all_backups=($(get_backups))
+
+	# test free space until it's ready
+	for ((i=0; i<=${#all_backups[@]}; i++)) ; do
+
+		# if space ok, quit loop to continue backup
+		if test_space_available $total_size "$destination" ; then
+			return 0
+		fi
+
+		# if there is only 1 backup (current), do nothing
+		if [ ${#all_backups[@]} -lt 2 ] ; then
+			return 1
+		fi
+
+		# if no clean old backups option in config, continue to be stopped after
+		if ! $clean_old_backups ; then
+			return 1
+		fi
+
+		# display clean notification
+		# (just display the first notification, not for every clean)
+		if [ $i == 0 ] ; then
+			lb_display --log "Not enough space on device. Clean old backups to free space..."
+
+			if $notifications ; then
+				lbg_notify "$tr_notify_cleaning_space"
+			fi
+		fi
+
+		# recheck all backups list (more safety)
+		all_backups=($(get_backups))
+
+		# always keep the current backup and respect the clean limit
+		# (continue to be stopped after)
+		if [ ${#all_backups[@]} -le $clean_keep ] ; then
+			return 1
+		fi
+
+		# clean oldest backup to free space
+		delete_backup ${all_backups[0]}
+	done
+
+	# if all finished, error
+	return 1
 }
 
 

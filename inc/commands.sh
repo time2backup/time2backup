@@ -624,8 +624,6 @@ t2b_backup() {
 		# prepare backup: testing space
 		if $test_destination ; then
 
-			# reset space free test
-			space_ok=false
 			# reset backup size
 			total_size=0
 
@@ -645,53 +643,8 @@ t2b_backup() {
 				continue
 			fi
 
-			# get all backups list
-			all_backups=($(get_backups))
-
-			# test free space until it's ready
-			for ((i=0; i<=${#all_backups[@]}; i++)) ; do
-
-				# if space ok, quit loop to continue backup
-				if test_space_available $total_size "$destination" ; then
-					space_ok=true
-					break
-				fi
-
-				# if there is only 1 backup (current), do nothing
-				if [ ${#all_backups[@]} -lt 2 ] ; then
-					break
-				fi
-
-				# if no clean old backups option in config, continue to be stopped after
-				if ! $clean_old_backups ; then
-					break
-				fi
-
-				# display clean notification
-				# (just display the first notification, not for every clean)
-				if [ $i == 0 ] ; then
-					lb_display --log "Not enough space on device. Clean old backups to free space..."
-
-					if $notifications ; then
-						lbg_notify "$tr_notify_cleaning_space"
-					fi
-				fi
-
-				# recheck all backups list (more safety)
-				all_backups=($(get_backups))
-
-				# always keep the current backup and respect the clean limit
-				# (continue to be stopped after)
-				if [ ${#all_backups[@]} -le $clean_keep ] ; then
-					break
-				fi
-
-				# clean oldest backup to free space
-				delete_backup ${all_backups[0]}
-			done
-
 			# if not enough space on disk to backup, cancel
-			if ! $space_ok ; then
+			if ! test_free_space ; then
 				lb_display_error --log "Not enough space on device to backup. Abording."
 
 				# prepare report and save exit code
