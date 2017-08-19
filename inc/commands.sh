@@ -395,20 +395,39 @@ t2b_backup() {
 				# file or directory
 				# replace ~ by user home directory
 				if [ "${src:0:1}" == "~" ] ; then
+					# get first part of the path
 					homealias=$(echo "$src" | awk -F '/' '{ print $1 }')
-					if [ "$homealias" == "~" ] ; then
-						homedir=$(lb_homepath "$user")
-						if [ $? != 0 ] ; then
-							lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
-							errors+=("$src (does not exists)")
-							lb_exitcode=10
 
-							# continue to next source
-							continue
-						fi
+					# get user
+					if [ "$homealias" == "~" ] ; then
+						# current user
+						homeuser=$user
 					else
-						homedir=$(lb_homepath "${homealias:1}")
+						# defined user
+						homeuser=${homealias:1}
 					fi
+
+					if [ "$lb_current_os" == "Windows" ] ; then
+						# path of the config is in c:\Users\{user}\AppData\Roaming\time2backup
+						# so we can get the user path
+						homedir=$config_directory
+						for ((d=1; d<=3; d++)) ; do
+							homedir=$(dirname "$homedir")
+							lb_display_debug "Finding windows homedir: $homedir"
+						done
+					else
+						homedir=$(lb_homepath "$user")
+					fi
+
+					if [ $? != 0 ] ; then
+						lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
+						errors+=("$src (does not exists)")
+						lb_exitcode=10
+
+						# continue to next source
+						continue
+					fi
+
 					src="$homedir/$(echo "$src" | sed 's/^[^/]*\///')"
 				fi
 
