@@ -615,18 +615,20 @@ unmount_destination() {
 get_backup_path() {
 
 	# get file
-	f=$*
+	gbp_file=$*
 
 	# if absolute path (first character is a /)
-	if [ "${f:0:1}" == "/" ] ; then
+	if [ "${gbp_file:0:1}" == "/" ] ; then
 		# return file path
-		echo "/files$f"
+		echo "/files$gbp_file"
 		return 0
 	fi
 
+	gbp_protocol=$(get_backup_type "$gbp_file")
+
 	# if not absolute path, check protocols
-	case $(get_backup_type "$f") in
-		ssh)
+	case $gbp_protocol in
+		ssh|t2b)
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
@@ -634,11 +636,11 @@ get_backup_path() {
 			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
-			ssh_prefix="ssh://$ssh_host"
+			ssh_prefix="$gbp_protocol://$ssh_host"
 			ssh_path=${src#$ssh_prefix}
 
 			# return complete path
-			echo "/ssh/$ssh_hostname/$ssh_path"
+			echo "/$gbp_protocol/$ssh_hostname/$ssh_path"
 			return 0
 			;;
 	esac
@@ -646,16 +648,16 @@ get_backup_path() {
 	# if file or directory
 
 	# if not exists (file moved or deleted), try to get parent directory path
-	if [ -e "$f" ] ; then
-		echo -n "/files/$(lb_abspath "$f")"
+	if [ -e "$gbp_file" ] ; then
+		echo -n "/files/$(lb_abspath "$gbp_file")"
 
 		# if it is a directory, add '/' at the end of the path
-		if [ -d "$f" ] ; then
+		if [ -d "$gbp_file" ] ; then
 			echo /
 		fi
 	else
-		if [ -d "$(dirname "$f")" ] ; then
-			echo "/files/$(lb_abspath "$f")"
+		if [ -d "$(dirname "$gbp_file")" ] ; then
+			echo "/files/$(lb_abspath "$gbp_file")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."

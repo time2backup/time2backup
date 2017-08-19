@@ -141,14 +141,13 @@ get_relative_path() {
 # Return: type of source (files/ssh)
 get_backup_type() {
 
-	gbt_url=$*
-	gbt_protocol=$(echo "$gbt_url" | cut -d: -f1)
+	gbt_protocol=$(echo $* | cut -d: -f1)
 
 	# get protocol
 	case $gbt_protocol in
-		ssh)
+		ssh|t2b)
 			# double check protocol
-			echo $gbt_url | grep -q -E "^$gbt_protocol://"
+			echo $* | grep -q -E "^$gbt_protocol://"
 			if [ $? == 0 ] ; then
 				echo $gbt_protocol
 				return 0

@@ -374,17 +374,18 @@ t2b_backup() {
 
 		lb_display --log "Preparing backup..."
 
-		# get backup type (normal, ssh, network shares, ...)
-		case $(get_backup_type "$src") in
-			ssh)
+		# get source path
+		protocol=$(get_backup_type "$src")
+		case $protocol in
+			ssh|t2b)
 				source_ssh=true
 				source_network=true
 
-				# get ssh user@host
+				# get ssh [user@]host
 				ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
 
 				# get ssh path
-				ssh_prefix="ssh://$ssh_host"
+				ssh_prefix="$protocol://$ssh_host"
 				ssh_path=${src#$ssh_prefix}
 
 				# do not include protocol in absolute path
