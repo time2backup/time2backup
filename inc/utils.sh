@@ -968,6 +968,8 @@ prepare_destination() {
 #   1: rsync test command failed
 test_backup() {
 
+	lb_display --log "Testing backup..."
+
 	# prepare rsync in test mode
 	test_cmd=(rsync --dry-run --stats)
 

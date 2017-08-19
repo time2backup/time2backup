@@ -335,7 +335,7 @@ t2b_backup() {
 		chown "$user" "$dest" &> /dev/null
 	else
 		# if failed,
-		lb_display --log "Could not prepare backup destination. Please verify your access rights."
+		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 7
 	fi
 
