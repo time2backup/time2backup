@@ -624,7 +624,7 @@ get_backup_path() {
 		return 0
 	fi
 
-	gbp_protocol=$(get_backup_type "$gbp_file")
+	gbp_protocol=$(get_protocol "$gbp_file")
 
 	# if not absolute path, check protocols
 	case $gbp_protocol in
@@ -926,6 +926,7 @@ apply_config() {
 # Exit codes:
 #   0: destination is ready
 #   1: destination not reachable
+#   2: destination not writable
 prepare_destination() {
 
 	destok=false
@@ -956,6 +957,42 @@ prepare_destination() {
 	if ! $destok ; then
 		lb_display --log "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
 		return 1
+	fi
+
+	# auto unmount: unmount if it was not mounted
+	if $unmount_auto ; then
+		if ! $mounted ; then
+			unmount=true
+		fi
+	fi
+
+	# create destination if not exists
+	mkdir -p "$backup_destination" &> /dev/null
+	if [ $? != 0 ] ; then
+		# if mkdir failed, exit
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		fi
+		return 2
+	fi
+
+	# give ownership for user, don't care of errors
+	# (useful if time2backup is executed with sudo and --user option)
+	chown "$user" "$backup_destination" &> /dev/null
+
+	# test if destination is writable
+	# must keep this test because if directory exists, the previous mkdir -p command returns no error
+	if ! [ -w "$backup_destination" ] ; then
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		fi
+		return 2
 	fi
 
 	return 0

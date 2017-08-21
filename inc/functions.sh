@@ -11,7 +11,7 @@
 #
 #   get_common_path
 #   get_relative_path
-#   get_backup_type
+#   get_protocol
 #   test_hardlinks
 #   folders_size
 #   test_space_available
@@ -136,20 +136,20 @@ get_relative_path() {
 }
 
 
-# Get backup type to check if a backup source is a file or a protocol (ssh, smb, ...)
-# Usage: get_backup_type SOURCE_URL
-# Return: type of source (files/ssh)
-get_backup_type() {
+# Get protocol for backups or destination
+# Usage: get_protocol URL
+# Return: files|ssh|t2b
+get_protocol() {
 
-	gbt_protocol=$(echo $* | cut -d: -f1)
+	gptc_protocol=$(echo $* | cut -d: -f1)
 
 	# get protocol
-	case $gbt_protocol in
+	case $gptc_protocol in
 		ssh|t2b)
 			# double check protocol
-			echo $* | grep -q -E "^$gbt_protocol://"
+			echo $* | grep -q -E "^$gptc_protocol://"
 			if [ $? == 0 ] ; then
-				echo $gbt_protocol
+				echo $gptc_protocol
 				return 0
 			fi
 			;;

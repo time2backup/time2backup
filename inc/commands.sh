@@ -215,49 +215,21 @@ t2b_backup() {
 		fi
 	fi
 
-	# test if destination exists
-	if ! prepare_destination ; then
-		if ! $recurrent_backup ; then
-			lbg_display_error "$tr_backup_unreachable\n$tr_verify_media"
-		fi
-		return 6
-	fi
-
-	# auto unmount: unmount if it was not mounted
-	if $unmount_auto ; then
-		if ! $mounted ; then
-			unmount=true
-		fi
-	fi
-
-	# create destination if not exists
-	mkdir -p "$backup_destination" &> /dev/null
-	if [ $? == 0 ] ; then
-		# give ownership for user, don't care of errors
-		# (useful if time2backup is executed with sudo and --user option)
-		chown "$user" "$backup_destination" &> /dev/null
-	else
-		# if mkdir failed, exit
-		if $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
-		else
-			lbg_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
-		fi
-		return 7
-	fi
-
-	# test if destination is writable
-	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	if ! [ -w "$backup_destination" ] ; then
-		if $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		else
-			lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		fi
-		return 7
-	fi
+	# prepare destination (mount and verify writable)
+	prepare_destination
+	case $? in
+		1)
+			# destination not reachable
+			if ! $recurrent_backup ; then
+				lbg_display_error "$tr_backup_unreachable\n$tr_verify_media"
+			fi
+			return 6
+			;;
+		2)
+			# destination not writable
+			return 7
+			;;
+	esac
 
 	# test if a backup is running
 	if current_lock &> /dev/null ; then
@@ -375,7 +347,7 @@ t2b_backup() {
 		lb_display --log "Preparing backup..."
 
 		# get source path
-		protocol=$(get_backup_type "$src")
+		protocol=$(get_protocol "$src")
 		case $protocol in
 			ssh|t2b)
 				source_ssh=true
