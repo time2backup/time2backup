@@ -28,6 +28,7 @@
 #      crontab_config
 #      apply_config
 #      prepare_destination
+#      create_logfile
 #      test_backup
 #      test_free_space
 #      clean_empty_directories
@@ -933,6 +934,22 @@ prepare_destination() {
 
 	lb_display_debug "Testing destination on: $destination..."
 
+	case $(get_protocol "$destination") in
+		ssh|t2b)
+			destination_ssh=true
+			# for now, we do not test if there is enough space on distant device
+			test_destination=false
+
+			# define the default logs path to the local config directory
+			if [ -z "$logs_directory" ] ; then
+				logs_directory="$config_directory/logs"
+			fi
+
+			# quit ok
+			return 0
+			;;
+	esac
+
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
 		lb_display_debug "Destination mounted."
@@ -979,10 +996,6 @@ prepare_destination() {
 		return 2
 	fi
 
-	# give ownership for user, don't care of errors
-	# (useful if time2backup is executed with sudo and --user option)
-	chown "$user" "$backup_destination" &> /dev/null
-
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
@@ -996,6 +1009,28 @@ prepare_destination() {
 	fi
 
 	return 0
+}
+
+
+# Create log file
+# Usage: create_logfile PATH
+# Exit codes:
+#   0: OK
+#   1: failed to create log directory
+#   2: failed to create log file
+create_logfile() {
+	# create logs directory
+	mkdir -p "$(dirname "$*")"
+	if [ $? != 0 ] ; then
+		lb_display_error "Could not create logs directory. Please verify your access rights."
+		return 1
+	fi
+
+	# create log file
+	if ! lb_set_logfile "$*" ; then
+		lb_display_error "Cannot create log file $*. Please verify your access rights."
+		return 2
+	fi
 }
 
 

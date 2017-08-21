@@ -25,8 +25,9 @@ t2b_backup() {
 
 	# default values and options
 	recurrent_backup=false
+	destination_ssh=false
 	source_ssh=false
-	source_network=false
+	backup_on_network=false
 
 	# get current date
 	current_timestamp=$(date +%s)
@@ -231,20 +232,22 @@ t2b_backup() {
 			;;
 	esac
 
-	# test if a backup is running
-	if current_lock &> /dev/null ; then
-		if $recurrent_backup ; then
-			lb_display_error "$tr_backup_already_running"
-		else
-			lbg_display_error "$tr_backup_already_running"
+	if ! $destination_ssh ; then
+		# test if a backup is running
+		if current_lock &> /dev/null ; then
+			if $recurrent_backup ; then
+				lb_display_error "$tr_backup_already_running"
+			else
+				lbg_display_error "$tr_backup_already_running"
+			fi
+			# exit
+			return 8
 		fi
-		# exit
-		return 8
-	fi
 
-	# create lock to avoid duplicates
-	backup_lock="$backup_destination/.lock_$backup_date"
-	touch "$backup_lock"
+		# create lock to avoid duplicates
+		backup_lock="$backup_destination/.lock_$backup_date"
+		touch "$backup_lock"
+	fi
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
@@ -257,30 +260,19 @@ t2b_backup() {
 	# set log file path
 	logfile="$logs_directory/time2backup_$backup_date.log"
 
-	# create logs directory
-	mkdir -p "$logs_directory"
-	if [ $? == 0 ] ; then
-		# give ownership for user, don't care of errors
-		# (useful if time2backup is executed with sudo and --user option)
-		chown "$user" "$logs_directory" &> /dev/null
-	else
-		# if mkdir failed,
-		lb_error "Could not create logs directory. Please verify your access rights."
-
-		# exit without email or shutdown or delete log (does not exists)
-		clean_exit --no-rmlog --no-shutdown 9
-	fi
-
 	# create log file
-	if ! lb_set_logfile "$logfile" ; then
-		lb_error "Cannot create log file $logfile. Please verify your access rights."
+	if ! create_logfile "$logfile" ; then
 		clean_exit --no-rmlog --no-shutdown 9
 	fi
 
 	lb_display --log "Backup started on $current_date\n"
 
 	# get last backup
-	last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
+	if $destination_ssh ; then
+		last_backup=latest
+	else
+		last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
+	fi
 
 	# set new backup directory
 	dest="$backup_destination/$backup_date"
@@ -300,25 +292,20 @@ t2b_backup() {
 		mkdir "$dest"
 	fi
 
-	# if succeeded to move or to create
-	if [ $? == 0 ] ; then
-		# give ownership for user, don't care of errors
-		# (useful if time2backup is executed with sudo and --user option)
-		if [ "$lb_current_os" != Windows ] ; then
-			chown "$user" "$dest" &> /dev/null
-		fi
-	else
-		# if failed,
+	# if failed to move or to create
+	if [ $? != 0 ] ; then
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 7
 	fi
 
 	# check if destination supports hard links
-	if $hard_links ; then
-		if ! $force_hard_links ; then
-			if ! test_hardlinks "$destination" ; then
-				lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
-				hard_links=false
+	if ! $destination_ssh ; then
+		if $hard_links ; then
+			if ! $force_hard_links ; then
+				if ! test_hardlinks "$destination" ; then
+					lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
+					hard_links=false
+				fi
 			fi
 		fi
 	fi
@@ -350,8 +337,16 @@ t2b_backup() {
 		protocol=$(get_protocol "$src")
 		case $protocol in
 			ssh|t2b)
+				# test if we don't have double ssh
+				if $destination_ssh ; then
+					lb_display_error --log "You cannot backup a distant path to a distant path."
+					errors+=("$src (cannot backup a distant path on a distant destination)")
+					lb_exitcode=3
+					continue
+				fi
+
 				source_ssh=true
-				source_network=true
+				backup_on_network=true
 
 				# get ssh [user@]host
 				ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
@@ -482,14 +477,9 @@ t2b_backup() {
 			fi
 		fi
 
-		# if mkdir (hard links mode) or mv (trash mode) succeeded,
-		if [ $prepare_dest == 0 ] ; then
-			# give ownership for user, don't care of errors
-			# (this is useful if time2backup is executed with sudo and --user option)
-			chown "$user" "$finaldest" &> /dev/null
-		else
-			# if error when preparing destination,
-			lb_display --log "Could not prepare backup destination for source $src. Please verify your access rights."
+		# if mkdir (hard links mode) or mv (trash mode) failed,
+		if [ $prepare_dest != 0 ] ; then
+			lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
 			# prepare report and save exit code
 			errors+=("$src (write error)")
@@ -582,7 +572,7 @@ t2b_backup() {
 		fi
 
 		# enable network compression if network
-		if $source_network ; then
+		if $backup_on_network ; then
 			if $network_compression ; then
 				cmd+=(-z)
 			fi
