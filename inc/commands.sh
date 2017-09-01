@@ -51,11 +51,11 @@ t2b_backup() {
 				recurrent_backup=true
 				;;
 			-h|--help)
-				print_help backup
+				print_help
 				return 0
 				;;
 			-*)
-				print_help backup
+				print_help
 				return 1
 				;;
 			*)
@@ -825,7 +825,7 @@ t2b_restore() {
 		case $1 in
 			-d|--date)
 				if [ -z "$2" ] ; then
-					print_help restore
+					print_help
 					return 1
 				fi
 				backup_date=$2
@@ -842,11 +842,11 @@ t2b_restore() {
 				forcemode=true
 				;;
 			-h|--help)
-				print_help restore
+				print_help
 				return 0
 				;;
 			-*)
-				print_help restore
+				print_help
 				return 1
 				;;
 			*)
@@ -1251,11 +1251,11 @@ t2b_history() {
 				quietmode=true
 				;;
 			-h|--help)
-				print_help history
+				print_help
 				return 0
 				;;
 			-*)
-				print_help history
+				print_help
 				return 1
 				;;
 			*)
@@ -1267,7 +1267,7 @@ t2b_history() {
 
 	# usage errors
 	if [ $# == 0 ] ; then
-		print_help history
+		print_help
 		return 1
 	fi
 
@@ -1341,7 +1341,7 @@ t2b_explore() {
 				;;
 			-d|--date)
 				if [ -z "$2" ] ; then
-					print_help explore
+					print_help
 					return 1
 				fi
 				backup_date=$2
@@ -1349,11 +1349,11 @@ t2b_explore() {
 				shift
 				;;
 			-h|--help)
-				print_help explore
+				print_help
 				return 0
 				;;
 			-*)
-				print_help explore
+				print_help
 				return 1
 				;;
 			*)
@@ -1379,7 +1379,7 @@ t2b_explore() {
 	path=$*
 
 	if ! [ -e "$path" ] ; then
-		print_help explore
+		print_help
 		return 1
 	fi
 
@@ -1388,7 +1388,7 @@ t2b_explore() {
 
 	# if error, exit
 	if [ -z "$backup_path" ] ; then
-		print_help explore
+		print_help
 		return 1
 	fi
 
@@ -1482,11 +1482,11 @@ t2b_status() {
 				quiet_mode=true
 				;;
 			-h|--help)
-				print_help status
+				print_help
 				return 0
 				;;
 			-*)
-				print_help status
+				print_help
 				return 1
 				;;
 			*)
@@ -1560,11 +1560,11 @@ t2b_config() {
 				shift
 				;;
 			-h|--help)
-				print_help config
+				print_help
 				return 0
 				;;
 			-*)
-				print_help config
+				print_help
 				return 1
 				;;
 			*)
@@ -1701,11 +1701,11 @@ t2b_install() {
 				reset_config=true
 				;;
 			-h|--help)
-				print_help install
+				print_help
 				return 0
 				;;
 			-*)
-				print_help install
+				print_help
 				return 1
 				;;
 			*)
@@ -1814,11 +1814,11 @@ t2b_uninstall() {
 				delete_files=true
 				;;
 			-h|--help)
-				print_help uninstall
+				print_help
 				return 0
 				;;
 			-*)
-				print_help uninstall
+				print_help
 				return 1
 				;;
 			*)

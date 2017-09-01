@@ -8,7 +8,7 @@
 #
 
 # Print help for users in console
-# Usage: print_help [COMMAND]
+# Usage: print_help [global]
 print_help() {
 	echo -e "\nUsage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	echo -e "\nGlobal options:"
@@ -23,96 +23,100 @@ print_help() {
 	echo -e "  -V, --version              print version and quit"
 	echo -e "  -h, --help                 print help \n"
 
-	case $1 in
+	if [ "$1" == global ] ; then
+		echo "Commands:"
+		echo "    backup     backup your files"
+		echo "    restore    restore a backup of a file or directory"
+		echo "    history    displays backup history of a file or directory"
+		echo "    status     check if a backup is currently running"
+		echo "    config     edit configuration"
+		echo "    install    install time2backup"
+		echo "    uninstall  uninstall time2backup"
+		echo -e "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
+		return 0
+	fi
+
+	echo -n "Command usage: $mode [OPTIONS] "
+
+	case $mode in
 		backup)
-			echo -e "Command usage: $1 [OPTIONS] [PATH...]"
+			echo "[PATH...]"
 			echo -e "\nBackup your files"
 			echo -e "\nOptions:"
-			echo -e "  -u, --unmount           unmount destination after backup (overrides configuration)"
-			echo -e "  -s, --shutdown          shutdown after backup (overrides configuration)"
-			echo -e "  -r, --recurrent         perform a recurrent backup (used in cron jobs, not available in portable mode)"
-			echo -e "  -h, --help              print help"
+			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
+			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
+			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs, not available in portable mode)"
+			echo "  -h, --help       Print this help"
 			;;
 		restore)
-			echo -e "Command usage: $1 [OPTIONS] [PATH]"
+			echo "[PATH]"
 			echo -e "\nRestore a file or directory"
 			echo -e "Warning: This feature does not auto-detect renamed or moved files."
-			echo -e "         To restore a moved/deleted file, ."
+			echo -e "         To restore a moved/deleted file, please enter an absolute path."
 			echo -e "\nOptions:"
-			echo -e "  -d, --date DATE    restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
-			echo -e "                     by default it restores the last available backup"
-			echo -e "  --directory        path to restore is a directory (not necessary if path exists)"
-			echo -e "                     If deleted or moved, indicate that the chosen path is a directory."
-			echo -e "  --delete-new       delete newer files if exists for directories (restore exactly the same version)"
-			echo -e "  -f, --force        force restore; do not display confirmation"
-			echo -e "  -h, --help         print help"
+			echo "  -d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			echo "                   by default it restores the last available backup"
+			echo "  --directory      Path to restore is a directory (not necessary if path exists)"
+			echo "                   If deleted or moved, indicate that the chosen path is a directory."
+			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
+			echo "  -f, --force      Force restore; do not display confirmation"
+			echo "  -h, --help       Print this help"
 			;;
 		history)
-			echo -e "Command usage: $1 [OPTIONS] PATH"
+			echo "PATH"
 			echo -e "\nGet backup history of a file or directory"
 			echo -e "Warning: This feature does not detect old renamed/moved files yet."
 			echo -e "\nOptions:"
-			echo -e "  -a, --all    print all versions, including duplicates"
-			echo -e "  -q, --quiet  quiet mode; print only backup dates"
-			echo -e "  -h, --help   print help"
+			echo "  -a, --all    Print all versions, including duplicates"
+			echo "  -q, --quiet  Quiet mode; print only backup dates"
+			echo "  -h, --help   Print this help"
 			;;
 		explore)
-			echo -e "Command usage: $1 [OPTIONS] PATH"
+			echo "PATH"
 			echo -e "\nExplore backups of a file or directory"
 			echo -e "Warning: This feature does not detect old renamed/moved files yet."
 			echo -e "\nOptions:"
-			echo -e "  -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
-			echo -e "  -a, --all        Print all versions, including duplicates"
-			echo -e "  -h, --help       Print this help"
+			echo "  -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			echo "  -a, --all        Print all versions, including duplicates"
+			echo "  -h, --help       Print this help"
 			;;
 		status)
-			echo -e "Command usage: $1 [OPTIONS]"
+			echo ""
 			echo -e "\nCheck if a backup is currently running"
 			echo -e "\nOptions:"
-			echo -e "  -q, --quiet  quiet mode; print only backup dates"
-			echo -e "  -h, --help   print help"
+			echo "  -q, --quiet  Quiet mode; print only backup dates"
+			echo "  -h, --help   Print this help"
 			;;
 		config)
-			echo -e "Command usage: $1 [OPTIONS]"
+			echo ""
 			echo -e "\nEdit configuration"
 			echo -e "\nOptions:"
-			echo -e "  -g, --general     edit general configuration"
-			echo -e "  -s, --sources     edit sources file (sources to backup)"
-			echo -e "  -x, --excludes    edit excludes file (patterns to ignore)"
-			echo -e "  -i, --includes    edit includes file (patterns to include)"
-			echo -e "  -l, --show        show configuration; do not edit"
-			echo -e "                    display configuration without comments"
-			echo -e "  -t, --test        test configuration; do not edit"
-			echo -e "  -w, --wizard      display configuration wizard instead of edit"
-			echo -e "  -r, --reset       reset configuration file"
-			echo -e "  -e, --editor BIN  use specified editor (e.g. vim, nano, ...)"
-			echo -e "  -h, --help        print help"
+			echo "  -g, --general     Edit general configuration"
+			echo "  -s, --sources     Edit sources file (sources to backup)"
+			echo "  -x, --excludes    Edit excludes file (patterns to ignore)"
+			echo "  -i, --includes    Edit includes file (patterns to include)"
+			echo "  -l, --show        Show configuration; do not edit"
+			echo "                    display configuration without comments"
+			echo "  -t, --test        Test configuration; do not edit"
+			echo "  -w, --wizard      Display configuration wizard instead of edit"
+			echo "  -r, --reset       Reset configuration file"
+			echo "  -e, --editor BIN  Use specified editor (e.g. vim, nano, ...)"
+			echo "  -h, --help        Print this help"
 			;;
 		install)
-			echo -e "Command usage: $1 [OPTIONS]"
+			echo ""
 			echo -e "\nInstall time2backup"
 			echo -e "\nOptions:"
-			echo -e "  -r, --reset-config  reset configuration files to default"
-			echo -e "  -h, --help          print help"
+			echo "  -r, --reset-config  Reset configuration files to default"
+			echo "  -h, --help          Print this help"
 			;;
 		uninstall)
-			echo -e "Command usage: $1 [OPTIONS]"
+			echo ""
 			echo -e "\nUninstall time2backup"
 			echo -e "\nOptions:"
-			echo -e "  -c, --delete-config  delete configuration files"
-			echo -e "  -x, --delete         delete time2backup files"
-			echo -e "  -h, --help           print help"
-			;;
-		*)
-			echo -e "Commands:"
-			echo -e "    backup     backup your files"
-			echo -e "    restore    restore a backup of a file or directory"
-			echo -e "    history    displays backup history of a file or directory"
-			echo -e "    status     check if a backup is currently running"
-			echo -e "    config     edit configuration"
-			echo -e "    install    install time2backup"
-			echo -e "    uninstall  uninstall time2backup"
-			echo -e "\nRun '$lb_current_script_name COMMAND --help' for more information on a command."
+			echo "  -c, --delete-config  Delete configuration files"
+			echo "  -x, --delete         Delete time2backup files"
+			echo "  -h, --help           Print this help"
 			;;
 	esac
 }

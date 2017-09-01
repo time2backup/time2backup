@@ -174,7 +174,7 @@ while [ -n "$1" ] ; do
 		-u|--user)
 			# run as user
 			if [ -z "$2" ] ; then
-				print_help
+				print_help global
 				exit 1
 			fi
 			user=$2
@@ -182,7 +182,7 @@ while [ -n "$1" ] ; do
 			;;
 		-l|--log-level)
 			if [ -z "$2" ] ; then
-				print_help
+				print_help global
 				exit 1
 			fi
 			log_level=$2
@@ -190,7 +190,7 @@ while [ -n "$1" ] ; do
 			;;
 		-v|--verbose-level)
 			if [ -z "$2" ] ; then
-				print_help
+				print_help global
 				exit 1
 			fi
 			verbose_level=$2
@@ -198,7 +198,7 @@ while [ -n "$1" ] ; do
 			;;
 		-d|--destination)
 			if [ -z "$2" ] ; then
-				print_help
+				print_help global
 				return 1
 			fi
 			force_destination=$2
@@ -207,7 +207,7 @@ while [ -n "$1" ] ; do
 		-c|--config)
 			# custom config path
 			if [ -z "$2" ] ; then
-				print_help
+				print_help global
 				exit 1
 			fi
 			config_directory=$2
@@ -221,11 +221,11 @@ while [ -n "$1" ] ; do
 			exit
 			;;
 		-h|--help)
-			print_help
+			print_help global
 			exit
 			;;
 		-*)
-			print_help
+			print_help global
 			exit 1
 			;;
 		*)
@@ -397,7 +397,7 @@ case $mode in
 		;;
 
 	*)
-		print_help
+		print_help global
 		exit 1
 		;;
 esac
