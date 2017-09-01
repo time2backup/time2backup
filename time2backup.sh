@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.1.0-beta.2 (2017-08-19)                   #
+#  Version 1.1.0-beta.2 (2017-09-02)                   #
 #                                                      #
 ########################################################
 
@@ -21,18 +21,14 @@
 version="1.1.0-beta.2"
 
 portable_mode=false
-user=""
 sources=()
-backup_destination=""
 mounted=false
 rsync_cmd=()
 success=()
 warnings=()
 errors=()
-report_details=""
-default_verbose_level="INFO"
-default_log_level="INFO"
-backup_lock=""
+default_verbose_level=INFO
+default_log_level=INFO
 force_unmount=false
 force_shutdown=false
 
@@ -94,7 +90,7 @@ verbose_level=$default_verbose_level
 ####################
 
 # get real path of the script
-if [ "$(uname)" == "Darwin" ] ; then
+if [ "$(uname)" == Darwin ] ; then
 	# macOS which does not support readlink -f option
 	current_script=$(perl -e 'use Cwd "abs_path";print abs_path(shift)' "$0")
 else
@@ -248,7 +244,7 @@ if $console_mode ; then
 	notifications=false
 else
 	# try to find display (if into a cron job on Linux)
-	if [ "$lb_current_os" == "Linux" ] ; then
+	if [ "$lb_current_os" == Linux ] ; then
 
 		u=$user
 
@@ -279,7 +275,7 @@ if ! lb_command_exists "$rsync_path" ; then
 fi
 
 # default options for Windows systems
-if [ "$lb_current_os" == "Windows" ] ; then
+if [ "$lb_current_os" == Windows ] ; then
 	shutdown_cmd=(shutdown /s)
 fi
 
@@ -336,14 +332,14 @@ if [ $? != 0 ] ; then
 fi
 
 # get main command
-mode=$1
+command=$1
 shift
 
 # install/uninstall time2backup
-case $mode in
+case $command in
 	install|uninstall)
 		# prepare command
-		t2b_cmd=(t2b_$mode)
+		t2b_cmd=(t2b_$command)
 
 		# forward arguments in space safe mode
 		while [ -n "$1" ] ; do
@@ -371,8 +367,8 @@ if [ -z "$destination" ] ; then
 fi
 
 # display choose operation dialog if not set
-if [ -z "$mode" ] ; then
-	mode=$(choose_operation)
+if [ -z "$command" ] ; then
+	command=$(choose_operation)
 	if [ $? != 0 ] ; then
 		# cancelled
 		exit
@@ -380,7 +376,7 @@ if [ -z "$mode" ] ; then
 fi
 
 # main command operations
-case $mode in
+case $command in
 	backup|restore|history|explore|status)
 
 		# load and test configuration
@@ -403,7 +399,7 @@ case $mode in
 esac
 
 # prepare command
-t2b_cmd=(t2b_$mode)
+t2b_cmd=(t2b_$command)
 
 # forward arguments in space safe mode
 while [ -n "$1" ] ; do

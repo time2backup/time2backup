@@ -36,9 +36,9 @@ print_help() {
 		return 0
 	fi
 
-	echo -n "Command usage: $mode [OPTIONS] "
+	echo -n "Command usage: $command [OPTIONS] "
 
-	case $mode in
+	case $command in
 		backup)
 			echo "[PATH...]"
 			echo -e "\nBackup your files"

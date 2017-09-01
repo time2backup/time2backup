@@ -1626,7 +1626,7 @@ cancel_exit() {
 
 	# display notification
 	if $notifications ; then
-		if [ "$mode" == "backup" ] ; then
+		if [ "$command" == backup ] ; then
 			lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
 		else
 			lbg_notify "$tr_restore_cancelled"
@@ -1634,7 +1634,7 @@ cancel_exit() {
 	fi
 
 	# backup mode
-	if [ "$mode" == "backup" ] ; then
+	if [ "$command" == backup ] ; then
 		# exit with cancel code without shutdown
 		clean_exit --no-shutdown 17
 	else

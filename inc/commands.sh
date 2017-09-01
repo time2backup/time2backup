@@ -814,7 +814,7 @@ t2b_restore() {
 
 	# default options
 	backup_date="latest"
-	forcemode=false
+	force_mode=false
 	choose_date=true
 	directorymode=false
 	restore_moved=false
@@ -839,7 +839,7 @@ t2b_restore() {
 				delete_newer_files=true
 				;;
 			-f|--force)
-				forcemode=true
+				force_mode=true
 				;;
 			-h|--help)
 				print_help
@@ -1188,7 +1188,7 @@ t2b_restore() {
 	fi
 
 	# confirm restore
-	if ! $forcemode ; then
+	if ! $force_mode ; then
 		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
 			# cancelled
 			return 0
