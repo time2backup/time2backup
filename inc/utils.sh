@@ -28,6 +28,7 @@
 #      crontab_config
 #      apply_config
 #      prepare_destination
+#      create_logfile
 #      test_backup
 #      test_free_space
 #      clean_empty_directories
@@ -624,7 +625,7 @@ get_backup_path() {
 		return 0
 	fi
 
-	gbp_protocol=$(get_backup_type "$gbp_file")
+	gbp_protocol=$(get_protocol "$gbp_file")
 
 	# if not absolute path, check protocols
 	case $gbp_protocol in
@@ -926,11 +927,28 @@ apply_config() {
 # Exit codes:
 #   0: destination is ready
 #   1: destination not reachable
+#   2: destination not writable
 prepare_destination() {
 
 	destok=false
 
 	lb_display_debug "Testing destination on: $destination..."
+
+	case $(get_protocol "$destination") in
+		ssh|t2b)
+			destination_ssh=true
+			# for now, we do not test if there is enough space on distant device
+			test_destination=false
+
+			# define the default logs path to the local config directory
+			if [ -z "$logs_directory" ] ; then
+				logs_directory="$config_directory/logs"
+			fi
+
+			# quit ok
+			return 0
+			;;
+	esac
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
@@ -958,7 +976,61 @@ prepare_destination() {
 		return 1
 	fi
 
+	# auto unmount: unmount if it was not mounted
+	if $unmount_auto ; then
+		if ! $mounted ; then
+			unmount=true
+		fi
+	fi
+
+	# create destination if not exists
+	mkdir -p "$backup_destination" &> /dev/null
+	if [ $? != 0 ] ; then
+		# if mkdir failed, exit
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		fi
+		return 2
+	fi
+
+	# test if destination is writable
+	# must keep this test because if directory exists, the previous mkdir -p command returns no error
+	if ! [ -w "$backup_destination" ] ; then
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		else
+			lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		fi
+		return 2
+	fi
+
 	return 0
+}
+
+
+# Create log file
+# Usage: create_logfile PATH
+# Exit codes:
+#   0: OK
+#   1: failed to create log directory
+#   2: failed to create log file
+create_logfile() {
+	# create logs directory
+	mkdir -p "$(dirname "$*")"
+	if [ $? != 0 ] ; then
+		lb_display_error "Could not create logs directory. Please verify your access rights."
+		return 1
+	fi
+
+	# create log file
+	if ! lb_set_logfile "$*" ; then
+		lb_display_error "Cannot create log file $*. Please verify your access rights."
+		return 2
+	fi
 }
 
 
