@@ -56,6 +56,15 @@ print_help() {
 			echo -e "  -q, --quiet  quiet mode; print only backup dates"
 			echo -e "  -h, --help   print help"
 			;;
+		explore)
+			echo -e "Command usage: $1 [OPTIONS] PATH"
+			echo -e "\nExplore backups of a file or directory"
+			echo -e "Warning: This feature does not detect old renamed/moved files yet."
+			echo -e "\nOptions:"
+			echo -e "  -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			echo -e "  -a, --all        Print all versions, including duplicates"
+			echo -e "  -h, --help       Print this help"
+			;;
 		status)
 			echo -e "Command usage: $1 [OPTIONS]"
 			echo -e "\nCheck if a backup is currently running"

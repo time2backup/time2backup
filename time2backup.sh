@@ -381,7 +381,7 @@ fi
 
 # main command operations
 case $mode in
-	backup|restore|history|status)
+	backup|restore|history|explore|status)
 
 		# load and test configuration
 		if ! load_config ; then

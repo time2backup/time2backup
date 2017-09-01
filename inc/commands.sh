@@ -12,10 +12,10 @@
 #   t2b_backup
 #   t2b_restore
 #   t2b_history
+#   t2b_explore
 #   t2b_status
 #   t2b_config
 #   t2b_install
-#   t2b_uninstall
 #   t2b_uninstall
 
 
@@ -941,7 +941,7 @@ t2b_restore() {
 				;;
 		esac
 
-		# manage choosed option
+		# manage chosen option
 		case $lbg_choose_option in
 			1)
 				# restore a file
@@ -1359,6 +1359,150 @@ t2b_history() {
 	fi
 
 	return 0
+}
+
+
+# Explore backups
+# Usage: t2b_explore [OPTIONS] [PATH]
+t2b_explore() {
+
+	# default options
+	backup_date=latest
+	choose_date=true
+	explore_all=false
+
+	# get options
+	while [ -n "$1" ] ; do
+		case $1 in
+			-a|--all)
+				explore_all=true
+				;;
+			-d|--date)
+				if [ -z "$2" ] ; then
+					print_help explore
+					return 1
+				fi
+				backup_date=$2
+				choose_date=false
+				shift
+				;;
+			-h|--help)
+				print_help explore
+				return 0
+				;;
+			-*)
+				print_help explore
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# test backup destination
+	if ! prepare_destination ; then
+		return 4
+	fi
+
+	# get all backups
+	backups=($(get_backups))
+	# if no backups, exit
+	if [ ${#backups[@]} == 0 ] ; then
+		lbg_display_error "$tr_no_backups_available"
+		return 5
+	fi
+
+	path=$*
+
+	if ! [ -e "$path" ] ; then
+		print_help explore
+		return 1
+	fi
+
+	# get backup full path
+	backup_path=$(get_backup_path "$path")
+
+	# if error, exit
+	if [ -z "$backup_path" ] ; then
+		print_help explore
+		return 1
+	fi
+
+	# get all versions of the file/directory
+	path_history=($(get_backup_history "$path"))
+
+	# if no backup found
+	if [ ${#path_history[@]} == 0 ] ; then
+		lbg_display_error "$tr_no_backups_for_file"
+		return 6
+	fi
+
+
+	if $explore_all ; then
+		backup_date=${path_history[@]}
+	else
+		# search for dates
+		if [ "$backup_date" != latest ] ; then
+			# if date was specified but not here, error
+			if ! lb_array_contains "$backup_date" "${path_history[@]}" ; then
+				lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
+				return 7
+			fi
+		fi
+
+		# if only one backup, no need to choose one
+		if [ ${#path_history[@]} -gt 1 ] ; then
+
+			# if interactive mode, prompt user to choose a backup date
+			if $choose_date ; then
+
+				# change dates to a user-friendly format
+				history_dates=(${path_history[@]})
+
+				for ((i=0; i<${#path_history[@]}; i++)) ; do
+					history_dates[$i]=$(get_backup_fulldate "${path_history[$i]}")
+				done
+
+				# choose backup date
+				lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
+				case $? in
+					0)
+						# continue
+						:
+						;;
+					2)
+						# cancelled
+						return 0
+						;;
+					*)
+						# error
+						return 1
+						;;
+				esac
+
+				# get chosen backup (= chosen ID - 1 because array ID starts from 0)
+				backup_date=${path_history[$(($lbg_choose_option - 1))]}
+			fi
+		fi
+
+		# if latest backup wanted, get most recent date
+		if [ "$backup_date" == latest ] ; then
+			backup_date=${path_history[0]}
+		fi
+	fi
+
+	if ! [ -d "$path" ] ; then
+		backup_path=$(dirname "$backup_path")
+	fi
+
+	for b in ${backup_date[@]} ; do
+		echo "Exploring backup $b..."
+		lbg_open_directory "$backup_destination/$b/$backup_path"
+	done
+
+	return $?
 }
 
 
