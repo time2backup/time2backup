@@ -196,15 +196,13 @@ test_hardlinks() {
 #   1: Usage error (path does not exists)
 folders_size() {
 
-	fs_path=$*
-
 	# usage error
-	if ! [ -e "$fs_path" ] ; then
+	if ! [ -e "$*" ] ; then
 		return 1
 	fi
 
 	# get number of subfolders
-	fs_nbdir=$(find "$fs_path" -type d 2> /dev/null | wc -l)
+	fs_nbdir=$(find "$*" -type d 2> /dev/null | wc -l)
 
 	# do not care of errors
 	if [ $fs_nbdir == 0 ] ; then
@@ -213,7 +211,7 @@ folders_size() {
 	fi
 
 	# get size of folders regarding FS type (in bytes)
-	case $(lb_df_fstype "$fs_path") in
+	case $(lb_df_fstype "$*") in
 		hfs|hfsplus)
 			fs_totalsize=68
 			;;
@@ -254,6 +252,9 @@ test_space_available() {
 		lb_display --log "Cannot get available space. Trying to backup although."
 		return 0
 	fi
+
+	# transform space size from KB to bytes
+	tsa_space_left=$(($tsa_space_left * 1024))
 
 	lb_display_debug --log "Space available on disk (in bytes): $tsa_space_left"
 
