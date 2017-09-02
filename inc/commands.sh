@@ -103,21 +103,15 @@ t2b_backup() {
 	# if recurrent, check frequency
 	if $recurrent_backup ; then
 
-		# disabled on Windows
-		if [ "$lb_current_os" == Windows ] ; then
-			lb_display_warning "Recurrent backups are disabled on Windows."
+		# if disabled in default configuration
+		if ! $enable_recurrent ; then
+			lb_display_error "Recurrent backups are disabled."
 			return 20
 		fi
 
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
 			lb_display_warning "Recurrent backups are disabled. You can enable it in configuration file."
-			return 20
-		fi
-
-		# if disabled
-		if ! $enable_recurrent ; then
-			lb_display_error "Recurrent backups are disabled."
 			return 20
 		fi
 
@@ -378,7 +372,7 @@ t2b_backup() {
 						homeuser=${homealias:1}
 					fi
 
-					if [ "$lb_current_os" == "Windows" ] ; then
+					if [ "$lb_current_os" == Windows ] ; then
 						# path of the config is in c:\Users\{user}\AppData\Roaming\time2backup
 						# so we can go up to c:\Users
 						homedir=$config_directory
@@ -410,7 +404,7 @@ t2b_backup() {
 				fi
 
 				# get absolute path for source
-				if [ "$lb_current_os" == "Windows" ] ; then
+				if [ "$lb_current_os" == Windows ] ; then
 					# get realpath for Windows formats
 					abs_src=$(lb_realpath "$src")
 				else
@@ -719,7 +713,7 @@ t2b_backup() {
 		if $notifications ; then
 			# Windows: display dialogs instead of notifications
 			if [ "$lb_current_os" == Windows ] ; then
-				# do not prevent from shutdown
+				# do not popup dialog that would prevent PC from shutdown
 				if ! $shutdown ; then
 					lbg_display_info "$tr_backup_finished\n$(report_duration)"
 				fi
@@ -747,7 +741,7 @@ t2b_backup() {
 			if $notifications ; then
 				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
-					# do not prevent from shutdown
+					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
 						lbg_display_warning "$tr_backup_finished_warnings\n$(report_duration)"
 					fi
@@ -766,7 +760,7 @@ t2b_backup() {
 			if $notifications ; then
 				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
-					# do not prevent from shutdown
+					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
 						lbg_display_error "$tr_backup_failed\n$(report_duration)"
 					fi
@@ -1018,7 +1012,7 @@ t2b_restore() {
 		fi
 	else
 		# get specified path
-		if [ "$lb_current_os" == "Windows" ] ; then
+		if [ "$lb_current_os" == Windows ] ; then
 			file=$(lb_realpath "$*")
 		else
 			file=$*
@@ -1278,7 +1272,7 @@ t2b_history() {
 	fi
 
 	# get file
-	if [ "$lb_current_os" == "Windows" ] ; then
+	if [ "$lb_current_os" == Windows ] ; then
 		file=$(lb_realpath "$*")
 	else
 		file=$*
@@ -1822,7 +1816,7 @@ t2b_install() {
 	echo "Installing time2backup..."
 
 	# create a desktop file (Linux)
-	if [ "$lb_current_os" == "Linux" ] ; then
+	if [ "$lb_current_os" == Linux ] ; then
 
 		desktop_file="$script_directory/time2backup.desktop"
 
@@ -1948,9 +1942,9 @@ t2b_uninstall() {
 	fi
 
 	# delete desktop file (Linux)
-	if [ "$lb_current_os" != "macOS" ] ; then
+	if [ "$lb_current_os" != macOS ] ; then
 
-		application_link="/usr/share/applications/time2backup.desktop"
+		application_link=/usr/share/applications/time2backup.desktop
 
 		# delete desktop file
 		if [ -f "$application_link" ] ; then

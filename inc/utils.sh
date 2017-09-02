@@ -56,7 +56,7 @@
 # Return: formatted date
 timestamp2date() {
 	# return date formatted in user language
-	if [ "$lb_current_os" == "macOS" ] ; then
+	if [ "$lb_current_os" == macOS ] ; then
 		date -j -f "%s" "$1" +"$tr_readable_date"
 	else
 		date -d "@$1" +"$tr_readable_date"
@@ -90,7 +90,7 @@ get_backup_fulldate() {
 	bsec=${1:15:2}
 
 	# return date formatted for languages
-	if [ "$lb_current_os" == "macOS" ] ; then
+	if [ "$lb_current_os" == macOS ] ; then
 		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
 	else
 		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
@@ -218,7 +218,7 @@ get_backup_history() {
 			fi
 
 			# compare inodes to detect different versions
-			if [ "$lb_current_os" == "macOS" ] ; then
+			if [ "$lb_current_os" == macOS ] ; then
 				inode=$(stat -f %i "$backup_file")
 			else
 				inode=$(stat --format %i "$backup_file")
@@ -388,7 +388,7 @@ test_config() {
 	fi
 
 	# convert destination for windows systems
-	if [ "$lb_current_os" == "Windows" ] ; then
+	if [ "$lb_current_os" == Windows ] ; then
 		destination=$(lb_realpath "$destination")
 
 		if [ $? != 0 ] ; then
@@ -492,7 +492,7 @@ mount_destination() {
 
 	# macOS and Windows are not supported
 	# this is not supposed to happen because macOS and Windows always mount disks
-	if [ "$lb_current_os" != "Linux" ] ; then
+	if [ "$lb_current_os" != Linux ] ; then
 		lb_display_error --log "Mount: $lb_current_os not supported"
 		return 4
 	fi
