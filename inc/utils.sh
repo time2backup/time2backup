@@ -357,7 +357,7 @@ upgrade_config() {
 
 		lb_display_debug "Upgrade $config_line..."
 
-		sed -i~ "s/^#*$config_param=.*/$config_line/" "$config_file"
+		sed -i~ "s/^#*$config_param[[:space:]]*=.*/$config_line/" "$config_file"
 		if [ $? != 0 ] ; then
 			lb_display_error "$tr_error_upgrade_config"
 			return 2
@@ -440,7 +440,7 @@ test_config() {
 load_config() {
 
 	# load config
-	source "$config_file" > /dev/null
+	lb_import_config "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "Config file is corrupted or can not be read!"
 		return 1

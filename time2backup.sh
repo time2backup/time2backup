@@ -325,7 +325,7 @@ if ! create_config ; then
 fi
 
 # load configuration
-source "$config_file" > /dev/null
+lb_import_config "$config_file"
 if [ $? != 0 ] ; then
 	lb_display_error "Config file is corrupted or can not be read!"
 	exit 3
