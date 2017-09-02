@@ -37,6 +37,11 @@ force_shutdown=false
 #  DEFAULT CONFIG OPTIONS  #
 ############################
 
+# time2backup default core config
+enable_recurrent=true
+ask_to_install=true
+
+# default config
 destination_subdirectories=true
 test_destination=true
 
@@ -49,10 +54,10 @@ debug_mode=false
 mount=true
 
 network_compression=false
-ssh_options="ssh"
+ssh_options=ssh
 
 recurrent=false
-frequency="daily"
+frequency=daily
 
 keep_limit=-1
 clean_old_backups=true
@@ -81,7 +86,6 @@ force_hard_links=false
 mirror_mode=false
 rsync_path=rsync
 rsync_options=()
-cmd_alias="/usr/bin/time2backup"
 verbose_level=$default_verbose_level
 
 
@@ -114,11 +118,11 @@ if [ $? != 0 ] ; then
 	exit 1
 fi
 
-# load translation (if failed, no error)
+# load translation (don't care of errors)
 source "$script_directory/locales/$lb_lang.sh" &> /dev/null
 
 # change current script name
-lb_current_script_name="time2backup"
+lb_current_script_name=time2backup
 
 
 ###############
@@ -157,6 +161,19 @@ fi
 ##################
 #  MAIN PROGRAM  #
 ##################
+
+# load the default config (load the example if it doesn't exists)
+default_config="$script_directory/config/default.conf"
+if ! [ -f "$default_config" ] ; then
+	default_config="$script_directory/config/default.example.conf"
+fi
+
+# load the default config
+source "$default_config" 2> /dev/null
+if [ $? != 0 ] ; then
+	echo "ERROR: cannot load default config file!"
+	exit 3
+fi
 
 # get global options
 while [ -n "$1" ] ; do
@@ -268,14 +285,9 @@ else
 	fi
 fi
 
-# test if rsync command is available
-if ! lb_command_exists "$rsync_path" ; then
-	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
-	exit 1
-fi
-
 # default options for Windows systems
 if [ "$lb_current_os" == Windows ] ; then
+	enable_recurrent=false
 	shutdown_cmd=(shutdown /s)
 fi
 
@@ -287,10 +299,14 @@ if [ -z "$config_directory" ] ; then
 		config_directory="$script_directory/config/"
 	else
 		# default config directory
-		config_directory="$(lb_homepath $user)/.config/time2backup/"
-		if [ $? != 0 ] ; then
-			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
-			exit 3
+		if [ -n "$default_config_directory" ] ; then
+			config_directory=$default_config_directory
+		else
+			config_directory="$(lb_homepath $user)/.config/time2backup/"
+			if [ $? != 0 ] ; then
+				lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+				exit 3
+			fi
 		fi
 	fi
 fi
@@ -329,6 +345,12 @@ lb_import_config "$config_file"
 if [ $? != 0 ] ; then
 	lb_display_error "Config file is corrupted or can not be read!"
 	exit 3
+fi
+
+# test if rsync command is available
+if ! lb_command_exists "$rsync_path" ; then
+	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
+	exit 1
 fi
 
 # get main command
