@@ -5,7 +5,9 @@
 * [backup](#backup)
 * [restore](#restore)
 * [history](#history)
+* [explore](#explore)
 * [status](#status)
+* [stop](#stop)
 * [config](#config)
 * [install](#install)
 * [uninstall](#uninstall)
@@ -21,24 +23,27 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 
 ### Global options
 ```
--C, --console              execute time2backup in console mode (no dialog windows)
--l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
--v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
--d, --destination PATH     set a custom destination path (overrides configuration)
--c, --config CONFIG_DIR    load and save config in the specified directory
--D, --debug                run in debug mode (all messages printed and logged)
--V, --version              print version and quit
--h, --help                 print help
+-C, --console              Execute time2backup in console mode (no dialog windows)
+-l, --log-level LEVEL      Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
+-v, --verbose-level LEVEL  Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
+-d, --destination PATH     Set a custom destination path (overrides configuration)
+-c, --config CONFIG_DIR    Load and save config in the specified directory
+-D, --debug                Run in debug mode (all messages printed and logged)
+-V, --version              Print version and quit
+-h, --help                 Print help
 ```
 
 ### Commands
 ```
-backup     backup your files
-restore    restore a backup of a file or directory
-history    displays backup history of a file or directory
-config     edit configuration
-install    install time2backup
-uninstall  uninstall time2backup
+backup     Backup your files
+restore    Restore a backup of a file or directory
+history    Displays backup history of a file or directory
+explore    Open the file browser at a date
+status     Check if a backup is currently running
+stop       Cancel a running backup
+config     Edit configuration
+install    Install time2backup
+uninstall  Uninstall time2backup
 ```
 
 ---------------------------------------------------------------
@@ -53,10 +58,10 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 
 ### Options
 ```
--u, --unmount           unmount destination after backup (overrides configuration)
--s, --shutdown          shutdown after backup (overrides configuration)
--r, --recurrent         perform a recurrent backup (used in cron jobs)
--h, --help              print help
+-u, --unmount    Unmount destination after backup (overrides configuration)
+-s, --shutdown   Shutdown after backup (overrides configuration)
+-r, --recurrent  Perform a recurrent backup (used in cron jobs)
+-h, --help       Print help
 ```
 
 ### Exit codes
@@ -94,13 +99,13 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 
 ### Options
 ```
--d, --date DATE    restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
-                   By default, it restores the last available backup.
---directory        path to restore is a directory (not necessary if path exists)
-                   If deleted or moved, indicates that the chosen path is a directory.
---delete-new       delete newer files if they already exists (restore exactly the same version)
--f, --force        force restore; do not display confirmation
--h, --help         print help
+-d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
+                 by default it restores the last available backup
+--directory      Path to restore is a directory (not necessary if path exists)
+                 If deleted or moved, indicate that the chosen path is a directory.
+--delete-new     Delete newer files if exists for directories (restore exactly the same version)
+-f, --force      Force restore; do not display confirmation
+-h, --help       Print help
 ```
 
 ### Exit codes
@@ -129,17 +134,44 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 
 ### Options
 ```
--a, --all    print all versions, including duplicates
--q, --quiet  quiet mode; print only backup dates
--h, --help   print help
+-a, --all    Print all versions, including duplicates
+-q, --quiet  Quiet mode; print only backup dates
+-h, --help   Print help
 ```
 
 ### Exit codes
 - 0: History printed
 - 1: Usage error
 - 3: Config error
-- 4: Backup device not reachable
+- 4: Backup device is not reachable
 - 5: No backup found for the path
+
+---------------------------------------------------------------
+<a name="explore"></a>
+## explore
+Explore backups of a file/directory in the file browser.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] explore [OPTIONS] PATH
+```
+
+### Options
+```
+-d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
+-a, --all        Explore all versions"
+-h, --help       Print help
+```
+
+### Exit codes
+- 0: File browser opened
+- 1: Usage error
+- 3: Config error
+- 4: Backup device is not reachable
+- 5: No backups available at this path
+- 6: No backups of this file
+- 7: No backup found at this date
+- 8: Unknown error of the file browser
 
 ---------------------------------------------------------------
 <a name="status"></a>
@@ -153,8 +185,8 @@ time2backup [GLOBAL_OPTIONS] status [OPTIONS]
 
 ### Options
 ```
--q, --quiet  quiet mode; print only backup dates
--h, --help   print help
+-q, --quiet  Quiet mode
+-h, --help   Print help
 ```
 
 ### Exit codes
@@ -163,6 +195,31 @@ time2backup [GLOBAL_OPTIONS] status [OPTIONS]
 - 3: Config error
 - 4: Backup device not reachable
 - 5: A backup is currently running
+
+---------------------------------------------------------------
+<a name="stop"></a>
+## stop
+Cancel a running backup.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
+```
+
+### Options
+```
+-q, --quiet  Quiet mode
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: Backup stopped
+- 1: Usage error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: Failed to stop process
+- 6: Cannot get status of backup
+- 7: No rsync process found
 
 ---------------------------------------------------------------
 <a name="config"></a>
@@ -176,17 +233,17 @@ time2backup [GLOBAL_OPTIONS] config [OPTIONS]
 
 ### Options
 ```
--g, --general     edit general configuration
--s, --sources     edit sources file (sources to backup)
--x, --excludes    edit excludes file (patterns to ignore)
--i, --includes    edit includes file (patterns to include)
--l, --show        show configuration; do not edit
+-g, --general     Edit general configuration
+-s, --sources     Edit sources file (sources to backup)
+-x, --excludes    Edit excludes file (patterns to ignore)
+-i, --includes    Edit includes file (patterns to include)
+-l, --show        Show configuration; do not edit
                   display configuration without comments
--t, --test        test configuration; do not edit
--w, --wizard      display configuration wizard instead of edit
--r, --reset       reset configuration file
--e, --editor BIN  use specified editor (e.g. vim, nano, ...)
--h, --help        print help
+-t, --test        Test configuration; do not edit
+-w, --wizard      Display configuration wizard instead of edit
+-r, --reset       Reset configuration file
+-e, --editor BIN  Use specified editor (e.g. vim, nano, ...)
+-h, --help        Print help
 ```
 
 ### Exit codes
@@ -212,8 +269,8 @@ time2backup [GLOBAL_OPTIONS] install [OPTIONS]
 
 ### Options
 ```
--r, --reset-config  reset configuration files
--h, --help          print help
+-r, --reset-config  Reset configuration files to default
+-h, --help          Print help
 ```
 
 ### Exit codes
@@ -238,9 +295,9 @@ time2backup [GLOBAL_OPTIONS] uninstall [OPTIONS]
 
 ### Options
 ```
--c, --delete-config  delete configuration files
--x, --delete-files   delete time2backup files
--h, --help           print help
+-c, --delete-config  Delete configuration files
+-x, --delete         Delete time2backup files
+-h, --help           Print help
 ```
 
 ### Exit codes

@@ -1233,7 +1233,7 @@ t2b_restore() {
 t2b_history() {
 
 	# default options
-	local quietmode=false
+	local quiet_mode=false
 	local history_opts=""
 
 	# get options
@@ -1243,7 +1243,7 @@ t2b_history() {
 				history_opts="-a "
 				;;
 			-q|--quiet)
-				quietmode=true
+				quiet_mode=true
 				;;
 			-h|--help)
 				print_help
@@ -1290,7 +1290,7 @@ t2b_history() {
 	# print backup versions
 	for b in ${file_history[@]} ; do
 		# quiet mode: just print the version
-		if $quietmode ; then
+		if $quiet_mode ; then
 			echo "$b"
 		else
 			# complete result: print details
@@ -1310,7 +1310,7 @@ t2b_history() {
 	done
 
 	# complete result (not quiet mode)
-	if ! $quietmode ; then
+	if ! $quiet_mode ; then
 		echo
 		echo "${#file_history[@]} backups found for $file"
 	fi
@@ -1459,7 +1459,9 @@ t2b_explore() {
 		lbg_open_directory "$backup_destination/$b/$backup_path"
 	done
 
-	return $?
+	if [ $? != 0 ] ; then
+		return 8
+	fi
 }
 
 
@@ -1516,7 +1518,7 @@ t2b_stop() {
 
 	# default options
 	local quiet_mode=false
-	local exit_code=9
+	local exit_code=5
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1585,7 +1587,7 @@ t2b_stop() {
 			# kill rsync process
 			kill $parent_pid
 			if [ $? != 0 ] ; then
-				return 8
+				return 5
 			fi
 			break
 		fi

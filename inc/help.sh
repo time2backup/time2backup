@@ -21,7 +21,7 @@ print_help() {
 	echo "  -c, --config CONFIG_DIR    Load and save config in the specified directory"
 	echo "  -D, --debug                Run in debug mode (all messages printed and logged)"
 	echo "  -V, --version              Print version and quit"
-	echo "  -h, --help                 Print this help"
+	echo "  -h, --help                 Print help"
 	echo
 
 	if [ "$1" == global ] ; then
@@ -31,6 +31,7 @@ print_help() {
 		echo "   history    Displays backup history of a file or directory"
 		echo "   explore    Open the file browser at a date"
 		echo "   status     Check if a backup is currently running"
+		echo "   stop       Cancel a running backup"
 		echo "   config     Edit configuration"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
@@ -49,7 +50,7 @@ print_help() {
 			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
 			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
 			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs)"
-			echo "  -h, --help       Print this help"
+			echo "  -h, --help       Print help"
 			;;
 		restore)
 			echo "Command usage: $command [OPTIONS] [PATH]"
@@ -65,7 +66,7 @@ print_help() {
 			echo "                   If deleted or moved, indicate that the chosen path is a directory."
 			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
 			echo "  -f, --force      Force restore; do not display confirmation"
-			echo "  -h, --help       Print this help"
+			echo "  -h, --help       Print help"
 			;;
 		history)
 			echo "Command usage: $command [OPTIONS] PATH"
@@ -76,7 +77,7 @@ print_help() {
 			echo "Options:"
 			echo "  -a, --all    Print all versions, including duplicates"
 			echo "  -q, --quiet  Quiet mode; print only backup dates"
-			echo "  -h, --help   Print this help"
+			echo "  -h, --help   Print help"
 			;;
 		explore)
 			echo "Command usage: $command [OPTIONS] PATH"
@@ -86,8 +87,8 @@ print_help() {
 			echo
 			echo "Options:"
 			echo "  -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
-			echo "  -a, --all        Print all versions, including duplicates"
-			echo "  -h, --help       Print this help"
+			echo "  -a, --all        Explore all versions"
+			echo "  -h, --help       Print help"
 			;;
 		status)
 			echo "Command usage: $command [OPTIONS]"
@@ -95,8 +96,17 @@ print_help() {
 			echo "Check if a backup is currently running"
 			echo
 			echo "Options:"
-			echo "  -q, --quiet  Quiet mode; print only backup dates"
-			echo "  -h, --help   Print this help"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
+			;;
+		stop)
+			echo "Command usage: $command [OPTIONS]"
+			echo
+			echo "Cancel a running backup"
+			echo
+			echo "Options:"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
 			;;
 		config)
 			echo "Command usage: $command [OPTIONS]"
@@ -114,7 +124,7 @@ print_help() {
 			echo "  -w, --wizard      Display configuration wizard instead of edit"
 			echo "  -r, --reset       Reset configuration file"
 			echo "  -e, --editor BIN  Use specified editor (e.g. vim, nano, ...)"
-			echo "  -h, --help        Print this help"
+			echo "  -h, --help        Print help"
 			;;
 		install)
 			echo "Command usage: $command [OPTIONS]"
@@ -123,7 +133,7 @@ print_help() {
 			echo
 			echo "Options:"
 			echo "  -r, --reset-config  Reset configuration files to default"
-			echo "  -h, --help          Print this help"
+			echo "  -h, --help          Print help"
 			;;
 		uninstall)
 			echo "Command usage: $command [OPTIONS]"
@@ -133,7 +143,7 @@ print_help() {
 			echo "Options:"
 			echo "  -c, --delete-config  Delete configuration files"
 			echo "  -x, --delete         Delete time2backup files"
-			echo "  -h, --help           Print this help"
+			echo "  -h, --help           Print help"
 			;;
 	esac
 }
