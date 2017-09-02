@@ -377,7 +377,7 @@ fi
 
 # main command operations
 case $command in
-	backup|restore|history|explore|status)
+	backup|restore|history|explore|status|stop)
 
 		# load and test configuration
 		if ! load_config ; then

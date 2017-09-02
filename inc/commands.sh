@@ -14,6 +14,7 @@
 #   t2b_history
 #   t2b_explore
 #   t2b_status
+#   t2b_stop
 #   t2b_config
 #   t2b_install
 #   t2b_uninstall
@@ -1468,12 +1469,12 @@ t2b_explore() {
 }
 
 
-# Chack if a backup is currently running
+# Check if a backup is currently running
 # Usage: t2b_status [OPTIONS]
 t2b_status() {
 
 	# default options
-	quiet_mode=false
+	local quiet_mode=false
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1512,6 +1513,109 @@ t2b_status() {
 			echo "backup is not running"
 		fi
 	fi
+}
+
+
+# Stop a running backup
+# Usage: t2b_stop [OPTIONS]
+t2b_stop() {
+
+	# default options
+	local quiet_mode=false
+	local exit_code=9
+
+	# get options
+	while [ -n "$1" ] ; do
+		case $1 in
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# check status of backup
+	t2b_status --quiet
+
+	# if no backup is running or error, cannot stop
+	case $? in
+		0)
+			if ! $quiet_mode ; then
+				echo "No backup running"
+			fi
+			return 0
+			;;
+		1)
+			if ! $quiet_mode ; then
+				echo "Unknown error"
+			fi
+			return 6
+			;;
+		4)
+			if ! $quiet_mode ; then
+				echo "Cannot reach destination."
+			fi
+			return 4
+			;;
+	esac
+
+	# search for a current rsync command and get parent PIDs
+	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -n -1 | awk '{print $2}'))
+
+	if [ ${#rsync_ppids[@]} == 0 ] ; then
+		echo "No rsync process found. Please find it manually"
+		return 7
+	fi
+
+	for pid in ${rsync_ppids[@]} ; do
+		# get parent process
+		parent_pid=$(ps -f $pid 2> /dev/null | awk '{print $3}')
+		if [ -z "$parent_pid" ] ; then
+			continue
+		fi
+
+		# check if parent process is an instance of time2backup server
+		ps -f $parent_pid 2> /dev/null | grep -q "time2backup"
+		if [ $? == 0 ] ; then
+			# kill rsync process
+			kill $parent_pid
+			if [ $? != 0 ] ; then
+				return 8
+			fi
+			break
+		fi
+	done
+
+	# wait 10 sec max until time2backup is really stopped
+	for ((i=0; i<10; i++)) ; do
+		t2b_status --quiet
+		if [ $? == 0 ] ; then
+			exit_code=0
+			break
+		fi
+		sleep 1
+	done
+
+	if ! $quiet_mode ; then
+		if [ $exit_code == 0 ] ; then
+			echo "Stopped"
+		else
+			echo "Still running! Could not stop time2backup process. Please retry maybe in root mode."
+		fi
+	fi
+
+	return $exit_code
 }
 
 
