@@ -20,7 +20,6 @@
 
 version="1.1.0-rc.1"
 
-portable_mode=false
 sources=()
 mounted=false
 rsync_cmd=()
@@ -40,6 +39,7 @@ force_shutdown=false
 # time2backup default core config
 enable_recurrent=true
 ask_to_install=true
+cmd_alias=/usr/bin/time2backup
 
 # default config
 destination_subdirectories=true
@@ -162,17 +162,15 @@ fi
 #  MAIN PROGRAM  #
 ##################
 
-# load the default config (load the example if it doesn't exists)
+# load the default config if exists
 default_config="$script_directory/config/default.conf"
-if ! [ -f "$default_config" ] ; then
-	default_config="$script_directory/config/default.example.conf"
-fi
-
-# load the default config
-source "$default_config" 2> /dev/null
-if [ $? != 0 ] ; then
-	echo "ERROR: cannot load default config file!"
-	exit 3
+if [ -f "$default_config" ] ; then
+	# load the default config
+	source "$default_config" 2> /dev/null
+	if [ $? != 0 ] ; then
+		echo "ERROR: cannot load default config file!"
+		exit 3
+	fi
 fi
 
 # get global options
@@ -180,9 +178,6 @@ while [ -n "$1" ] ; do
 	case $1 in
 		-C|--console)
 			console_mode=true
-			;;
-		-p|--portable)
-			portable_mode=true
 			;;
 		-u|--user)
 			# run as user
@@ -256,7 +251,6 @@ fi
 # set console mode
 if $console_mode ; then
 	lbg_set_gui console
-
 	# disable notifications by default
 	notifications=false
 else
@@ -287,6 +281,7 @@ fi
 
 # default options for Windows systems
 if [ "$lb_current_os" == Windows ] ; then
+	ask_to_install=false
 	enable_recurrent=false
 	shutdown_cmd=(shutdown /s)
 fi
@@ -294,19 +289,14 @@ fi
 # set default configuration file and path
 if [ -z "$config_directory" ] ; then
 
-	# portable mode: use the script config directory
-	if $portable_mode ; then
-		config_directory="$script_directory/config/"
+	# default config directory
+	if [ -n "$default_config_directory" ] ; then
+		config_directory=$default_config_directory
 	else
-		# default config directory
-		if [ -n "$default_config_directory" ] ; then
-			config_directory=$default_config_directory
-		else
-			config_directory="$(lb_homepath $user)/.config/time2backup/"
-			if [ $? != 0 ] ; then
-				lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
-				exit 3
-			fi
+		config_directory="$(lb_homepath $user)/.config/time2backup/"
+		if [ $? != 0 ] ; then
+			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+			exit 3
 		fi
 	fi
 fi
@@ -357,7 +347,7 @@ fi
 command=$1
 shift
 
-# install/uninstall time2backup
+# command not depending on configuration
 case $command in
 	install|uninstall)
 		# prepare command
@@ -372,6 +362,11 @@ case $command in
 		# run command and exit
 		"${t2b_cmd[@]}"
 		exit $?
+		;;
+
+	help)
+		print_help global
+		exit 0
 		;;
 esac
 
@@ -411,7 +406,7 @@ case $command in
 		;;
 
 	config)
-		# do nothing
+		# do nothing (continue)
 		;;
 
 	*)

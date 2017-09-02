@@ -115,9 +115,9 @@ t2b_backup() {
 			return 20
 		fi
 
-		# portable mode not permitted
-		if $portable_mode ; then
-			lb_display_error "Cannot run recurrent backups in portable mode!"
+		# if disabled
+		if ! $enable_recurrent ; then
+			lb_display_error "Recurrent backups are disabled."
 			return 20
 		fi
 

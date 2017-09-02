@@ -15,8 +15,6 @@ print_help() {
 	echo
 	echo "Global options:"
 	echo "  -C, --console              Execute time2backup in console mode (no dialog windows)"
-	echo "  -p, --portable             Execute time2backup in a portable mode"
-	echo "                             (no install, use local config files, meant to run from removable devices)"
 	echo "  -l, --log-level LEVEL      Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	echo "  -v, --verbose-level LEVEL  Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	echo "  -d, --destination PATH     Set a custom destination path (overrides configuration)"
@@ -50,7 +48,7 @@ print_help() {
 			echo "Options:"
 			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
 			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
-			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs, not available in portable mode)"
+			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs)"
 			echo "  -h, --help       Print this help"
 			;;
 		restore)

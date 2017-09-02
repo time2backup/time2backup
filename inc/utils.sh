@@ -905,8 +905,8 @@ crontab_config() {
 #   other: failed (exit code forwarded from crontab_config)
 apply_config() {
 
-	# do not install config if in portable mode
-	if $portable_mode ; then
+	# if disabled, do not continue
+	if ! $enable_recurrent ; then
 		return 0
 	fi
 
@@ -1721,7 +1721,7 @@ choose_operation() {
 #   3: there are errors in configuration file
 config_wizard() {
 
-	local enable_recurrent=false
+	local recurrent_enabled=false
 
 	# set default destination directory
 	if [ -d "$destination" ] ; then
@@ -1838,7 +1838,7 @@ config_wizard() {
 	fi
 
 	# activate recurrent backups
-	if ! $portable_mode ; then
+	if $enable_recurrent ; then
 		if lbg_yesno "$tr_ask_activate_recurrent" ; then
 
 			# default custom frequency
@@ -1863,7 +1863,7 @@ config_wizard() {
 			# choose frequency
 			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
 
-				enable_recurrent=true
+				recurrent_enabled=true
 
 				# set recurrence frequency
 				case $lbg_choose_option in
@@ -1932,7 +1932,7 @@ config_wizard() {
 	fi
 
 	# enable/disable recurrence in config
-	edit_config --set "recurrent=$enable_recurrent" "$config_file"
+	edit_config --set "recurrent=$recurrent_enabled" "$config_file"
 	res_edit=$?
 	if [ $res_edit != 0 ] ; then
 		lb_display_debug "Error in setting config parameter recurrent (result code: $res_edit)"
@@ -1970,16 +1970,14 @@ first_run() {
 
 	install_result=0
 
-	# if not in portable mode and not on Windows,
-	if ! $portable_mode ; then
-		if [ "$lb_current_os" != "Windows" ] ; then
-			if ! is_installed ; then
-				# confirm install
-				if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-					# install time2backup (create links)
-					t2b_install
-					install_result=$?
-				fi
+	# ask to install
+	if $ask_to_install ; then
+		if ! is_installed ; then
+			# confirm install
+			if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
+				# install time2backup (create links)
+				t2b_install
+				install_result=$?
 			fi
 		fi
 	fi

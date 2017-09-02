@@ -22,8 +22,6 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 ### Global options
 ```
 -C, --console              execute time2backup in console mode (no dialog windows)
--p, --portable             execute time2backup in a portable mode
-                           (no install, use local config files, meant to run from removable devices)
 -l, --log-level LEVEL      set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -v, --verbose-level LEVEL  set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -d, --destination PATH     set a custom destination path (overrides configuration)
@@ -57,7 +55,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ```
 -u, --unmount           unmount destination after backup (overrides configuration)
 -s, --shutdown          shutdown after backup (overrides configuration)
--r, --recurrent         perform a recurrent backup (used in cron jobs, not available in portable mode)
+-r, --recurrent         perform a recurrent backup (used in cron jobs)
 -h, --help              print help
 ```
 
