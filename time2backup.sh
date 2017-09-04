@@ -20,6 +20,7 @@
 
 version=1.1.0-rc.1
 
+custom_config=false
 sources=()
 mounted=false
 rsync_cmd=()
@@ -219,6 +220,7 @@ while [ -n "$1" ] ; do
 				exit 1
 			fi
 			config_directory=$2
+			custom_config=true
 			shift
 			;;
 		-D|--debug)

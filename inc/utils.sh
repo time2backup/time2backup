@@ -812,7 +812,15 @@ crontab_config() {
 
 	# get crontab
 	tmpcrontab="$config_directory/crontmp"
-	crontask="* * * * *	\"$current_script\" backup --recurrent"
+
+	# prepare backup task
+	crontask="* * * * *	\"$current_script\" "
+
+	if $custom_config ; then
+		crontask+="-c \"$config_directory\" "
+	fi
+
+	crontask+="backup --recurrent"
 
 	# if root or sudo, check if crontab must be for a specific user
 	crontab_opt=""
@@ -1261,35 +1269,20 @@ edit_config() {
 	if [ -n "$set_config" ] ; then
 
 		# get parameter + value
-		conf_param=$(echo "$set_config" | cut -d= -f1)
+		conf_param=$(echo $set_config | cut -d= -f1 | tr -d '[[:space:]]')
 		conf_value=$(echo "$set_config" | sed 's/\//\\\//g')
 
 		# get config line
-		config_line=$(cat "$edit_file" | grep -n "^[# ]*$conf_param=" | cut -d: -f1)
+		config_line=$(cat "$edit_file" | grep -n "^[# ]*$conf_param[[:space:]]*=" | cut -d: -f1)
 
 		# if found, change line
 		if [ -n "$config_line" ] ; then
 			sed -i~ "${config_line}s/.*/$conf_value/" "$edit_file"
 		else
 			# if not found, append to file
-
-			# test type of value
-			if ! lb_is_number $set_config ; then
-				case $set_config in
-					true|false)
-						# do nothing
-						:
-						;;
-					*)
-						# append quotes
-						set_config="\"$set_config\""
-						;;
-				esac
-			fi
-
-			# append config to file
-			echo "$conf_param=$set_config" >> "$edit_file"
+			echo "$set_config" >> "$edit_file"
 		fi
+
 	else
 		# config editor mode
 		all_editors=()
@@ -1742,7 +1735,7 @@ config_wizard() {
 
 		# update destination config
 		if [ "$chosen_directory" != "$destination" ] ; then
-			edit_config --set "destination=\"$chosen_directory\"" "$config_file"
+			edit_config --set "destination = \"$chosen_directory\"" "$config_file"
 			if [ $? == 0 ] ; then
 				# reset destination variable
 				destination=$chosen_directory
@@ -1759,7 +1752,7 @@ config_wizard() {
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
 
-				edit_config --set "backup_disk_mountpoint=\"$mountpoint\"" "$config_file"
+				edit_config --set "backup_disk_mountpoint = \"$mountpoint\"" "$config_file"
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
@@ -1777,7 +1770,7 @@ config_wizard() {
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
-				edit_config --set "backup_disk_uuid=\"$disk_uuid\"" "$config_file"
+				edit_config --set "backup_disk_uuid = \"$disk_uuid\"" "$config_file"
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
@@ -1799,7 +1792,7 @@ config_wizard() {
 					if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
 
 						# set config
-						edit_config --set "force_hard_links=false" "$config_file"
+						edit_config --set "force_hard_links = false" "$config_file"
 
 						res_edit=$?
 						if [ $res_edit != 0 ] ; then
@@ -1868,32 +1861,32 @@ config_wizard() {
 				# set recurrence frequency
 				case $lbg_choose_option in
 					1)
-						edit_config --set "frequency=\"hourly\"" "$config_file"
+						edit_config --set "frequency = hourly" "$config_file"
 						;;
 					2)
-						edit_config --set "frequency=\"daily\"" "$config_file"
+						edit_config --set "frequency = daily" "$config_file"
 						;;
 					3)
-						edit_config --set "frequency=\"weekly\"" "$config_file"
+						edit_config --set "frequency = weekly" "$config_file"
 						;;
 					4)
-						edit_config --set "frequency=\"monthly\"" "$config_file"
+						edit_config --set "frequency = monthly" "$config_file"
 						;;
 					5)
 						# default custom frequency
 						case $frequency in
 							hourly)
-								frequency="1h"
+								frequency=1h
 								;;
 							weekly)
-								frequency="7d"
+								frequency=7d
 								;;
 							monthly)
-								frequency="30d"
+								frequency=30d
 								;;
 							"")
 								# default is 24h
-								frequency="24h"
+								frequency=24h
 								;;
 						esac
 
@@ -1901,7 +1894,7 @@ config_wizard() {
 						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
 							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
 							if [ $? == 0 ] ; then
-								edit_config --set "frequency=\"$lbg_input_text\"" "$config_file"
+								edit_config --set "frequency = $lbg_input_text" "$config_file"
 							else
 								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
 							fi
@@ -1932,7 +1925,7 @@ config_wizard() {
 	fi
 
 	# enable/disable recurrence in config
-	edit_config --set "recurrent=$recurrent_enabled" "$config_file"
+	edit_config --set "recurrent = $recurrent_enabled" "$config_file"
 	res_edit=$?
 	if [ $res_edit != 0 ] ; then
 		lb_display_debug "Error in setting config parameter recurrent (result code: $res_edit)"
