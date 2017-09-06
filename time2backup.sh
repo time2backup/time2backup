@@ -20,6 +20,7 @@
 
 version=1.1.0-rc.1
 
+new_config=false
 custom_config=false
 sources=()
 mounted=false
@@ -324,26 +325,6 @@ if ! $debug_mode ; then
 fi
 
 lb_display_debug "Running in DEBUG mode...\n"
-lb_display_debug "Config file: $config_file"
-
-# config initialization
-if ! create_config ; then
-	lbg_display_error "$tr_error_create_config"
-	exit 3
-fi
-
-# load configuration
-lb_import_config "$config_file"
-if [ $? != 0 ] ; then
-	lb_display_error "Config file is corrupted or can not be read!"
-	exit 3
-fi
-
-# test if rsync command is available
-if ! lb_command_exists "$rsync_path" ; then
-	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
-	exit 1
-fi
 
 # get main command
 command=$1
@@ -372,15 +353,43 @@ case $command in
 		;;
 esac
 
-# upgrade configuration file
-if ! upgrade_config ; then
-	lbg_display_error "$tr_error_upgrade_config"
+lb_display_debug "Using config file: $config_file"
+
+# load configuration if exists
+if [ -f "$config_file" ] ; then
+	echo "Loading configuration..."
+	lb_import_config "$config_file"
+	if [ $? != 0 ] ; then
+		lb_display_error "Config file is corrupted or can not be read!"
+		exit 3
+	fi
+else
+	new_config=true
+fi
+
+# test if rsync command is available
+if ! lb_command_exists "$rsync_path" ; then
+	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
+	exit 1
+fi
+
+# config initialization
+if ! create_config ; then
+	lbg_display_error "$tr_error_create_config"
 	exit 3
+fi
+
+# upgrade configuration file
+if ! $new_config ; then
+	if ! upgrade_config ; then
+		lbg_display_error "$tr_error_upgrade_config"
+		exit 3
+	fi
 fi
 
 # if configuration is not set (destination empty),
 # run first wizard and exit
-if [ -z "$destination" ] ; then
+if $new_config || [ -z "$destination" ] ; then
 	first_run
 	exit $?
 fi

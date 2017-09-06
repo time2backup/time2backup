@@ -308,7 +308,7 @@ upgrade_config() {
 	fi
 
 	echo
-	lb_display_info "$tr_upgrade_config"
+	lb_print "$tr_upgrade_config"
 	lb_display_debug "Upgrading config v$old_config_version -> v$version"
 
 	# specific changes per version
@@ -438,6 +438,8 @@ test_config() {
 #   1: cannot open config
 #   2: there are errors in config
 load_config() {
+
+	echo "Loading configuration..."
 
 	# load config
 	lb_import_config "$config_file"
@@ -806,7 +808,7 @@ crontab_config() {
 		return 1
 	fi
 
-	if [ "$1" == "enable" ] ; then
+	if [ "$1" == enable ] ; then
 		crontab_enable=true
 	fi
 
@@ -822,16 +824,8 @@ crontab_config() {
 
 	crontask+="backup --recurrent"
 
-	# if root or sudo, check if crontab must be for a specific user
-	crontab_opt=""
-	if [ "$(whoami)" == "root" ] ; then
-		if [ -n "$user" ] ; then
-			crontab_opt="-u $user"
-		fi
-	fi
-
 	# check if crontab exists
-	crontab -l $crontab_opt > "$tmpcrontab" 2>&1
+	crontab -u $user -l > "$tmpcrontab" 2>&1
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
 		grep "no crontab for " "$tmpcrontab" > /dev/null
@@ -894,7 +888,7 @@ crontab_config() {
 	fi
 
 	# install new crontab
-	crontab $crontab_opt "$tmpcrontab"
+	crontab -u $user "$tmpcrontab"
 	if [ $? != 0 ] ; then
 		res_install=3
 	fi
@@ -919,10 +913,10 @@ apply_config() {
 	fi
 
 	if $recurrent ; then
-		lb_display "Enable recurrent backups..."
+		echo "Enable recurrent backups..."
 		crontab_config enable
 	else
-		lb_display "Disable recurrent backups..."
+		echo "Disable recurrent backups..."
 		crontab_config disable
 	fi
 
@@ -1652,7 +1646,7 @@ haltpc() {
 	fi
 
 	# countdown before halt
-	lb_print "\nYour computer will halt in 10 seconds. Press Ctrl-C to cancel."
+	echo -e "\nYour computer will halt in 10 seconds. Press Ctrl-C to cancel."
 	for ((i=10; i>=0; i--)) ; do
 		echo -n "$i "
 		sleep 1

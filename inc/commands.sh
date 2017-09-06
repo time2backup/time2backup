@@ -72,8 +72,6 @@ t2b_backup() {
 		shift
 	done
 
-	lb_display "time2backup\n"
-
 	# if not specified, get sources to backup
 	if [ ${#sources[@]} == 0 ] ; then
 		get_sources
@@ -1165,7 +1163,7 @@ t2b_restore() {
 				lbg_notify "$tr_notify_prepare_restore"
 			fi
 
-			lb_display "Preparing restore..."
+			echo "Preparing restore..."
 			lb_display_debug ${cmd[@]}
 
 			# test rsync to check newer files
@@ -1933,10 +1931,10 @@ t2b_uninstall() {
 		return 0
 	fi
 
-	lb_print "Uninstall time2backup..."
+	echo "Uninstall time2backup..."
 
 	# delete cron job
-	lb_print "\nRemove cron jobs..."
+	echo -e "\nRemove cron jobs..."
 	crontab_config disable
 	if [ $? != 0 ] ; then
 		echo "... Failed. Please remove it manually."
@@ -1950,7 +1948,7 @@ t2b_uninstall() {
 
 		# delete desktop file
 		if [ -f "$application_link" ] ; then
-			lb_print "\nDelete application link..."
+			echo -e "\nDelete application link..."
 			rm -f "$application_link"
 			if [ $? != 0 ] ; then
 				echo "... Failed"
@@ -1963,7 +1961,7 @@ t2b_uninstall() {
 
 	# delete alias if exists
 	if [ -e "$cmd_alias" ] ; then
-		lb_print "\nDelete command alias..."
+		echo -e "\nDelete command alias..."
 		 rm -f "$cmd_alias"
 		if [ $? != 0 ] ; then
 			echo "... Failed"
@@ -1975,7 +1973,7 @@ t2b_uninstall() {
 
 	# delete configuration
 	if $delete_config ; then
-		lb_print "\nDelete configuration..."
+		echo -e "\nDelete configuration..."
 		rm -rf "$config_directory"
 		if [ $? != 0 ] ; then
 			echo "... Failed"
@@ -1985,7 +1983,7 @@ t2b_uninstall() {
 
 	# delete files
 	if $delete_files ; then
-		lb_print "\nDelete time2backup files..."
+		echo -e "\nDelete time2backup files..."
 		rm -rf "$script_directory"
 		if [ $? != 0 ] ; then
 			echo "... Failed"
