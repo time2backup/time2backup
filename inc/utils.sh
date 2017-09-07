@@ -442,8 +442,7 @@ load_config() {
 	echo "Loading configuration..."
 
 	# load config
-	lb_import_config "$config_file"
-	if [ $? != 0 ] ; then
+	if ! lb_import_config "$config_file" ; then
 		lb_display_error "Config file is corrupted or can not be read!"
 		return 1
 	fi
@@ -451,13 +450,6 @@ load_config() {
 	# if destination is overriden, set it
 	if [ -n "$force_destination" ] ; then
 		destination=$force_destination
-	fi
-
-	# test configuration
-	if ! test_config ; then
-		lb_error "\nThere are errors in your configuration."
-		lb_error "Please edit your configuration with 'config' command or manually."
-		return 2
 	fi
 
 	# increment clean_keep to 1 to keep the current backup
@@ -1926,7 +1918,7 @@ config_wizard() {
 	fi
 
 	# reload config
-	if ! load_config ; then
+	if ! load_config || ! test_config ; then
 		lbg_display_error "$tr_errors_in_config"
 		return 3
 	fi
@@ -1977,5 +1969,4 @@ first_run() {
 
 	# run config wizard
 	config_wizard
-	return $?
 }

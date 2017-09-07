@@ -1639,16 +1639,16 @@ t2b_config() {
 				file=$config_sources
 				;;
 			-l|--show)
-				op_config="show"
+				op_config=show
 				;;
 			-t|--test)
-				op_config="test"
+				op_config=test
 				;;
 			-w|--wizard)
-				op_config="wizard"
+				op_config=wizard
 				;;
 			-r|--reset)
-				op_config="reset"
+				op_config=reset
 				;;
 			-e|--editor)
 				if [ -z "$2" ] ; then
@@ -1677,7 +1677,7 @@ t2b_config() {
 
 		if [ -z "$op_config" ] ; then
 			if ! lbg_choose_option -d 1 -l "$tr_choose_config_file" \
-						"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
+			     "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
 				return 0
 			fi
 
@@ -1695,7 +1695,7 @@ t2b_config() {
 					file=$config_includes
 					;;
 				5)
-					op_config="wizard"
+					op_config=wizard
 					;;
 				*)
 					# bad choice
@@ -1708,8 +1708,8 @@ t2b_config() {
 	# operations to do on config
 	case $op_config in
 		wizard)
+			# load config and do not care of errors
 			load_config
-
 			# run config wizard
 			config_wizard
 			;;
@@ -1752,14 +1752,17 @@ t2b_config() {
 			case $? in
 				0)
 					# config ok: reload it
-					load_config
-					if [ $? != 0 ] ; then
+					if ! load_config ; then
+						return 3
+					fi
+
+					# retest config
+					if ! test_config ; then
 						return 3
 					fi
 
 					# apply config
-					apply_config
-					if [ $? != 0 ] ; then
+					if ! apply_config ; then
 						return 4
 					fi
 					;;
@@ -1781,8 +1784,6 @@ t2b_config() {
 	if [ $? != 0 ] ; then
 		return 3
 	fi
-
-	return 0
 }
 
 

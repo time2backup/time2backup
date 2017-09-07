@@ -355,15 +355,22 @@ esac
 
 lb_display_debug "Using config file: $config_file"
 
-# load configuration if exists
+# if config file exists
 if [ -f "$config_file" ] ; then
-	echo "Loading configuration..."
-	lb_import_config "$config_file"
-	if [ $? != 0 ] ; then
-		lb_display_error "Config file is corrupted or can not be read!"
+
+	# upgrade config if needed
+	if ! upgrade_config ; then
+		lbg_display_error "$tr_error_upgrade_config"
 		exit 3
 	fi
+
+	# load config
+	if ! load_config ; then
+		exit 3
+	fi
+
 else
+	# config file does not exists
 	new_config=true
 fi
 
@@ -373,18 +380,10 @@ if ! lb_command_exists "$rsync_path" ; then
 	exit 1
 fi
 
-# config initialization
+# create config files if neededs
 if ! create_config ; then
 	lbg_display_error "$tr_error_create_config"
 	exit 3
-fi
-
-# upgrade configuration file
-if ! $new_config ; then
-	if ! upgrade_config ; then
-		lbg_display_error "$tr_error_upgrade_config"
-		exit 3
-	fi
 fi
 
 # if configuration is not set (destination empty),
@@ -407,8 +406,10 @@ fi
 case $command in
 	backup|restore|history|explore|status|stop)
 
-		# load and test configuration
-		if ! load_config ; then
+		# test configuration
+		if ! test_config ; then
+			lb_error "\nThere are errors in your configuration."
+			lb_error "Please edit your configuration with 'config' command or manually."
 			exit 3
 		fi
 
