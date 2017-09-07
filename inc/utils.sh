@@ -439,11 +439,11 @@ test_config() {
 #   2: there are errors in config
 load_config() {
 
-	echo "Loading configuration..."
+	echo -e "\n$tr_loading_config"
 
 	# load config
 	if ! lb_import_config "$config_file" ; then
-		lb_display_error "Config file is corrupted or can not be read!"
+		lb_display_error "$tr_error_read_config"
 		return 1
 	fi
 
@@ -494,7 +494,7 @@ mount_destination() {
 	# test if UUID exists (disk plugged)
 	ls /dev/disk/by-uuid/ | grep "$backup_disk_uuid" &> /dev/null
 	if [ $? != 0 ] ; then
-		lb_display_error --log "Disk not available."
+		lb_display_debug --log "Disk not available."
 		return 2
 	fi
 
@@ -1662,31 +1662,28 @@ haltpc() {
 
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation
-# Exit codes:
-#   - 0: OK
-#   - 1: bad choice
-#   - 2: cancelled
 choose_operation() {
 
 	# display choice
 	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
-		return 2
+		exit
 	fi
 
 	# run command
 	case $lbg_choose_option in
 		1)
-			echo backup
+			command=backup
 			;;
 		2)
-			echo restore
+			command=restore
 			;;
 		3)
-			echo config
+			command=config
 			;;
 		*)
 			# bad choice
-			return 1
+			print_help global
+			exit 1
 			;;
 	esac
 }

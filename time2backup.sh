@@ -95,6 +95,8 @@ verbose_level=$default_verbose_level
 #  INITIALIZATION  #
 ####################
 
+echo "timestamp $version"
+
 # get real path of the script
 if [ "$(uname)" == Darwin ] ; then
 	# macOS which does not support readlink -f option
@@ -324,7 +326,7 @@ if ! $debug_mode ; then
 	fi
 fi
 
-lb_display_debug "Running in DEBUG mode...\n"
+lb_display_debug "Running in DEBUG mode..."
 
 # get main command
 command=$1
@@ -395,11 +397,7 @@ fi
 
 # display choose operation dialog if not set
 if [ -z "$command" ] ; then
-	command=$(choose_operation)
-	if [ $? != 0 ] ; then
-		# cancelled
-		exit
-	fi
+	choose_operation
 fi
 
 # main command operations
