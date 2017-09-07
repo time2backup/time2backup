@@ -141,6 +141,7 @@ print_help() {
 			echo "Uninstall time2backup"
 			echo
 			echo "Options:"
+			echo "  -y, --yes            Do not prompt confirmation to uninstall"
 			echo "  -c, --delete-config  Delete configuration files"
 			echo "  -x, --delete         Delete time2backup files"
 			echo "  -h, --help           Print help"

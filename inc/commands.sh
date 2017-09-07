@@ -1708,8 +1708,6 @@ t2b_config() {
 	# operations to do on config
 	case $op_config in
 		wizard)
-			# load config and do not care of errors
-			load_config
 			# run config wizard
 			config_wizard
 			;;
@@ -1865,7 +1863,7 @@ EOF
 	fi
 
 	# considering that we are installed (don't care of errors)
-	cat "$version" > "$script_directory/config/.install" 2> /dev/null
+	touch "$script_directory/config/.install" &> /dev/null
 
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
@@ -1900,12 +1898,16 @@ EOF
 t2b_uninstall() {
 
 	# default options
-	delete_config=false
-	delete_files=false
+	local delete_config=false
+	local delete_files=false
+	local force_mode=false
 
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
+			-y|--yes)
+				force_mode=true
+				;;
 			-c|--delete-config)
 				delete_config=true
 				;;
@@ -1928,66 +1930,62 @@ t2b_uninstall() {
 	done
 
 	# confirm action
-	if ! lb_yesno "Uninstall time2backup?" ; then
-		return 0
+	if ! $force_mode ; then
+		if ! lb_yesno "Uninstall time2backup?" ; then
+			return 0
+		fi
 	fi
 
 	echo "Uninstall time2backup..."
 
 	# delete cron job
-	echo -e "\nRemove cron jobs..."
-	crontab_config disable
-	if [ $? != 0 ] ; then
-		echo "... Failed. Please remove it manually."
+	if ! crontab_config disable &> /dev/null ; then
+		lb_error "Failed to remove cron job(s). Please remove them manually."
 		lb_exitcode=3
 	fi
 
 	# delete desktop file (Linux)
-	if [ "$lb_current_os" != macOS ] ; then
+	application_link=/usr/share/applications/time2backup.desktop
 
-		application_link=/usr/share/applications/time2backup.desktop
-
-		# delete desktop file
-		if [ -f "$application_link" ] ; then
-			echo -e "\nDelete application link..."
-			rm -f "$application_link"
-			if [ $? != 0 ] ; then
-				echo "... Failed"
-				echo "Please retry in sudo, or run the following command:"
-				echo "   sudo rm -f \"$application_link\""
-				lb_exitcode=4
-			fi
+	# delete desktop file
+	if [ -f "$application_link" ] ; then
+		rm -f "$application_link"
+		if [ $? != 0 ] ; then
+			lb_error "Failed to remove application link."
+			lb_error "Please retry in sudo, or run the following command:"
+			lb_error "   sudo rm -f \"$application_link\""
+			lb_exitcode=4
 		fi
 	fi
 
 	# delete alias if exists
 	if [ -e "$cmd_alias" ] ; then
-		echo -e "\nDelete command alias..."
-		 rm -f "$cmd_alias"
+		rm -f "$cmd_alias"
 		if [ $? != 0 ] ; then
-			echo "... Failed"
-			echo "Please retry in sudo, or run the following command:"
-			echo "   sudo rm -f \"$cmd_alias\""
+			lb_error "Failed to remove command alias."
+			lb_error "Please retry in sudo, or run the following command:"
+			lb_error "   sudo rm -f \"$cmd_alias\""
 			lb_exitcode=5
 		fi
 	fi
 
+	# delete .install file
+	rm -f "$script_directory/config/.install" #&> /dev/null
+
 	# delete configuration
 	if $delete_config ; then
-		echo -e "\nDelete configuration..."
 		rm -rf "$config_directory"
 		if [ $? != 0 ] ; then
-			echo "... Failed"
+			lb_error "Failed to delete config directory."
 			lb_exitcode=6
 		fi
 	fi
 
 	# delete files
 	if $delete_files ; then
-		echo -e "\nDelete time2backup files..."
 		rm -rf "$script_directory"
 		if [ $? != 0 ] ; then
-			echo "... Failed"
+			lb_error "Failed to delete time2backup directory."
 			lb_exitcode=7
 		fi
 	fi
@@ -1998,6 +1996,6 @@ t2b_uninstall() {
 		echo "time2backup is uninstalled"
 	fi
 
-	# we quit as soon as possible (do not use libbash that may be deleted)
+	# we quit as soon as possible (do not use libbash that may be already deleted)
 	exit $lb_exitcode
 }

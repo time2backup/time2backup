@@ -1940,8 +1940,7 @@ config_wizard() {
 
 # First run wizard
 # Usage: first_run
-# Exit codes:
-#   - forwarded from config_wizard or t2b_install
+# Exit codes: forwarded from config_wizard
 first_run() {
 
 	install_result=0

@@ -295,6 +295,7 @@ time2backup [GLOBAL_OPTIONS] uninstall [OPTIONS]
 
 ### Options
 ```
+-y, --yes            Do not prompt confirmation to uninstall
 -c, --delete-config  Delete configuration files
 -x, --delete         Delete time2backup files
 -h, --help           Print help
