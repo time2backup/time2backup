@@ -74,7 +74,10 @@ t2b_backup() {
 
 	# if not specified, get sources to backup
 	if [ ${#sources[@]} == 0 ] ; then
-		get_sources
+		# read sources.conf file line by line; backslashes are not escaped
+		while read -r line ; do
+			sources+=("$line")
+		done < <(cat "$config_sources" | grep -Ev '^$' | grep -Ev '^\s*#')
 	fi
 
 	# get number of sources to backup

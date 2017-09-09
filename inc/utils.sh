@@ -20,7 +20,6 @@
 #      mount_destination
 #      unmount_destination
 #      get_backup_path
-#      get_sources
 #      get_backups
 #      delete_backup
 #      rotate_backups
@@ -347,11 +346,6 @@ upgrade_config() {
 
 	# read old config
 	while read -r config_line ; do
-		# ignore comments
-	  if lb_is_comment $config_line ; then
-			continue
-		fi
-
 		config_param=$(echo $config_line | cut -d= -f1)
 		config_line=$(echo "$config_line" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
@@ -362,7 +356,7 @@ upgrade_config() {
 			lb_display_error "$tr_error_upgrade_config"
 			return 2
 		fi
-	done < "$old_config"
+	done < <(cat "$old_config" | grep -Ev '^$' | grep -Ev '^\s*#')
 
 	# delete old config
 	rm -f "$old_config" &> /dev/null
@@ -662,24 +656,6 @@ get_backup_path() {
 	fi
 
 	return 0
-}
-
-
-# Get list of sources to backup
-# Usage: get_sources
-# Return: array of sources
-get_sources() {
-
-	# reset variable
-	sources=()
-
-	# read sources.conf file line by line; backslashes are not escaped
-	while read -r line ; do
-		# append source if line is not a comment
-		if ! lb_is_comment $line ; then
-			sources+=("$line")
-		fi
-	done < "$config_sources"
 }
 
 
