@@ -266,11 +266,14 @@ create_config() {
 	# copy config samples from current directory
 	if ! [ -f "$config_excludes" ] ; then
 		cp -f "$script_directory/config/excludes.example.conf" "$config_excludes"
+		# DO NOT transform this file to Windows format!
 	fi
 
 	if ! [ -f "$config_sources" ] ; then
 		cp -f "$script_directory/config/sources.example.conf" "$config_sources"
-		if [ $? != 0 ] ; then
+		if [ $? == 0 ] ; then
+			file_for_windows "$config_sources"
+		else
 			lb_error "Cannot create sources file."
 			return 2
 		fi
@@ -278,7 +281,9 @@ create_config() {
 
 	if ! [ -f "$config_file" ] ; then
 		cp -f "$script_directory/config/time2backup.example.conf" "$config_file"
-		if [ $? != 0 ] ; then
+		if [ $? == 0 ] ; then
+			file_for_windows "$config_file"
+		else
 			lb_error "Cannot create config file."
 			return 3
 		fi
@@ -295,7 +300,7 @@ create_config() {
 upgrade_config() {
 
 	# get config version
-	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9][^\ ]*")
+	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
 	if [ -z "$old_config_version" ] ; then
 		lb_display_error "Cannot get config version."
 		return 1
@@ -344,10 +349,22 @@ upgrade_config() {
 		return 2
 	fi
 
+	# transform Windows file
+	file_for_windows "$config_file"
+
 	# read old config
-	while read -r config_line ; do
-		config_param=$(echo $config_line | cut -d= -f1 | tr -d '[[:space:]]')
-		config_line=$(echo "$config_line" | sed 's/\\/\\\\/g; s/\//\\\//g')
+	if ! lb_read_config "$old_config" ; then
+		lb_display_error "$tr_error_upgrade_config"
+		return 2
+	fi
+
+	for ((c=0; c<${#lb_read_config[@]}; c++)) ; do
+		config_param=$(echo ${lb_read_config[$c]} | cut -d= -f1 | tr -d '[[:space:]]')
+		config_line=$(echo "${lb_read_config[$c]}" | sed 's/\\/\\\\/g; s/\//\\\//g')
+
+		if [ "$lb_current_os" == Windows ] ; then
+			config_line+="\r"
+		fi
 
 		lb_display_debug "Upgrade $config_line..."
 
@@ -356,7 +373,7 @@ upgrade_config() {
 			lb_display_error "$tr_error_upgrade_config"
 			return 2
 		fi
-	done < <(cat "$old_config" | grep -Ev '^$' | grep -Ev '^\s*#')
+	done
 
 	# delete old config
 	rm -f "$old_config" &> /dev/null
@@ -1255,11 +1272,17 @@ edit_config() {
 			if ! $console_mode ; then
 				# check if we are using something else than a console
 				if [ "$(lbg_get_gui)" != console ] ; then
-					if [ "$lb_current_os" == macOS ] ; then
-						all_editors+=(open)
-					else
-						all_editors+=(xdg-open)
-					fi
+					case $lb_current_os in
+						macOS)
+							all_editors+=(open)
+							;;
+						Windows)
+							all_editors+=(notepad)
+							;;
+						*)
+							all_editors+=(xdg-open)
+							;;
+					esac
 				fi
 			fi
 		fi
@@ -1278,6 +1301,12 @@ edit_config() {
 
 		# run text editor and wait for it to close
 		if [ -n "$editor" ] ; then
+			# Windows: transform to Windows path like c:\...\time2backup.conf
+			if [ "$lb_current_os" == Windows ] ; then
+				edit_file=$(cygpath -w "$edit_file")
+			fi
+
+			# open editor
 			"$editor" "$edit_file" 2> /dev/null
 			wait $!
 		else
@@ -1780,9 +1809,11 @@ config_wizard() {
 		# manage result
 		res_edit=$?
 		if [ $res_edit == 0 ] ; then
-			# display window to wait until user has finished
-			if ! $console_mode ; then
-				lbg_display_info "$tr_finished_edit"
+			if [ "$lb_current_os" != Windows ] ; then
+				# display window to wait until user has finished
+				if ! $console_mode ; then
+					lbg_display_info "$tr_finished_edit"
+				fi
 			fi
 		else
 			lb_error "Error in editing sources config file (result code: $res_edit)"
@@ -1876,9 +1907,11 @@ config_wizard() {
 
 		edit_config "$config_file"
 		if [ $? == 0 ] ; then
-			# display window to wait until user has finished
-			if ! $console_mode ; then
-				lbg_display_info "$tr_finished_edit"
+			if [ "$lb_current_os" != Windows ] ; then
+				# display window to wait until user has finished
+				if ! $console_mode ; then
+					lbg_display_info "$tr_finished_edit"
+				fi
 			fi
 		fi
 	fi

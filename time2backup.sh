@@ -95,7 +95,7 @@ verbose_level=$default_verbose_level
 #  INITIALIZATION  #
 ####################
 
-echo "timestamp $version"
+echo "time2backup $version"
 
 # get real path of the script
 if [ "$(uname)" == Darwin ] ; then
@@ -382,7 +382,7 @@ if ! lb_command_exists "$rsync_path" ; then
 	exit 1
 fi
 
-# create config files if neededs
+# create config files if needed
 if ! create_config ; then
 	lbg_display_error "$tr_error_create_config"
 	exit 3

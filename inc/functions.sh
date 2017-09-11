@@ -293,3 +293,22 @@ rsync_result() {
 			;;
 	esac
 }
+
+
+# Transform a config file in Windows format
+# Usage: file_for_windows PATH
+# Exit codes:
+#   0: OK
+#   1: Usage error / Unknown error
+file_for_windows() {
+
+	if [ "$lb_current_os" != Windows ] ; then
+		return 0
+	fi
+
+	if ! [ -f "$1" ] ; then
+		return 1
+	fi
+
+	sed -i 's/$/\r/g' "$1"
+}
