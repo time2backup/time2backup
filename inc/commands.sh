@@ -689,22 +689,23 @@ t2b_backup() {
 	fi
 
 	# if backup succeeded (all OK or even if warnings)
-	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 15 ] ; then
+	case $lb_exitcode in
+		0|5|15)
+			lb_display_debug --log "Save backup timestamp"
 
-		lb_display_debug --log "Save backup timestamp"
+			# save current timestamp into config/.lastbackup file
+			date '+%s' > "$last_backup_file"
+			if [ $? != 0 ] ; then
+				lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
+			fi
 
-		# save current timestamp into config/.lastbackup file
-		date '+%s' > "$last_backup_file"
-		if [ $? != 0 ] ; then
-			lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
-		fi
+			# create a latest link to the last backup directory
+			lb_display_debug --log "Create latest link..."
 
-		# create a latest link to the last backup directory
-		lb_display_debug --log "Create latest link..."
-
-		# create a new link (in a sub-context to avoid confusion)
-		$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
-	fi
+			# create a new link (in a sub-context to avoid confusion)
+			$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
+			;;
+	esac
 
 	# print final report
 	lb_display --log "Backup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
