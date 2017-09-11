@@ -346,7 +346,7 @@ upgrade_config() {
 
 	# read old config
 	while read -r config_line ; do
-		config_param=$(echo $config_line | cut -d= -f1)
+		config_param=$(echo $config_line | cut -d= -f1 | tr -d '[[:space:]]')
 		config_line=$(echo "$config_line" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
 		lb_display_debug "Upgrade $config_line..."

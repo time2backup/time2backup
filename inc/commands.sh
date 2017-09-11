@@ -703,7 +703,11 @@ t2b_backup() {
 			lb_display_debug --log "Create latest link..."
 
 			# create a new link (in a sub-context to avoid confusion)
-			$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
+			if [ "$lb_current_os" == Windows ] ; then
+				$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
+			else
+				$(cd "$backup_destination" && rm -f latest && cmd /c mklink /j latest "$backup_date")
+			fi
 			;;
 	esac
 
