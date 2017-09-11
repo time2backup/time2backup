@@ -72,12 +72,15 @@ t2b_backup() {
 		shift
 	done
 
-	# if not specified, get sources to backup
+	# if not specified, get sources from config file
 	if [ ${#sources[@]} == 0 ] ; then
-		# read sources.conf file line by line; backslashes are not escaped
-		while read -r line ; do
-			sources+=("$line")
-		done < <(cat "$config_sources" | grep -Ev '^$' | grep -Ev '^\s*#')
+
+		if ! lb_read_config "$config_sources" ; then
+			lbg_display_error "Cannot read sources.conf file!"
+			return 3
+		fi
+
+		sources=("${lb_read_config[@]}")
 	fi
 
 	# get number of sources to backup
@@ -1655,6 +1658,7 @@ t2b_config() {
 				;;
 			-e|--editor)
 				if [ -z "$2" ] ; then
+					print_help
 					return 1
 				fi
 				cmd_opts="-e $2 "
