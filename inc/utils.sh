@@ -788,6 +788,7 @@ report_duration() {
 crontab_config() {
 
 	local crontab_enable=false
+	local crontab_opts=""
 
 	if [ $# == 0 ] ; then
 		return 1
@@ -809,8 +810,14 @@ crontab_config() {
 
 	crontask+="backup --recurrent"
 
+	# if root, use crontab -u option
+	# Note: macOS does supports -u option only if current user is root
+	if [ "$(whoami)" == root ] ; then
+		crontab_opts="-u $user"
+	fi
+
 	# check if crontab exists
-	crontab -u $user -l > "$tmpcrontab" 2>&1
+	crontab $crontab_opts -l > "$tmpcrontab" 2>&1
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
 		grep "no crontab for " "$tmpcrontab" > /dev/null
@@ -873,7 +880,7 @@ crontab_config() {
 	fi
 
 	# install new crontab
-	crontab -u $user "$tmpcrontab"
+	crontab $crontab_opts "$tmpcrontab"
 	if [ $? != 0 ] ; then
 		res_install=3
 	fi
