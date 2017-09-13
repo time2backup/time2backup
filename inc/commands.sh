@@ -45,7 +45,6 @@ t2b_backup() {
 				unmount=true
 				;;
 			-s|--shutdown)
-				force_shutdown=true
 				shutdown=true
 				;;
 			-r|--recurrent)
@@ -261,7 +260,7 @@ t2b_backup() {
 
 	# create log file
 	if ! create_logfile "$logfile" ; then
-		clean_exit --no-rmlog --no-shutdown 9
+		clean_exit 9
 	fi
 
 	lb_display --log "Backup started on $current_date\n"

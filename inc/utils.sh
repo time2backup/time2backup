@@ -1429,11 +1429,9 @@ is_installed() {
 # Options:
 #   --no-unmount   Do not unmount
 #   --no-email     Do not send email report
-#   --no-rmlog     Do not delete logfile
-#   --no-shutdown  Do not halt PC
 clean_exit() {
 
-	delete_logs=true
+	local delete_logs=true
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1445,14 +1443,6 @@ clean_exit() {
 				;;
 			--no-email)
 				email_report=none
-				;;
-			--no-rmlog)
-				delete_logs=false
-				;;
-			--no-shutdown)
-				if ! $force_shutdown ; then
-					shutdown=false
-				fi
 				;;
 			*)
 				break
@@ -1467,12 +1457,10 @@ clean_exit() {
 	fi
 
 	# prevent from deleting logs
-	if $delete_logs ; then
-		if [ "$keep_logs" == "always" ] ; then
-			delete_logs=false
-		elif [ "$keep_logs" == "on_error" ] && [ $lb_exitcode != 0 ] ; then
-			delete_logs=false
-		fi
+	if [ "$keep_logs" == "always" ] ; then
+		delete_logs=false
+	elif [ "$keep_logs" == "on_error" ] && [ $lb_exitcode != 0 ] ; then
+		delete_logs=false
 	fi
 
 	lb_display_debug --log "Clean exit."
@@ -1608,23 +1596,27 @@ cancel_exit() {
 	lb_display --log
 	lb_display_info --log "Cancelled. Exiting..."
 
-	# display notification
-	if $notifications ; then
-		if [ "$command" == backup ] ; then
-			lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
-		else
-			lbg_notify "$tr_restore_cancelled"
-		fi
-	fi
-
-	# backup mode
-	if [ "$command" == backup ] ; then
-		# exit with cancel code without shutdown
-		clean_exit --no-shutdown 17
-	else
-		# restore mode: just exit
-		exit 11
-	fi
+	# display notification and exit
+	case $command in
+		backup)
+			if $notifications ; then
+				lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
+			fi
+			clean_exit 17
+			;;
+		restore)
+			if $notifications ; then
+				lbg_notify "$tr_restore_cancelled"
+			fi
+			exit 11
+			;;
+		*)
+			if $notifications ; then
+				lbg_notify "Unkown operation cancelled."
+			fi
+			exit 255
+			;;
+	esac
 }
 
 
