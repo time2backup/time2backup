@@ -180,35 +180,15 @@ t2b_backup() {
 
 	# execute before backup command/script
 	if [ ${#exec_before[@]} -gt 0 ] ; then
-		# test command/script
-		if lb_command_exists "${exec_before[0]}" ; then
+		# run command/script
+		"${exec_before[@]}"
 
-			# run command/script
-			"${exec_before[@]}"
-
-			if [ $? != 0 ] ; then
-				# if error, do not overwrite rsync exit code
-				if [ $lb_exitcode == 0 ] ; then
-					lb_exitcode=5
-				fi
-
-				# option exit if error
-				if $exec_before_block ; then
-					lb_display_debug --log "Before script exited with error."
-					clean_exit --no-unmount
-				fi
-			fi
-		else
-			# if command/script not found
-			lb_error "Error: cannot run command $exec_before"
-
-			# if error, do not overwrite rsync exit code
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=5
-			fi
+		if [ $? != 0 ] ; then
+			lb_exitcode=5
 
 			# option exit if error
 			if $exec_before_block ; then
+				lb_display_debug --log "Before script exited with error."
 				clean_exit --no-unmount
 			fi
 		fi
@@ -784,26 +764,19 @@ t2b_backup() {
 
 	# execute custom after backup script
 	if [ ${#exec_after[@]} -gt 0 ] ; then
-		# test command/script
-		if lb_command_exists "${exec_after[0]}" ; then
-			"${exec_after[@]}"
-			# if error, do not overwrite rsync exit code
-			if [ $? != 0 ] ; then
-				if [ $lb_exitcode == 0 ] ; then
-					lb_exitcode=16
-				fi
-				if $exec_after_block ; then
-					clean_exit
-				fi
-			fi
-		else
-			lb_display --log "Error: cannot run command $exec_after"
+		# run command/script
+		"${exec_after[@]}"
+
+		if [ $? != 0 ] ; then
 			# if error, do not overwrite rsync exit code
 			if [ $lb_exitcode == 0 ] ; then
 				lb_exitcode=16
 			fi
+
+			# option exit if error
 			if $exec_after_block ; then
-				 clean_exit
+				lb_display_debug --log "After script exited with error."
+				clean_exit
 			fi
 		fi
 	fi
