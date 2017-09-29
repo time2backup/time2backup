@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 (2017-09-29)
+- New explore command to open backups in the file manager
+- New stop command to interrupt a running backup
+- New debian package available
+- Major improvements in config files
+- Add option to override destination
+- Rotate backups only when backup is done
+- Add translations in email reports
+- Improve install process
+- Config files can be open and modified on Windows in the notepad
+- Various improvements on Windows
+- Fixed bad interpretation of sizes on macOS
+- Fix email reports that were not sent
+
 ## 1.0.0 (2017-08-09)
 - Changed `logs_save` to `keep_logs` with an enum (can broke your config, see config example file)
 
