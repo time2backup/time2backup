@@ -1607,7 +1607,7 @@ t2b_config() {
 	local cmd_opts=""
 
 	# get options
-	# following other options to edit_config() function
+	# following other options to open_config() function
 	while [ -n "$1" ] ; do
 		case $1 in
 			-g|--general)
@@ -1729,7 +1729,7 @@ t2b_config() {
 		*)
 			# edit configuration
 			echo "Opening configuration file..."
-			edit_config $cmd_opts"$file"
+			open_config $cmd_opts"$file"
 
 			# after config,
 			case $? in

@@ -31,7 +31,7 @@
 #      test_backup
 #      test_free_space
 #      clean_empty_directories
-#      edit_config
+#      open_config
 #      current_lock
 #      release_lock
 #      prepare_rsync
@@ -1192,21 +1192,20 @@ clean_empty_directories() {
 
 
 # Edit configuration
-# Usage: edit_config [OPTIONS] CONFIG_FILE
+# Usage: open_config [OPTIONS] CONFIG_FILE
 # Options:
 #   -e, --editor COMMAND  set editor
-#   --set "param=value"   set a config parameter in headless mode (no editor)
 # Exit codes:
 #   0: OK
 #   1: usage error
-#   3: failed to open/save configuration
+#   3: failed to open configuration
 #   4: no editor found to open configuration file
-edit_config() {
+open_config() {
 
 	# default values
-	editors=(nano vim vi)
-	custom_editor=false
-	set_config=""
+	local editors=(nano vim vi)
+	local all_editors=()
+	local custom_editor=false
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1219,13 +1218,6 @@ edit_config() {
 				custom_editor=true
 				shift
 				;;
-			--set)
-				if [ -z "$2" ] ; then
-					return 1
-				fi
-				set_config=$2
-				shift
-				;;
 			*)
 				break
 				;;
@@ -1233,8 +1225,8 @@ edit_config() {
 		shift # load next argument
 	done
 
-	# test config file
-	if lb_test_arguments -eq 0 $* ; then
+	# test arguments
+	if [ -z "$1" ] ; then
 		return 1
 	fi
 
@@ -1248,88 +1240,65 @@ edit_config() {
 		fi
 	else
 		# create empty file if it does not exists (should be includes.conf)
-		echo -e "\n" > "$edit_file"
+		echo > "$edit_file"
 	fi
 
-	# headless mode
-	if [ -n "$set_config" ] ; then
+	# if no custom editor,
+	if ! $custom_editor ; then
+		# open file with graphical editor
+		if ! $console_mode ; then
+			# check if we are using something else than a console
+			if [ "$(lbg_get_gui)" != console ] ; then
+				case $lb_current_os in
+					macOS)
+						all_editors+=(open)
+						;;
+					Windows)
+						all_editors+=(notepad)
+						;;
+					*)
+						all_editors+=(xdg-open)
+						;;
+				esac
+			fi
+		fi
+	fi
 
-		# get parameter + value
-		conf_param=$(echo $set_config | cut -d= -f1 | tr -d '[[:space:]]')
-		conf_value=$(echo "$set_config" | sed 's/\//\\\//g')
+	# add console editors or chosen one
+	all_editors+=("${editors[@]}")
 
-		# get config line
-		config_line=$(cat "$edit_file" | grep -n "^[# ]*$conf_param[[:space:]]*=" | cut -d: -f1)
+	# select a console editor
+	for e in ${all_editors[@]} ; do
+		# test if editor exists
+		if lb_command_exists "$e" ; then
+			editor=$e
+			break
+		fi
+	done
 
-		# if found, change line
-		if [ -n "$config_line" ] ; then
-			sed -i~ "${config_line}s/.*/$conf_value/" "$edit_file"
-		else
-			# if not found, append to file
-			echo "$set_config" >> "$edit_file"
+	# run text editor and wait for it to close
+	if [ -n "$editor" ] ; then
+		# Windows: transform to Windows path like c:\...\time2backup.conf
+		if [ "$lb_current_os" == Windows ] ; then
+			edit_file=$(cygpath -w "$edit_file")
 		fi
 
+		# open editor
+		"$editor" "$edit_file" 2> /dev/null
+		wait $!
 	else
-		# config editor mode
-		all_editors=()
-
-		# if no custom editor,
-		if ! $custom_editor ; then
-			# open file with graphical editor
-			if ! $console_mode ; then
-				# check if we are using something else than a console
-				if [ "$(lbg_get_gui)" != console ] ; then
-					case $lb_current_os in
-						macOS)
-							all_editors+=(open)
-							;;
-						Windows)
-							all_editors+=(notepad)
-							;;
-						*)
-							all_editors+=(xdg-open)
-							;;
-					esac
-				fi
-			fi
-		fi
-
-		# add console editors or chosen one
-		all_editors+=("${editors[@]}")
-
-		# select a console editor
-		for e in ${all_editors[@]} ; do
-			# test if editor exists
-			if lb_command_exists "$e" ; then
-				editor=$e
-				break
-			fi
-		done
-
-		# run text editor and wait for it to close
-		if [ -n "$editor" ] ; then
-			# Windows: transform to Windows path like c:\...\time2backup.conf
-			if [ "$lb_current_os" == Windows ] ; then
-				edit_file=$(cygpath -w "$edit_file")
-			fi
-
-			# open editor
-			"$editor" "$edit_file" 2> /dev/null
-			wait $!
+		if $custom_editor ; then
+			lb_error "Editor '$editors' was not found on this system."
 		else
-			if $custom_editor ; then
-				lb_error "Editor '$editors' was not found on this system."
-			else
-				lb_error "No editor was found on this system."
-				lb_error "Please edit $edit_file manually."
-			fi
-
-			return 4
+			lb_error "No editor was found on this system."
+			lb_error "Please edit $edit_file manually."
 		fi
+
+		return 4
 	fi
 
 	if [ $? != 0 ] ; then
-		lb_error "Failed to open/save configuration."
+		lb_error "Failed to open configuration."
 		lb_error "Please edit $edit_file manually."
 		return 3
 	fi
@@ -1722,7 +1691,7 @@ config_wizard() {
 
 		# update destination config
 		if [ "$chosen_directory" != "$destination" ] ; then
-			edit_config --set "destination = \"$chosen_directory\"" "$config_file"
+			lb_set_config "$config_file" destination "\"$chosen_directory\""
 			if [ $? == 0 ] ; then
 				# reset destination variable
 				destination=$chosen_directory
@@ -1739,7 +1708,7 @@ config_wizard() {
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
 
-				edit_config --set "backup_disk_mountpoint = \"$mountpoint\"" "$config_file"
+				lb_set_config "$config_file" backup_disk_mountpoint "\"$mountpoint\""
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
@@ -1757,7 +1726,7 @@ config_wizard() {
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
-				edit_config --set "backup_disk_uuid = \"$disk_uuid\"" "$config_file"
+				lb_set_config "$config_file" backup_disk_uuid "\"$disk_uuid\""
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
@@ -1779,7 +1748,7 @@ config_wizard() {
 					if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
 
 						# set config
-						edit_config --set "force_hard_links = false" "$config_file"
+						lb_set_config "$config_file" force_hard_links false
 
 						res_edit=$?
 						if [ $res_edit != 0 ] ; then
@@ -1803,7 +1772,7 @@ config_wizard() {
 	# edit sources to backup
 	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
 
-		edit_config "$config_sources"
+		open_config "$config_sources"
 
 		# manage result
 		res_edit=$?
@@ -1850,16 +1819,16 @@ config_wizard() {
 				# set recurrence frequency
 				case $lbg_choose_option in
 					1)
-						edit_config --set "frequency = hourly" "$config_file"
+						lb_set_config "$config_file" frequency hourly
 						;;
 					2)
-						edit_config --set "frequency = daily" "$config_file"
+						lb_set_config "$config_file" frequency daily
 						;;
 					3)
-						edit_config --set "frequency = weekly" "$config_file"
+						lb_set_config "$config_file" frequency weekly
 						;;
 					4)
-						edit_config --set "frequency = monthly" "$config_file"
+						lb_set_config "$config_file" frequency monthly
 						;;
 					5)
 						# default custom frequency
@@ -1883,7 +1852,7 @@ config_wizard() {
 						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
 							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
 							if [ $? == 0 ] ; then
-								edit_config --set "frequency = $lbg_input_text" "$config_file"
+								lb_set_config "$config_file" frequency $lbg_input_text
 							else
 								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
 							fi
@@ -1904,7 +1873,7 @@ config_wizard() {
 	# ask to edit config
 	if lbg_yesno "$tr_ask_edit_config" ; then
 
-		edit_config "$config_file"
+		open_config "$config_file"
 		if [ $? == 0 ] ; then
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
@@ -1916,7 +1885,7 @@ config_wizard() {
 	fi
 
 	# enable/disable recurrence in config
-	edit_config --set "recurrent = $recurrent_enabled" "$config_file"
+	lb_set_config "$config_file" recurrent $recurrent_enabled
 	res_edit=$?
 	if [ $res_edit != 0 ] ; then
 		lb_display_debug "Error in setting config parameter recurrent (result code: $res_edit)"
