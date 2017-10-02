@@ -8,6 +8,7 @@
 * [explore](#explore)
 * [status](#status)
 * [stop](#stop)
+* [clean](#clean)
 * [config](#config)
 * [install](#install)
 * [uninstall](#uninstall)
@@ -220,6 +221,31 @@ time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
 - 5: Failed to stop process
 - 6: Cannot get status of backup
 - 7: No rsync process found
+
+---------------------------------------------------------------
+<a name="clean"></a>
+## clean
+Clean some backup files.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
+```
+
+### Options
+```
+-f, --force  Force clean; do not display confirmation
+-q, --quiet  Quiet mode
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: Files cleaned
+- 1: Usage error
+- 3: Config error
+- 4: Backup device is not reachable
+- 5: No backup found for the path
+- 6: Some error occured while deleting files
 
 ---------------------------------------------------------------
 <a name="config"></a>

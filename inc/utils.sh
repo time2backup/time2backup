@@ -451,7 +451,7 @@ test_config() {
 load_config() {
 
 	if ! $quiet_mode ; then
-		echo -e "\n$tr_loading_config"
+		echo -e "\n$tr_loading_config\n"
 	fi
 
 	# load config

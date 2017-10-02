@@ -15,6 +15,7 @@
 #   t2b_explore
 #   t2b_status
 #   t2b_stop
+#   t2b_clean
 #   t2b_config
 #   t2b_install
 #   t2b_uninstall
@@ -1280,10 +1281,12 @@ t2b_history() {
 				continue
 			fi
 
+			backup_file="$backup_destination/$b/$abs_file"
+
 			echo
 
 			# get number of files
-			nb_files=$(ls -l "$backup_destination/$b/$abs_file" 2> /dev/null | wc -l)
+			nb_files=$(ls -l "$backup_file" 2> /dev/null | wc -l)
 
 			if [ -n "$nb_files" ] ; then
 				if [ $nb_files -gt 1 ] ; then
@@ -1295,7 +1298,7 @@ t2b_history() {
 			fi
 
 			# print details of file/directory
-			echo "$(cd "$backup_destination/$b" && ls -l "${abs_file:1}" 2> /dev/null)"
+			echo "$(cd "$(dirname "$backup_file")" && ls -l "$(basename "$backup_file")" 2> /dev/null)"
 		fi
 	done
 
@@ -1504,7 +1507,6 @@ t2b_status() {
 t2b_stop() {
 
 	# default options
-	local quiet_mode=false
 	local exit_code=5
 
 	# get options
@@ -1599,6 +1601,96 @@ t2b_stop() {
 	fi
 
 	return $exit_code
+}
+
+
+# Clean files in backups
+# Usage: t2b_clean [OPTIONS] PATH
+t2b_clean() {
+
+	# default options
+	local force_mode=false
+	local clean_result=0
+
+	# get options
+	while [ -n "$1" ] ; do
+		case $1 in
+			-f|--force)
+				force_mode=true
+				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# usage errors
+	if [ $# == 0 ] ; then
+		print_help
+		return 1
+	fi
+
+	# test backup destination
+	if ! prepare_destination ; then
+		return 4
+	fi
+
+	# get file
+	if [ "$lb_current_os" == Windows ] ; then
+		file=$(lb_realpath "$*")
+	else
+		file=$*
+	fi
+
+	# get all backup versions of this file
+	file_history=($(get_backup_history -a "$file"))
+
+	# no backup found
+	if [ ${#file_history[@]} == 0 ] ; then
+		lb_error "No backup found for '$file'!"
+		return 5
+	fi
+
+	# confirmation
+	if ! $force_mode ; then
+		echo "${#file_history[@]} backups were found for this file."
+		if ! lb_yesno "Do you really want to delete them?" ; then
+			return 0
+		fi
+	fi
+
+	# print backup versions
+	for b in ${file_history[@]} ; do
+		# get path of file
+		abs_file=$(get_backup_path "$file")
+		if [ -z "$abs_file" ] ; then
+			continue
+		fi
+
+		if ! $quiet_mode ; then
+			echo "Deleting backup $b..."
+		fi
+
+		# delete file(s)
+		rm -rf "$backup_destination/$b/$abs_file"
+		if [ $? != 0 ] ; then
+			clean_result=6
+		fi
+	done
+
+	return $clean_result
 }
 
 

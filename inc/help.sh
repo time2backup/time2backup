@@ -32,6 +32,7 @@ print_help() {
 		echo "   explore    Open the file browser at a date"
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
+		echo "   clean      Clean files in backups"
 		echo "   config     Edit configuration"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
@@ -105,6 +106,16 @@ print_help() {
 			echo "Cancel a running backup"
 			echo
 			echo "Options:"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
+			;;
+		clean)
+			echo "Command usage: $command [OPTIONS] PATH"
+			echo
+			echo "Clean files in backups"
+			echo
+			echo "Options:"
+			echo "  -f, --force  Force clean; do not display confirmation"
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"
 			;;

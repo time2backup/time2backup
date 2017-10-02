@@ -347,7 +347,7 @@ case $command in
 		exit $?
 		;;
 
-	history|status|stop)
+	history|status|stop|clean)
 		# search for quiet modes options
 		for arg in $* ; do
 			case $arg in
@@ -415,7 +415,7 @@ fi
 
 # main command operations
 case $command in
-	backup|restore|history|explore|status|stop)
+	backup|restore|history|explore|status|stop|clean)
 
 		# test configuration
 		if ! test_config ; then
