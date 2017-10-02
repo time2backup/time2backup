@@ -1280,13 +1280,22 @@ t2b_history() {
 				continue
 			fi
 
-			# get backup file
-			backup_file="$backup_destination/$b/$abs_file"
+			echo
+
+			# get number of files
+			nb_files=$(ls -l "$backup_destination/$b/$abs_file" 2> /dev/null | wc -l)
+
+			if [ -n "$nb_files" ] ; then
+				if [ $nb_files -gt 1 ] ; then
+					nb_files=$(($nb_files - 1))
+					echo "$b: $nb_files file(s)"
+				else
+					echo "$b: $nb_files file"
+				fi
+			fi
 
 			# print details of file/directory
-			echo
-			echo "$b:"
-			ls -l "$backup_file" 2> /dev/null
+			echo "$(cd "$backup_destination/$b" && ls -l "${abs_file:1}" 2> /dev/null)"
 		fi
 	done
 
