@@ -9,7 +9,7 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.1.0 (2017-09-29)                          #
+#  Version 1.2.0 (2017-09-10)                          #
 #                                                      #
 ########################################################
 
@@ -18,7 +18,7 @@
 #  VARIABLES DECLARATION  #
 ###########################
 
-version=1.1.0
+version=1.2.0-beta.1
 
 new_config=false
 custom_config=false
@@ -31,6 +31,7 @@ errors=()
 default_verbose_level=INFO
 default_log_level=INFO
 force_unmount=false
+quiet_mode=false
 
 
 ############################
@@ -93,8 +94,6 @@ verbose_level=$default_verbose_level
 ####################
 #  INITIALIZATION  #
 ####################
-
-echo "time2backup $version"
 
 # get real path of the script
 if [ "$(uname)" == Darwin ] ; then
@@ -247,6 +246,10 @@ while [ -n "$1" ] ; do
 	shift # load next argument
 done
 
+# get main command
+command=$1
+shift
+
 # if user not set, get current user
 if [ -z "$user" ] ; then
 	user=$lb_current_user
@@ -311,8 +314,10 @@ config_sources="$config_directory/sources.conf"
 config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
-# defines log level
-if ! $debug_mode ; then
+if $debug_mode ; then
+	lb_display_debug "Running in DEBUG mode..."
+else
+	# defines log level
 	# if not set (unknown error), set to default level
 	if ! lb_set_log_level "$log_level" ; then
 		lb_set_log_level "$default_log_level"
@@ -325,13 +330,7 @@ if ! $debug_mode ; then
 	fi
 fi
 
-lb_display_debug "Running in DEBUG mode..."
-
-# get main command
-command=$1
-shift
-
-# command not depending on configuration
+# run commands not depending on configuration and search for quiet modes
 case $command in
 	install|uninstall)
 		# prepare command
@@ -348,13 +347,28 @@ case $command in
 		exit $?
 		;;
 
+	history|status|stop)
+		# search for quiet modes options
+		for arg in $* ; do
+			case $arg in
+				-q|--quiet)
+					quiet_mode=true
+					break
+					;;
+			esac
+		done
+		;;
+
 	help)
 		print_help global
 		exit 0
 		;;
 esac
 
-lb_display_debug "Using config file: $config_file"
+if ! $quiet_mode ; then
+	echo time2backup $version
+	lb_display_debug "Using config file: $config_file"
+fi
 
 # if config file exists
 if [ -f "$config_file" ] ; then

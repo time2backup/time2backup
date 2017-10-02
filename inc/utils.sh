@@ -311,9 +311,11 @@ upgrade_config() {
 		return 0
 	fi
 
-	echo
-	lb_print "$tr_upgrade_config"
-	lb_display_debug "Upgrading config v$old_config_version -> v$version"
+	if ! $quiet_mode ; then
+		echo
+		lb_print "$tr_upgrade_config"
+		lb_display_debug "Upgrading config v$old_config_version -> v$version"
+	fi
 
 	# specific changes per version
 
@@ -377,8 +379,6 @@ upgrade_config() {
 
 	# delete old config
 	rm -f "$old_config" &> /dev/null
-
-	echo
 
 	# do not care of errors
 	return 0
@@ -450,7 +450,9 @@ test_config() {
 #   2: there are errors in config
 load_config() {
 
-	echo -e "\n$tr_loading_config"
+	if ! $quiet_mode ; then
+		echo -e "\n$tr_loading_config"
+	fi
 
 	# load config
 	if ! lb_import_config "$config_file" ; then

@@ -1215,7 +1215,6 @@ t2b_restore() {
 t2b_history() {
 
 	# default options
-	local quiet_mode=false
 	local history_opts=""
 
 	# get options
@@ -1450,9 +1449,6 @@ t2b_explore() {
 # Check if a backup is currently running
 # Usage: t2b_status [OPTIONS]
 t2b_status() {
-
-	# default options
-	local quiet_mode=false
 
 	# get options
 	while [ -n "$1" ] ; do
