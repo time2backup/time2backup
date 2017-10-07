@@ -33,10 +33,10 @@ t2b_backup() {
 
 	# get current date
 	current_timestamp=$(date +%s)
-	current_date=$(date '+%Y-%m-%d at %H:%M:%S')
+	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $current_timestamp)
 
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backup_date=$(date +%Y-%m-%d-%H%M%S)
+	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $current_timestamp)
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -167,7 +167,7 @@ t2b_backup() {
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_display_debug "Last backup was done at $(timestamp2date $last_backup_timestamp), we are now $(timestamp2date $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
+					lb_display_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
 					lb_display_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)

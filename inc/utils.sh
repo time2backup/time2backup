@@ -10,7 +10,6 @@
 # Index of functions
 #
 #   Global functions
-#      timestamp2date
 #      get_backup_fulldate
 #      get_backup_history
 #      create_config
@@ -49,19 +48,6 @@
 ######################
 #  GLOBAL FUNCTIONS  #
 ######################
-
-# Convert timestamp to an user readable date
-# Usage: timestamp2date TIMESTAMP
-# Return: formatted date
-timestamp2date() {
-	# return date formatted in user language
-	if [ "$lb_current_os" == macOS ] ; then
-		date -j -f "%s" "$1" +"$tr_readable_date"
-	else
-		date -d "@$1" +"$tr_readable_date"
-	fi
-}
-
 
 # Get readable backup date
 # Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
