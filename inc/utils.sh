@@ -59,9 +59,7 @@
 get_backup_fulldate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
-	echo "$1" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" &> /dev/null
-
-	# if not good format, return error
+	echo "$1" | grep -Eq "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
 	if [ $? != 0 ] ; then
 		return 1
 	fi
@@ -918,7 +916,7 @@ prepare_destination() {
 
 	case $(get_protocol "$destination") in
 		ssh|t2b)
-			destination_ssh=true
+			remote_destination=true
 			# for now, we do not test if there is enough space on distant device
 			test_destination=false
 

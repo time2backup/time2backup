@@ -27,7 +27,6 @@ t2b_backup() {
 
 	# default values and options
 	recurrent_backup=false
-	destination_ssh=false
 	source_ssh=false
 	backup_on_network=false
 
@@ -211,7 +210,7 @@ t2b_backup() {
 			;;
 	esac
 
-	if ! $destination_ssh ; then
+	if ! $remote_destination ; then
 		# test if a backup is running
 		if current_lock &> /dev/null ; then
 			if $recurrent_backup ; then
@@ -247,7 +246,7 @@ t2b_backup() {
 	lb_display --log "Backup started on $current_date\n"
 
 	# get last backup
-	if $destination_ssh ; then
+	if $remote_destination ; then
 		last_backup=latest
 	else
 		last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
@@ -278,7 +277,7 @@ t2b_backup() {
 	fi
 
 	# check if destination supports hard links
-	if ! $destination_ssh ; then
+	if ! $remote_destination ; then
 		if $hard_links ; then
 			if ! $force_hard_links ; then
 				if ! test_hardlinks "$destination" ; then
@@ -317,7 +316,7 @@ t2b_backup() {
 		case $protocol in
 			ssh|t2b)
 				# test if we don't have double ssh
-				if $destination_ssh ; then
+				if $remote_destination ; then
 					lb_display_error --log "You cannot backup a distant path to a distant path."
 					errors+=("$src (cannot backup a distant path on a distant destination)")
 					lb_exitcode=3
@@ -1313,13 +1312,13 @@ t2b_history() {
 
 
 # Explore backups
-# Usage: t2b_explore [OPTIONS] [PATH]
+# Usage: t2b_explore [OPTIONS] PATH
 t2b_explore() {
 
 	# default options
 	backup_date=latest
 	choose_date=true
-	explore_all=false
+	local explore_all=false
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -1351,6 +1350,18 @@ t2b_explore() {
 		shift # load next argument
 	done
 
+	path=$*
+
+	if ! [ -e "$path" ] ; then
+		print_help
+		return 1
+	fi
+
+	if $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# test backup destination
 	if ! prepare_destination ; then
 		return 4
@@ -1362,13 +1373,6 @@ t2b_explore() {
 	if [ ${#backups[@]} == 0 ] ; then
 		lbg_display_error "$tr_no_backups_available"
 		return 5
-	fi
-
-	path=$*
-
-	if ! [ -e "$path" ] ; then
-		print_help
-		return 1
 	fi
 
 	# get backup full path
@@ -1640,6 +1644,11 @@ t2b_clean() {
 	if [ $# == 0 ] ; then
 		print_help
 		return 1
+	fi
+
+	if $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
 	fi
 
 	# test backup destination

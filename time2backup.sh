@@ -32,6 +32,7 @@ default_verbose_level=INFO
 default_log_level=INFO
 force_unmount=false
 quiet_mode=false
+remote_destination=false
 
 
 ############################
