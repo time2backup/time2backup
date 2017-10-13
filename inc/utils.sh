@@ -84,7 +84,8 @@ get_backup_fulldate() {
 # Get backup history of a file
 # Usage: get_backup_history [OPTIONS] PATH
 # Options:
-#   -a, --all  return all versions (including same)
+#   -a, --all   get all versions (including same)
+#   -l, --last  get only last version
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -93,13 +94,17 @@ get_backup_fulldate() {
 get_backup_history() {
 
 	file_history=()
-	allversions=false
+	local all_versions=false
+	local last_version=false
 
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
 			-a|--all)
-				allversions=true
+				all_versions=true
+				;;
+			-l|--last)
+				last_version=true
 				;;
 			*)
 				break
@@ -147,8 +152,14 @@ get_backup_history() {
 				continue
 			fi
 
-			# if all versions, do not compare files and quit
-			if $allversions ; then
+			# if get last version, exit loop
+			if $last_version ; then
+				file_history+=("$backup_date")
+				break
+			fi
+
+			# if get all versions, do not compare files and continue
+			if $all_versions ; then
 				file_history+=("$backup_date")
 				continue
 			fi
