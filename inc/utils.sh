@@ -720,11 +720,11 @@ rotate_backups() {
 	fi
 
 	# always keep nb + 1 (do not delete current backup)
-	rb_keep=$(($1 + 1))
+	local rb_keep=$(($1 + 1))
 
 	# get backups
-	rb_backups=($(get_backups))
-	rb_nb=${#rb_backups[@]}
+	local rb_backups=($(get_backups))
+	local rb_nb=${#rb_backups[@]}
 
 	# if limit not reached, do nothing
 	if [ $rb_nb -le $rb_keep ] ; then
@@ -734,7 +734,7 @@ rotate_backups() {
 	lb_display --log "Cleaning old backups..."
 	lb_display_debug --log "Clean to keep $rb_keep/$rb_nb"
 
-	rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
+	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
 
 	# remove backups from older to newer
 	for ((rb_i=0; rb_i<${#rb_clean[@]}; rb_i++)) ; do
