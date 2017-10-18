@@ -1615,10 +1615,14 @@ t2b_mv() {
 
 	# default options
 	local force_mode=false
+	local and_sources=false
 
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
+			-s|--sources)
+				and_sources=true
+				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1647,7 +1651,7 @@ t2b_mv() {
 	fi
 
 	if $remote_destination ; then
-		echo "This command is disabled for remote destinations."
+		lb_error "This command is disabled for remote destinations."
 		return 255
 	fi
 
@@ -1674,32 +1678,69 @@ t2b_mv() {
 		return 5
 	fi
 
-	# confirmation
-	if ! $force_mode ; then
-		echo "You are about to move backup '$1' to '$2'."
-		if ! lb_yesno "Continue?" ; then
-			echo "Cancelled"
-			return 0
-		fi
-	fi
-
 	# get path of file
 	abs_src=$(get_backup_path "$src")
 	if [ $? != 0 ] ; then
-		echo "Unknown error."
+		lb_error "Cannot determine the backup path of your source."
 		return 6
 	fi
 
 	# get path of new file
 	abs_dest=$(get_backup_path "$dest")
 	if [ $? != 0 ] ; then
-		echo "Unknown error."
+		lb_error "Cannot determine the backup path of your destination. Please retry with an absolute path."
 		return 6
 	fi
 
-	# TODO: test and improve
+	# confirm action
+	if ! $force_mode ; then
+		if ! $quiet_mode ; then
+			echo "You are about to move backup '$1' to '$2'."
+		fi
+
+		# warn user if destination already exists
+		if [ -e "$backup_destination/$file_history/$abs_dest" ] ; then
+			lb_warning "Destination already exists! This action may erase files."
+		fi
+
+		if ! lb_yesno "Do you want to continue?" ; then
+			return 0
+		fi
+	fi
+
+	# move files
+	if ! $quiet_mode ; then
+		echo "Moving file(s)..."
+	fi
+
 	mv "$backup_destination/$file_history/$abs_src" "$backup_destination/$file_history/$abs_dest"
-	lb_result
+	local mv_res=$?
+
+	if ! $quiet_mode ; then
+		lb_result
+	fi
+	if [ $mv_res != 0 ] ; then
+		return 7
+	fi
+
+	# move original files (if option --sources)
+	if ! $and_sources ; then
+		return 0
+	fi
+
+	if ! $quiet_mode ; then
+		echo "Moving original file(s)..."
+	fi
+
+	mv "$src" "$dest"
+	mv_res=$?
+
+	if ! $quiet_mode ; then
+		lb_result
+	fi
+	if [ $mv_res != 0 ] ; then
+		return 8
+	fi
 }
 
 

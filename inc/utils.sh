@@ -647,7 +647,7 @@ get_backup_path() {
 			;;
 	esac
 
-	# if file or directory
+	# if file or directory (relative path)
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$gbp_file" ] ; then
