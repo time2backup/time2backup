@@ -617,8 +617,7 @@ unmount_destination() {
 #   1: cannot get original path (not absolute and parent directory does not exists)
 get_backup_path() {
 
-	# get file
-	gbp_file=$*
+	local gbp_file=$*
 
 	# if absolute path (first character is a /)
 	if [ "${gbp_file:0:1}" == "/" ] ; then
@@ -627,20 +626,20 @@ get_backup_path() {
 		return 0
 	fi
 
-	gbp_protocol=$(get_protocol "$gbp_file")
+	local gbp_protocol=$(get_protocol "$gbp_file")
 
 	# if not absolute path, check protocols
 	case $gbp_protocol in
-		ssh|t2b)
+		ssh)
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
-			ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
+			ssh_host=$(echo "$gbp_file" | awk -F '/' '{print $3}')
 			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
 			ssh_prefix="$gbp_protocol://$ssh_host"
-			ssh_path=${src#$ssh_prefix}
+			ssh_path=${gbp_file#$ssh_prefix}
 
 			# return complete path
 			echo "/$gbp_protocol/$ssh_hostname/$ssh_path"
@@ -731,11 +730,11 @@ rotate_backups() {
 	fi
 
 	# always keep nb + 1 (do not delete current backup)
-	rb_keep=$(($1 + 1))
+	local rb_keep=$(($1 + 1))
 
 	# get backups
-	rb_backups=($(get_backups))
-	rb_nb=${#rb_backups[@]}
+	local rb_backups=($(get_backups))
+	local rb_nb=${#rb_backups[@]}
 
 	# if limit not reached, do nothing
 	if [ $rb_nb -le $rb_keep ] ; then
@@ -745,7 +744,7 @@ rotate_backups() {
 	lb_display --log "Cleaning old backups..."
 	lb_display_debug --log "Clean to keep $rb_keep/$rb_nb"
 
-	rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
+	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
 
 	# remove backups from older to newer
 	for ((rb_i=0; rb_i<${#rb_clean[@]}; rb_i++)) ; do
@@ -921,14 +920,14 @@ apply_config() {
 #   2: destination not writable
 prepare_destination() {
 
-	destok=false
+	local destok=false
 
 	lb_display_debug "Testing destination on: $destination..."
 
 	case $(get_protocol "$destination") in
 		ssh|t2b)
 			remote_destination=true
-			# for now, we do not test if there is enough space on distant device
+			# do not test if there is enough space on distant device
 			test_destination=false
 
 			# define the default logs path to the local config directory

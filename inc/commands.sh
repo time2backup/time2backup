@@ -315,8 +315,8 @@ t2b_backup() {
 		# get source path
 		protocol=$(get_protocol "$src")
 		case $protocol in
-			ssh|t2b)
-				# test if we don't have double ssh
+			ssh)
+				# test if we don't have double remotes
 				if $remote_destination ; then
 					lb_display_error --log "You cannot backup a distant path to a distant path."
 					errors+=("$src (cannot backup a distant path on a distant destination)")

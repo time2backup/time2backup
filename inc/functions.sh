@@ -16,6 +16,7 @@
 #   folders_size
 #   test_space_available
 #   rsync_result
+#   file_for_windows
 
 
 # Get common path of 2 paths
@@ -141,7 +142,7 @@ get_relative_path() {
 # Return: files|ssh|t2b
 get_protocol() {
 
-	gptc_protocol=$(echo $* | cut -d: -f1)
+	local gptc_protocol=$(echo $* | cut -d: -f1)
 
 	# get protocol
 	case $gptc_protocol in
@@ -172,10 +173,10 @@ test_hardlinks() {
 	#   vfat:    FAT16/32 on Linux systems
 	#   msdos:   FAT16/32 on macOS systems
 	#   vboxsf:  VirtualBox shared folder on Linux guests
-	thl_no_hardlinks_fs=(vfat msdos exfat vboxsf)
+	local thl_no_hardlinks_fs=(vfat msdos exfat vboxsf)
 
 	# get destination filesystem
-	thl_fstype=$(lb_df_fstype "$*")
+	local thl_fstype=$(lb_df_fstype "$*")
 	if [ -z "$thl_fstype" ] ; then
 		return 1
 	fi
@@ -196,36 +197,25 @@ test_hardlinks() {
 #   1: Usage error (path does not exists)
 folders_size() {
 
-	# usage error
-	if ! [ -e "$*" ] ; then
-		return 1
-	fi
-
 	# get number of subfolders
-	fs_nbdir=$(find "$*" -type d 2> /dev/null | wc -l)
-
-	# do not care of errors
-	if [ $fs_nbdir == 0 ] ; then
-		echo 0
-		return 0
-	fi
+	local fs_nbdir=$(find "$*" -type d 2> /dev/null | wc -l)
 
 	# get size of folders regarding FS type (in bytes)
 	case $(lb_df_fstype "$*") in
 		hfs|hfsplus)
-			fs_totalsize=68
+			fs_dirsize=68
 			;;
 		exfat)
-			fs_totalsize=131072
+			fs_dirsize=131072
 			;;
 		*)
 			# set default to 4096 (ext*, FAT32)
-			fs_totalsize=4096
+			fs_dirsize=4096
 			;;
 	esac
 
 	# return nb folders * size (result in bytes)
-	echo $(($fs_nbdir * $fs_totalsize))
+	echo $(($fs_nbdir * $fs_dirsize))
 }
 
 
@@ -263,8 +253,6 @@ test_space_available() {
 		lb_display_debug --log "Not enough space on device! Needed (in bytes): $tsa_size/$tsa_space_left"
 		return 1
 	fi
-
-	return 0
 }
 
 
