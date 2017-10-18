@@ -15,6 +15,7 @@
 #   t2b_explore
 #   t2b_status
 #   t2b_stop
+#   t2b_mv
 #   t2b_clean
 #   t2b_config
 #   t2b_install
@@ -1608,6 +1609,100 @@ t2b_stop() {
 }
 
 
+# Move backup files
+# Usage: t2b_mv [OPTIONS] PATH
+t2b_mv() {
+
+	# default options
+	local force_mode=false
+
+	# get options
+	while [ -n "$1" ] ; do
+		case $1 in
+			-f|--force)
+				force_mode=true
+				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# usage errors
+	if lb_test_arguments -lt 2 $* ; then
+		print_help
+		return 1
+	fi
+
+	if $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
+	# test backup destination
+	if ! prepare_destination ; then
+		return 4
+	fi
+
+	src=$1
+	dest=$2
+
+	# get realpath for Windows
+	if [ "$lb_current_os" == Windows ] ; then
+		src=$(lb_realpath "$src")
+		dest=$(lb_realpath "$dest")
+	fi
+
+	# get all backup versions of this file
+	file_history=$(get_backup_history --last "$src")
+
+	# no backup found
+	if [ -z "$file_history" ] ; then
+		lb_error "No backup found for '$src'!"
+		return 5
+	fi
+
+	# confirmation
+	if ! $force_mode ; then
+		echo "You are about to move backup '$1' to '$2'."
+		if ! lb_yesno "Continue?" ; then
+			echo "Cancelled"
+			return 0
+		fi
+	fi
+
+	# get path of file
+	abs_src=$(get_backup_path "$src")
+	if [ $? != 0 ] ; then
+		echo "Unknown error."
+		return 6
+	fi
+
+	# get path of new file
+	abs_dest=$(get_backup_path "$dest")
+	if [ $? != 0 ] ; then
+		echo "Unknown error."
+		return 6
+	fi
+
+	# TODO: test and improve
+	mv "$backup_destination/$file_history/$abs_src" "$backup_destination/$file_history/$abs_dest"
+	lb_result
+}
+
+
 # Clean files in backups
 # Usage: t2b_clean [OPTIONS] PATH
 t2b_clean() {
@@ -1656,12 +1751,7 @@ t2b_clean() {
 		return 4
 	fi
 
-	# get file
-	if [ "$lb_current_os" == Windows ] ; then
-		file=$(lb_realpath "$*")
-	else
-		file=$*
-	fi
+	file=$*
 
 	# get all backup versions of this file
 	file_history=($(get_backup_history -a "$file"))

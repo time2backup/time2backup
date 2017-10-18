@@ -109,6 +109,16 @@ print_help() {
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"
 			;;
+		mv)
+			echo "Command usage: $command [OPTIONS] PATH DESTINATION"
+			echo
+			echo "Move last backup file path"
+			echo
+			echo "Options:"
+			echo "  -f, --force  Force move; do not display confirmation"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
+			;;
 		clean)
 			echo "Command usage: $command [OPTIONS] PATH"
 			echo
