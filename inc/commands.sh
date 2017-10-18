@@ -1615,14 +1615,10 @@ t2b_mv() {
 
 	# default options
 	local force_mode=false
-	local and_sources=false
 
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
-			-s|--sources)
-				and_sources=true
-				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1721,25 +1717,6 @@ t2b_mv() {
 	fi
 	if [ $mv_res != 0 ] ; then
 		return 7
-	fi
-
-	# move original files (if option --sources)
-	if ! $and_sources ; then
-		return 0
-	fi
-
-	if ! $quiet_mode ; then
-		echo "Moving original file(s)..."
-	fi
-
-	mv "$src" "$dest"
-	mv_res=$?
-
-	if ! $quiet_mode ; then
-		lb_result
-	fi
-	if [ $mv_res != 0 ] ; then
-		return 8
 	fi
 }
 
