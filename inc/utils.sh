@@ -989,13 +989,16 @@ prepare_destination() {
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
 	if ! [ -w "$backup_destination" ] ; then
-		if $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		else
-			lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		# do not return error if samba share: cannot determine rights in some cases
+		if [ "$(lb_df_fstype "$backup_destination")" != smbfs ] ; then
+			if $recurrent_backup ; then
+				# don't popup in recurrent mode
+				lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+			else
+				lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+			fi
+			return 2
 		fi
-		return 2
 	fi
 
 	return 0
