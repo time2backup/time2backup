@@ -943,6 +943,7 @@ prepare_destination() {
 			# quit ok
 			return 0
 			;;
+
 		*)
 			# remove file:// prefix
 			if [ "${destination:0:7}" == "file://" ] ; then
@@ -1011,6 +1012,9 @@ prepare_destination() {
 			return 2
 		fi
 	fi
+
+	# create the info file if not exists (don't care of errors)
+	touch "$destination/.time2backup" &> /dev/null
 
 	return 0
 }
@@ -1696,11 +1700,18 @@ config_wizard() {
 
 		lb_display_debug "Chosen destination: $lbg_choose_directory"
 
-		# get absolute path of the chosen directory
+		# get the real path of the chosen directory
 		chosen_directory=$(lb_realpath "$lbg_choose_directory")
 
-		# update destination config
+		# if destination changed (or first run)
 		if [ "$chosen_directory" != "$destination" ] ; then
+
+			# fix case where user sets an old path and go into /backups/
+			if [ -e "$chosen_directory/../.time2backup" ] ; then
+				chosen_directory=$(dirname "$chosen_directory")
+			fi
+
+			# update destination config
 			lb_set_config "$config_file" destination "\"$chosen_directory\""
 			if [ $? == 0 ] ; then
 				# reset destination variable
