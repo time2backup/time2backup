@@ -198,7 +198,7 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	if current_lock &> /dev/null ; then
+	if current_lock -q ; then
 		if $recurrent_backup ; then
 			lb_display_error "$tr_backup_already_running"
 		else
@@ -933,7 +933,7 @@ t2b_restore() {
 			fi
 
 			# get backup date
-			backup_date=$(echo "$file" | grep -oE "^$backup_date_format" 2> /dev/null)
+			backup_date=$(echo $file | grep -oE "^$backup_date_format")
 			if [ -z "$backup_date" ] ; then
 				lbg_error "$tr_path_is_not_backup"
 				return 1
@@ -1118,7 +1118,7 @@ t2b_restore() {
 			lb_debug ${cmd[@]}
 
 			# test rsync to check newer files
-			"${cmd[@]}" | grep "^deleting "
+			"${cmd[@]}" | grep -q "^deleting "
 
 			if [ $? == 0 ] ; then
 				if ! lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" ; then
@@ -1460,7 +1460,7 @@ t2b_status() {
 	fi
 
 	# test if a backup is running
-	if current_lock &> /dev/null ; then
+	if current_lock -q ; then
 		if ! $quiet_mode ; then
 			echo "backup is running"
 		fi
@@ -1527,7 +1527,7 @@ t2b_stop() {
 	esac
 
 	# search for a current rsync command and get parent PIDs
-	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -n -1 | awk '{print $2}'))
+	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
 
 	if [ ${#rsync_ppids[@]} == 0 ] ; then
 		echo "No rsync process found. Please find it manually"
@@ -1542,7 +1542,7 @@ t2b_stop() {
 		fi
 
 		# check if parent process is an instance of time2backup server
-		ps -f $parent_pid 2> /dev/null | grep -q "time2backup"
+		ps -f $parent_pid 2> /dev/null | grep -q time2backup
 		if [ $? == 0 ] ; then
 			# kill rsync process
 			kill $parent_pid
@@ -1632,7 +1632,7 @@ t2b_mv() {
 	fi
 
 	# get all backup versions of this file
-	file_history=$(get_backup_history --last "$src")
+	file_history=$(get_backup_history -l "$src")
 
 	# no backup found
 	if [ -z "$file_history" ] ; then
@@ -2135,7 +2135,7 @@ t2b_uninstall() {
 	fi
 
 	# delete .install file
-	rm -f "$script_directory/config/.install" #&> /dev/null
+	rm -f "$script_directory/config/.install" &> /dev/null
 
 	# delete configuration
 	if $delete_config ; then

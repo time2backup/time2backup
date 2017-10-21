@@ -88,8 +88,8 @@ get_backup_fulldate() {
 # Get backup history of a file
 # Usage: get_backup_history [OPTIONS] PATH
 # Options:
-#   -a, --all   get all versions (including same)
-#   -l, --last  get only last version
+#   -a  get all versions (including same)
+#   -l  get only last version
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -104,10 +104,10 @@ get_backup_history() {
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
-			-a|--all)
+			-a)
 				all_versions=true
 				;;
-			-l|--last)
+			-l)
 				last_version=true
 				;;
 			*)
@@ -507,7 +507,7 @@ mount_destination() {
 	fi
 
 	# test if UUID exists (disk plugged)
-	ls /dev/disk/by-uuid/ | grep "$backup_disk_uuid" &> /dev/null
+	ls /dev/disk/by-uuid/ | grep -q "$backup_disk_uuid"
 	if [ $? != 0 ] ; then
 		lb_debug --log "Disk not available."
 		return 2
@@ -822,7 +822,7 @@ crontab_config() {
 	crontab $crontab_opts -l > "$tmpcrontab" 2>&1
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
-		grep "no crontab for " "$tmpcrontab" > /dev/null
+		grep -q "no crontab for " "$tmpcrontab"
 		if [ $? == 0 ] ; then
 			# disable mode: nothing to do
 			if ! $crontab_enable ; then
@@ -855,7 +855,7 @@ crontab_config() {
 	fi
 
 	# test if line exists
-	grep "$crontask" "$tmpcrontab" > /dev/null
+	grep -q "$crontask" "$tmpcrontab"
 
 	# cron task already exists
 	if [ $? == 0 ] ; then
@@ -1206,7 +1206,7 @@ clean_empty_directories() {
 # Edit configuration
 # Usage: open_config [OPTIONS] CONFIG_FILE
 # Options:
-#   -e, --editor COMMAND  set editor
+#   -e COMMAND  use a custom text editor
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -1222,7 +1222,7 @@ open_config() {
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
-			-e|--editor)
+			-e)
 				if [ -z "$2" ] ; then
 					return 1
 				fi
@@ -1318,7 +1318,9 @@ open_config() {
 
 
 # Return date of the current lock (if exists)
-# Usage: current_lock
+# Usage: current_lock [OPTIONS]
+# Options:
+#   -q  Quiet mode
 # Return: date of lock, empty if no lock
 # Exit code:
 #   0: lock exists
@@ -1327,16 +1329,23 @@ current_lock() {
 
 	# do not check lock if remote destination
 	if $remote_destination ; then
-		return 0
+		return 1
 	fi
 
 	# get lock file
 	local current_lock_file=$(ls "$backup_destination/.lock_"* 2> /dev/null)
-	if [ $? != 0 ] ; then
+
+	# if no lock, return 1
+	if [ -z "$current_lock_file" ] ; then
 		return 1
 	fi
 
-	# print date of lock
+	# quiet mode
+	if [ "$1" == "-q" ] ; then
+		return 0
+	fi
+
+	# return date of lock
 	basename "$current_lock_file" | sed 's/^.lock_//'
 }
 
