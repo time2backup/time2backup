@@ -317,6 +317,7 @@ t2b_backup() {
 		case $protocol in
 			ssh)
 				# test if we don't have double remotes
+				# (rsync does not support ssh to ssh copy)
 				if $remote_destination ; then
 					lb_display_error --log "You cannot backup a distant path to a distant path."
 					errors+=("$src (cannot backup a distant path on a distant destination)")
@@ -340,8 +341,15 @@ t2b_backup() {
 				# get full backup path
 				path_dest=$(get_backup_path "$src")
 				;;
+
 			*)
 				# file or directory
+
+				# remove file:// prefix
+				if [ "${src:0:7}" == "file://" ] ; then
+					src=${src:7}
+				fi
+
 				# replace ~ by user home directory
 				if [ "${src:0:1}" == "~" ] ; then
 					# get first part of the path

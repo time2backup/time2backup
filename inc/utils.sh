@@ -649,6 +649,11 @@ get_backup_path() {
 
 	# if file or directory (relative path)
 
+	# remove file:// prefix
+	if [ "${src:0:7}" == "file://" ] ; then
+		src=${src:7}
+	fi
+
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$gbp_file" ] ; then
 		echo -n "/files/$(lb_abspath "$gbp_file")"
@@ -937,6 +942,12 @@ prepare_destination() {
 
 			# quit ok
 			return 0
+			;;
+		*)
+			# remove file:// prefix
+			if [ "${destination:0:7}" == "file://" ] ; then
+				destination=${destination:7}
+			fi
 			;;
 	esac
 
