@@ -211,23 +211,19 @@ t2b_backup() {
 			;;
 	esac
 
-	if ! $remote_destination ; then
-		# test if a backup is running
-		if current_lock &> /dev/null ; then
-			if $recurrent_backup ; then
-				lb_display_error "$tr_backup_already_running"
-			else
-				lbg_display_error "$tr_backup_already_running"
-			fi
-			# exit
-			return 8
+	# test if a backup is running
+	if current_lock &> /dev/null ; then
+		if $recurrent_backup ; then
+			lb_display_error "$tr_backup_already_running"
+		else
+			lbg_display_error "$tr_backup_already_running"
 		fi
-
-		# create lock to avoid duplicates
-		backup_lock="$backup_destination/.lock_$backup_date"
-		touch "$backup_lock"
+		# exit
+		return 8
 	fi
 
+	create_lock
+	
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 

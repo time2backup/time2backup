@@ -32,9 +32,11 @@
 #      clean_empty_directories
 #      open_config
 #      current_lock
+#      create_lock
 #      release_lock
 #      prepare_rsync
 #      is_installed
+#      prepare_remote
 #   Exit functions
 #      clean_exit
 #      cancel_exit
@@ -1326,22 +1328,39 @@ open_config() {
 # Exit code:
 #   0: lock exists
 #   1: lock does not exists
-#   2: unknown error
 current_lock() {
 
+	# do not check lock if remote destination
+	if $remote_destination ; then
+		return 0
+	fi
+
 	# get lock file
-	blf=$(ls "$backup_destination/.lock_"* 2> /dev/null)
+	local current_lock_file=$(ls "$backup_destination/.lock_"* 2> /dev/null)
 	if [ $? != 0 ] ; then
 		return 1
 	fi
 
 	# print date of lock
-	basename "$blf" | sed 's/^.lock_//'
-	if [ $? != 0 ] ; then
-		return 2
+	basename "$current_lock_file" | sed 's/^.lock_//'
+}
+
+
+# Create lock
+# Usage: create_lock
+# Exit code:
+#   0: lock ok
+#   1: unknown error
+create_lock() {
+
+	# do not create lock if remote destination
+	if $remote_destination ; then
+		return 0
 	fi
 
-	return 0
+	lb_display_debug "Create lock..."
+
+	touch "$backup_destination/.lock_$backup_date"
 }
 
 
@@ -1354,7 +1373,7 @@ release_lock() {
 
 	lb_display_debug "Deleting lock..."
 
-	rm -f "$backup_lock" &> /dev/null
+	rm -f "$backup_destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
 		lbg_display_critical --log "$tr_error_unlock"
 		return 1
@@ -1406,6 +1425,44 @@ prepare_rsync() {
 #   1: not installed
 is_installed() {
 	[ -f "$script_directory/config/.install" ]
+}
+
+
+# Prepare the remote destination command
+# Usage: prepare_remote
+prepare_remote() {
+
+	if $server_sudo ; then
+		remote_cmd=(sudo)
+	fi
+
+	# extract from url t2b://user@hostname/path/for/backup :
+	# 1. destination=user@hostname
+	# 2. /path/for/backup
+
+	# get t2b server user@host
+	t2bs_host=$(echo "$destination" | awk -F '/' '{print $3}')
+	t2bs_hostname=$(echo "$t2bs_host" | cut -d@ -f2)
+
+	# get destination path
+	t2bs_prefix="t2b://$t2bs_host"
+	t2bs_path=${gbp_file#$ssh_prefix}
+
+	# return complete path
+	echo "/$gbp_protocol/$ssh_hostname/$ssh_path"
+
+	# if server path is specified, use it
+	if [ -n "$server_path" ] ; then
+		remote_cmd+=("$server_path")
+	else
+		# or suppose it is a the destination of the remote path
+		remote_cmd+=("$t2bs_path/time2backup-server/t2b-server.sh")
+	fi
+
+	# add remote destination path, date and backup path
+	remote_cmd+=("$t2bs_path" $backup_date "$src")
+
+	rsync_cmd+=(--rsync-path "${remote_cmd[@]}")
 }
 
 
