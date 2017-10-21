@@ -29,7 +29,6 @@ t2b_backup() {
 	# default values and options
 	recurrent_backup=false
 	source_ssh=false
-	backup_on_network=false
 
 	# get current date
 	current_timestamp=$(date +%s)
@@ -180,20 +179,7 @@ t2b_backup() {
 	fi # recurrent backups
 
 	# execute before backup command/script
-	if [ ${#exec_before[@]} -gt 0 ] ; then
-		# run command/script
-		"${exec_before[@]}"
-
-		if [ $? != 0 ] ; then
-			lb_exitcode=5
-
-			# option exit if error
-			if $exec_before_block ; then
-				lb_debug --log "Before script exited with error."
-				clean_exit --no-unmount
-			fi
-		fi
-	fi
+	run_before
 
 	# prepare destination (mount and verify writable)
 	prepare_destination
@@ -253,11 +239,6 @@ t2b_backup() {
 	dest="$backup_destination/$backup_date"
 
 	lb_display --log "Prepare backup destination..."
-
-	# if keep limit to 0, we are in a mirror mode
-	if [ $keep_limit == 0 ] ; then
-		mirror_mode=true
-	fi
 
 	# if mirror mode and there is an old backup, move last backup to current directory
 	if $mirror_mode && [ -n "$last_backup" ] ; then
@@ -322,7 +303,6 @@ t2b_backup() {
 				fi
 
 				source_ssh=true
-				backup_on_network=true
 
 				# get ssh [user@]host
 				ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
@@ -539,25 +519,23 @@ t2b_backup() {
 			cmd+=(--exclude-from="$abs_src/.rsyncignore")
 		fi
 
-		# add ssh options if ssh
 		if $source_ssh ; then
+			# network compression
+			if $network_compression ; then
+				cmd+=(-z)
+			fi
+
+			# add ssh options
 			if [ -n "$ssh_options" ] ; then
 				cmd+=(-e "$ssh_options")
 			else
-				# if empty, defines default option
+				# if empty, defines ssh
 				cmd+=(-e ssh)
 			fi
 
 			# rsync distant path option
 			if [ -n "$rsync_remote_path" ] ; then
 				cmd+=(--rsync-path "$rsync_remote_path")
-			fi
-		fi
-
-		# enable network compression if network
-		if $backup_on_network ; then
-			if $network_compression ; then
-				cmd+=(-z)
 			fi
 		fi
 
@@ -768,23 +746,7 @@ t2b_backup() {
 	fi
 
 	# execute custom after backup script
-	if [ ${#exec_after[@]} -gt 0 ] ; then
-		# run command/script
-		"${exec_after[@]}"
-
-		if [ $? != 0 ] ; then
-			# if error, do not overwrite rsync exit code
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=16
-			fi
-
-			# option exit if error
-			if $exec_after_block ; then
-				lb_debug --log "After script exited with error."
-				clean_exit
-			fi
-		fi
-	fi
+	run_after
 
 	clean_exit
 }
@@ -795,10 +757,10 @@ t2b_backup() {
 t2b_restore() {
 
 	# default options
-	backup_date="latest"
+	backup_date=latest
 	force_mode=false
 	choose_date=true
-	directorymode=false
+	directory_mode=false
 	restore_moved=false
 	delete_newer_files=false
 
@@ -815,7 +777,7 @@ t2b_restore() {
 				shift
 				;;
 			--directory)
-				directorymode=true
+				directory_mode=true
 				;;
 			--delete-new)
 				delete_newer_files=true
@@ -898,12 +860,12 @@ t2b_restore() {
 				;;
 			3)
 				# restore a directory
-				directorymode=true
+				directory_mode=true
 				;;
 			4)
 				# restore a moved directory
 				starting_path=$backup_destination
-				directorymode=true
+				directory_mode=true
 				restore_moved=true
 				;;
 			*)
@@ -912,7 +874,7 @@ t2b_restore() {
 		esac
 
 		# choose a directory
-		if $directorymode ; then
+		if $directory_mode ; then
 			lbg_choose_directory -t "$tr_choose_directory_to_restore" "$starting_path"
 			case $? in
 				0)
@@ -1098,7 +1060,7 @@ t2b_restore() {
 			return 12
 		else
 			# enable directory mode
-			directorymode=true
+			directory_mode=true
 		fi
 	fi
 
@@ -1142,7 +1104,7 @@ t2b_restore() {
 
 	# test newer files
 	if ! $delete_newer_files ; then
-		if $directorymode ; then
+		if $directory_mode ; then
 			# prepare test command
 			cmd=("${rsync_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")

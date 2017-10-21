@@ -37,6 +37,9 @@
 #      prepare_rsync
 #      is_installed
 #      prepare_remote
+#   Backup steps
+#      run_before
+#      run_after
 #   Exit functions
 #      clean_exit
 #      cancel_exit
@@ -459,9 +462,6 @@ load_config() {
 		destination=$force_destination
 	fi
 
-	# increment clean_keep to 1 to keep the current backup
-	clean_keep=$(($clean_keep + 1))
-
 	# set backup destination
 	if $destination_subdirectories ; then
 		# add subdirectories
@@ -469,6 +469,14 @@ load_config() {
 	else
 		backup_destination="$destination/"
 	fi
+
+	# if keep limit to 0, we are in a mirror mode
+	if [ $keep_limit == 0 ] ; then
+		mirror_mode=true
+	fi
+
+	# increment clean_keep to 1 to keep the current backup
+	clean_keep=$(($clean_keep + 1))
 }
 
 
@@ -1448,6 +1456,61 @@ prepare_remote() {
 	remote_cmd+=("$t2bs_path" $backup_date "$src")
 
 	rsync_cmd+=(--rsync-path "${remote_cmd[@]}")
+
+	# network compression
+	if $network_compression ; then
+		rsync_cmd+=(-z)
+	fi
+
+	if [ -n "$ssh_options" ] ; then
+		cmd+=(-e "$ssh_options")
+	else
+		# if empty, defines ssh
+		cmd+=(-e ssh)
+	fi
+}
+
+
+# Run before backup
+# Usage: run_before
+run_before() {
+	if [ ${#exec_before[@]} -gt 0 ] ; then
+		# run command/script
+		"${exec_before[@]}"
+
+		if [ $? != 0 ] ; then
+			lb_exitcode=5
+
+			# option exit if error
+			if $exec_before_block ; then
+				lb_debug --log "Before script exited with error."
+				clean_exit --no-unmount
+			fi
+		fi
+	fi
+}
+
+
+# Run after backup
+# Usage: run_after
+run_after() {
+	if [ ${#exec_after[@]} -gt 0 ] ; then
+		# run command/script
+		"${exec_after[@]}"
+
+		if [ $? != 0 ] ; then
+			# if error, do not overwrite rsync exit code
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=16
+			fi
+
+			# option exit if error
+			if $exec_after_block ; then
+				lb_debug --log "After script exited with error."
+				clean_exit
+			fi
+		fi
+	fi
 }
 
 
@@ -1611,10 +1674,7 @@ clean_exit() {
 		fi
 	fi
 
-	if $debug_mode ; then
-		echo
-		lb_debug "Exited with code: $lb_exitcode"
-	fi
+	lb_debug "Exited with code: $lb_exitcode"
 
 	lb_exit
 }
