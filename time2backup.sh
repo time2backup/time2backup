@@ -233,7 +233,7 @@ if [ -z "$config_directory" ] ; then
 	else
 		config_directory="$(lb_homepath $user)/.config/time2backup/"
 		if [ $? != 0 ] ; then
-			lbg_display_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+			lbg_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
 			exit 3
 		fi
 	fi
@@ -246,7 +246,7 @@ config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
 if $debug_mode ; then
-	lb_display_debug "Running in DEBUG mode..."
+	lb_debug "Running in DEBUG mode..."
 else
 	# defines log level
 	# if not set (unknown error), set to default level
@@ -298,7 +298,7 @@ esac
 
 if ! $quiet_mode ; then
 	echo time2backup $version
-	lb_display_debug "Using config file: $config_file"
+	lb_debug "Using config file: $config_file"
 fi
 
 # if config file exists
@@ -306,7 +306,7 @@ if [ -f "$config_file" ] ; then
 
 	# upgrade config if needed
 	if ! upgrade_config ; then
-		lbg_display_error "$tr_error_upgrade_config"
+		lbg_error "$tr_error_upgrade_config"
 		exit 3
 	fi
 
@@ -322,13 +322,13 @@ fi
 
 # test if rsync command is available
 if ! lb_command_exists "$rsync_path" ; then
-	lbg_display_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
+	lbg_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
 	exit 1
 fi
 
 # create config files if needed
 if ! create_config ; then
-	lbg_display_error "$tr_error_create_config"
+	lbg_error "$tr_error_create_config"
 	exit 3
 fi
 
@@ -383,8 +383,6 @@ done
 
 lb_exitcode=$?
 
-if $debug_mode ; then
-	lb_display_debug "Exited with code: $lb_exitcode"
-fi
+lb_debug "Exited with code: $lb_exitcode"
 
 lb_exit

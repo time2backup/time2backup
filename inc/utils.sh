@@ -237,8 +237,6 @@ get_backup_history() {
 		# no backups
 		return 2
 	fi
-
-	return 0
 }
 
 
@@ -310,7 +308,7 @@ upgrade_config() {
 	if ! $quiet_mode ; then
 		echo
 		lb_print "$tr_upgrade_config"
-		lb_display_debug "Upgrading config v$old_config_version -> v$version"
+		lb_debug "Upgrading config v$old_config_version -> v$version"
 	fi
 
 	# specific changes per version
@@ -333,14 +331,14 @@ upgrade_config() {
 	# save old config file
 	old_config="$config_file.v$old_config_version"
 
-	lb_display_debug "Save old config..."
+	lb_debug "Save old config..."
 	cp -p "$config_file" "$old_config"
 	if [ $? != 0 ] ; then
 		lb_display_error "Cannot save old config! Please check your access rights."
 		return 2
 	fi
 
-	lb_display_debug "Replace by new config..."
+	lb_debug "Replace by new config..."
 	cat "$script_directory/config/time2backup.example.conf" > "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
@@ -364,7 +362,7 @@ upgrade_config() {
 			config_line+="\r"
 		fi
 
-		lb_display_debug "Upgrade $config_line..."
+		lb_debug "Upgrade $config_line..."
 
 		sed -i~ "s/^#*$config_param[[:space:]]*=.*/$config_line/" "$config_file"
 		if [ $? != 0 ] ; then
@@ -503,7 +501,7 @@ mount_destination() {
 	# test if UUID exists (disk plugged)
 	ls /dev/disk/by-uuid/ | grep "$backup_disk_uuid" &> /dev/null
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "Disk not available."
+		lb_debug --log "Disk not available."
 		return 2
 	fi
 
@@ -515,7 +513,7 @@ mount_destination() {
 
 		# if failed, try in sudo mode
 		if [ $? != 0 ] ; then
-			lb_display_debug --log "...Failed! Try with sudo..."
+			lb_debug --log "...Failed! Try with sudo..."
 			sudo mkdir -p "$backup_disk_mountpoint"
 
 			if [ $? != 0 ] ; then
@@ -532,7 +530,7 @@ mount_destination() {
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Trying in sudo..."
+		lb_debug --log "...Failed! Trying in sudo..."
 		sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
 
 		if [ $? != 0 ] ; then
@@ -542,7 +540,7 @@ mount_destination() {
 			rmdir "$backup_disk_mountpoint" &> /dev/null
 			# if failed, try in sudo mode
 			if [ $? != 0 ] ; then
-				lb_display_debug --log "...Failed! Trying in sudo..."
+				lb_debug --log "...Failed! Trying in sudo..."
 				sudo rmdir "$backup_disk_mountpoint" &> /dev/null
 				if [ $? != 0 ] ; then
 					lb_display --log "...Failed!"
@@ -555,8 +553,6 @@ mount_destination() {
 			return 1
 		fi
 	fi
-
-	return 0
 }
 
 
@@ -583,7 +579,7 @@ unmount_destination() {
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Try with sudo..."
+		lb_debug --log "...Failed! Try with sudo..."
 		sudo umount "$destination_mountpoint" &> /dev/null
 
 		if [ $? != 0 ] ; then
@@ -592,12 +588,12 @@ unmount_destination() {
 		fi
 	fi
 
-	lb_display_debug --log "Delete mount point..."
+	lb_debug --log "Delete mount point..."
 	rmdir "$destination_mountpoint" &> /dev/null
 
 	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "...Failed! Trying in sudo..."
+		lb_debug --log "...Failed! Trying in sudo..."
 		sudo rmdir "$destination_mountpoint" &> /dev/null
 
 		if [ $? != 0 ] ; then
@@ -605,8 +601,6 @@ unmount_destination() {
 			return 3
 		fi
 	fi
-
-	return 0
 }
 
 
@@ -673,8 +667,6 @@ get_backup_path() {
 			return 1
 		fi
 	fi
-
-	return 0
 }
 
 
@@ -698,18 +690,18 @@ delete_backup() {
 		return 1
 	fi
 
-	lb_display_debug --log "Removing $backup_destination/$1..."
+	lb_debug --log "Removing $backup_destination/$1..."
 
 	# delete backup path
 	rm -rf "$backup_destination/$1" 2> "$logfile"
 
 	if [ $? != 0 ] ; then
-		lb_display_debug --log "... Failed!"
+		lb_debug --log "... Failed!"
 		return 2
 	fi
 
 	# delete log file
-	lb_display_debug --log "Removing log file time2backup_$1.log..."
+	lb_debug --log "Removing log file time2backup_$1.log..."
 	rm -f "$logs_directory/time2backup_$1.log" 2> "$logfile"
 
 	# don't care of rm log errors
@@ -748,7 +740,7 @@ rotate_backups() {
 	fi
 
 	lb_display --log "Cleaning old backups..."
-	lb_display_debug --log "Clean to keep $rb_keep/$rb_nb"
+	lb_debug --log "Clean to keep $rb_keep/$rb_nb"
 
 	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
 
@@ -913,8 +905,6 @@ apply_config() {
 		echo "Disable recurrent backups..."
 		crontab_config disable
 	fi
-
-	return $?
 }
 
 
@@ -928,7 +918,7 @@ prepare_destination() {
 
 	local destok=false
 
-	lb_display_debug "Testing destination on: $destination..."
+	lb_debug "Testing destination on: $destination..."
 
 	case $(get_protocol "$destination") in
 		ssh|t2b)
@@ -955,11 +945,11 @@ prepare_destination() {
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
-		lb_display_debug "Destination mounted."
+		lb_debug "Destination mounted."
 		mounted=true
 		destok=true
 	else
-		lb_display_debug "Destination NOT mounted."
+		lb_debug "Destination NOT mounted."
 
 		# if backup disk mountpoint is defined,
 		if [ -n "$backup_disk_mountpoint" ] ; then
@@ -994,7 +984,7 @@ prepare_destination() {
 			# don't popup in recurrent mode
 			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
 		else
-			lbg_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+			lbg_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
 		fi
 		return 2
 	fi
@@ -1008,7 +998,7 @@ prepare_destination() {
 				# don't popup in recurrent mode
 				lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
 			else
-				lbg_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+				lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
 			fi
 			return 2
 		fi
@@ -1016,7 +1006,6 @@ prepare_destination() {
 
 	# create the info file if not exists (don't care of errors)
 	touch "$destination/.time2backup" &> /dev/null
-
 	return 0
 }
 
@@ -1064,13 +1053,13 @@ test_backup() {
 	# option dry-run makes a simulation for rsync
 	# then we get the last line with the total amount of bytes to be copied
 	# which is in format 999,999,999 so then we delete the commas
-	lb_display_debug --log "Testing rsync in dry-run mode: ${test_cmd[@]}..."
+	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[@]}..."
 
 	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
-		lb_display_debug --log "rsync test failed."
+		lb_debug --log "rsync test failed."
 		return 1
 	fi
 
@@ -1093,7 +1082,7 @@ test_backup() {
 	# add a security margin of 1MB for logs and future backups
 	total_size=$(($total_size + 1000000))
 
-	lb_display_debug --log "Backup total size (in bytes): $total_size"
+	lb_debug --log "Backup total size (in bytes): $total_size"
 
 	return 0
 }
@@ -1191,7 +1180,7 @@ clean_empty_directories() {
 			return 0
 		fi
 
-		lb_display_debug --log "Deleting empty directory: $d"
+		lb_debug --log "Deleting empty directory: $d"
 
 		# delete directory
 		rmdir "$d" &> /dev/null
@@ -1317,8 +1306,6 @@ open_config() {
 		lb_error "Please edit $edit_file manually."
 		return 3
 	fi
-
-	return 0
 }
 
 
@@ -1358,7 +1345,7 @@ create_lock() {
 		return 0
 	fi
 
-	lb_display_debug "Create lock..."
+	lb_debug "Create lock..."
 
 	touch "$backup_destination/.lock_$backup_date"
 }
@@ -1371,15 +1358,13 @@ create_lock() {
 #   1: could not delete lock
 release_lock() {
 
-	lb_display_debug "Deleting lock..."
+	lb_debug "Deleting lock..."
 
 	rm -f "$backup_destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
-		lbg_display_critical --log "$tr_error_unlock"
+		lbg_critical --log "$tr_error_unlock"
 		return 1
 	fi
-
-	return 0
 }
 
 
@@ -1509,7 +1494,7 @@ clean_exit() {
 		delete_logs=false
 	fi
 
-	lb_display_debug --log "Clean exit."
+	lb_debug --log "Clean exit."
 
 	# cleanup backup directory if empty
 	clean_empty_directories "$dest"
@@ -1526,7 +1511,7 @@ clean_exit() {
 	# unmount destination
 	if $unmount ; then
 		if ! unmount_destination ; then
-			lbg_display_error --log "$tr_error_unmount"
+			lbg_error --log "$tr_error_unmount"
 
 			if [ $lb_exitcode == 0 ] ; then
 				lb_exitcode=18
@@ -1594,25 +1579,25 @@ clean_exit() {
 	# delete log file
 	if $delete_logs ; then
 
-		lb_display_debug --log "Deleting log file..."
+		lb_debug --log "Deleting log file..."
 
 		# delete file
 		rm -f "$logfile" &> /dev/null
 
 		# if failed
 		if [ $? != 0 ] ; then
-			lb_display_debug "...Failed!"
+			lb_debug "...Failed!"
 		fi
 
 		# delete logs directory if empty
 		if lb_dir_is_empty "$logs_directory" ; then
-			lb_display_debug "Deleting log directory..."
+			lb_debug "Deleting log directory..."
 
 			rmdir "$logs_directory" &> /dev/null
 
 			# if failed
 			if [ $? != 0 ] ; then
-				lb_display_debug "...Failed!"
+				lb_debug "...Failed!"
 			fi
 		fi
 	fi
@@ -1628,7 +1613,7 @@ clean_exit() {
 
 	if $debug_mode ; then
 		echo
-		lb_display_debug "Exited with code: $lb_exitcode"
+		lb_debug "Exited with code: $lb_exitcode"
 	fi
 
 	lb_exit
@@ -1640,7 +1625,7 @@ clean_exit() {
 cancel_exit() {
 
 	lb_display --log
-	lb_display_info --log "Cancelled. Exiting..."
+	lb_info --log "Cancelled. Exiting..."
 
 	# display notification and exit
 	case $command in
@@ -1754,7 +1739,7 @@ config_wizard() {
 	# choose destination directory
 	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
 
-		lb_display_debug "Chosen destination: $lbg_choose_directory"
+		lb_debug "Chosen destination: $lbg_choose_directory"
 
 		# get the real path of the chosen directory
 		chosen_directory=$(lb_realpath "$lbg_choose_directory")
@@ -1773,14 +1758,14 @@ config_wizard() {
 				# reset destination variable
 				destination=$chosen_directory
 			else
-				lbg_display_error "$tr_error_set_destination\n$tr_edit_config_manually"
+				lbg_error "$tr_error_set_destination\n$tr_edit_config_manually"
 			fi
 		fi
 
 		# set mountpoint in config file
 		mountpoint=$(lb_df_mountpoint "$chosen_directory")
 		if [ -n "$mountpoint" ] ; then
-			lb_display_debug "Mount point: $mountpoint"
+			lb_debug "Mount point: $mountpoint"
 
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
@@ -1789,17 +1774,17 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_display_debug "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
+					lb_debug "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
 				fi
 			fi
 		else
-			lb_display_debug "Could not find mount point of destination."
+			lb_debug "Could not find mount point of destination."
 		fi
 
 		# set mountpoint in config file
 		disk_uuid=$(lb_df_uuid "$chosen_directory")
 		if [ -n "$disk_uuid" ] ; then
-			lb_display_debug "Disk UUID: $disk_uuid"
+			lb_debug "Disk UUID: $disk_uuid"
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
@@ -1807,11 +1792,11 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_display_debug "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
+					lb_debug "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
 				fi
 			fi
 		else
-			lb_display_debug "Could not find disk UUID of destination."
+			lb_debug "Could not find disk UUID of destination."
 		fi
 
 		# hard links support
@@ -1829,14 +1814,14 @@ config_wizard() {
 
 						res_edit=$?
 						if [ $res_edit != 0 ] ; then
-							lb_display_debug "Error in setting config parameter force_hard_links (result code: $res_edit)"
+							lb_debug "Error in setting config parameter force_hard_links (result code: $res_edit)"
 						fi
 					fi
 				fi
 			fi
 		fi
 	else
-		lb_display_debug "Error or cancel when choosing destination directory (result code: $?)."
+		lb_debug "Error or cancel when choosing destination directory (result code: $?)."
 
 		# if no destination set, return error
 		if [ -z "$destination" ] ; then
@@ -1857,7 +1842,7 @@ config_wizard() {
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
 				if ! $console_mode ; then
-					lbg_display_info "$tr_finished_edit"
+					lbg_info "$tr_finished_edit"
 				fi
 			fi
 		else
@@ -1931,7 +1916,7 @@ config_wizard() {
 							if [ $? == 0 ] ; then
 								lb_set_config "$config_file" frequency $lbg_input_text
 							else
-								lbg_display_error "$tr_frequency_syntax_error\n$tr_please_retry"
+								lbg_error "$tr_frequency_syntax_error\n$tr_please_retry"
 							fi
 						fi
 						;;
@@ -1939,10 +1924,10 @@ config_wizard() {
 
 				res_edit=$?
 				if [ $res_edit != 0 ] ; then
-					lb_display_debug "Error in setting config parameter frequency (result code: $res_edit)"
+					lb_debug "Error in setting config parameter frequency (result code: $res_edit)"
 				fi
 			else
-				lb_display_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
+				lb_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
 			fi
 		fi
 	fi
@@ -1955,7 +1940,7 @@ config_wizard() {
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
 				if ! $console_mode ; then
-					lbg_display_info "$tr_finished_edit"
+					lbg_info "$tr_finished_edit"
 				fi
 			fi
 		fi
@@ -1965,18 +1950,18 @@ config_wizard() {
 	lb_set_config "$config_file" recurrent $recurrent_enabled
 	res_edit=$?
 	if [ $res_edit != 0 ] ; then
-		lb_display_debug "Error in setting config parameter recurrent (result code: $res_edit)"
+		lb_debug "Error in setting config parameter recurrent (result code: $res_edit)"
 	fi
 
 	# reload config
 	if ! load_config || ! test_config ; then
-		lbg_display_error "$tr_errors_in_config"
+		lbg_error "$tr_errors_in_config"
 		return 3
 	fi
 
 	# apply configuration
 	if ! apply_config ; then
-		lbg_display_warning "$tr_cannot_install_cronjobs"
+		lbg_warning "$tr_cannot_install_cronjobs"
 	fi
 
 	# ask for the first backup
@@ -1986,7 +1971,7 @@ config_wizard() {
 	fi
 
 	# no backup: inform user time2backup is ready
-	lbg_display_info "$tr_info_time2backup_ready"
+	lbg_info "$tr_info_time2backup_ready"
 
 	return 0
 }

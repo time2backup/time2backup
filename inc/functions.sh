@@ -257,11 +257,11 @@ test_space_available() {
 	# transform space size from KB to bytes
 	tsa_space_left=$(($tsa_space_left * 1024))
 
-	lb_display_debug --log "Space available on disk (in bytes): $tsa_space_left"
+	lb_debug --log "Space available on disk (in bytes): $tsa_space_left"
 
 	# if space is not enough, error
 	if [ $tsa_space_left -lt $tsa_size ] ; then
-		lb_display_debug --log "Not enough space on device! Needed (in bytes): $tsa_size/$tsa_space_left"
+		lb_debug --log "Not enough space on device! Needed (in bytes): $tsa_size/$tsa_space_left"
 		return 1
 	fi
 }

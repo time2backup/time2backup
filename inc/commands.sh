@@ -76,7 +76,7 @@ t2b_backup() {
 	if [ ${#sources[@]} == 0 ] ; then
 
 		if ! lb_read_config "$config_sources" ; then
-			lbg_display_error "Cannot read sources.conf file!"
+			lbg_error "Cannot read sources.conf file!"
 			return 3
 		fi
 
@@ -88,7 +88,7 @@ t2b_backup() {
 
 	# if no sources to backup, exit
 	if [ $nbsrc == 0 ] ; then
-		lbg_display_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
+		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
 		return 4
 	fi
 
@@ -115,7 +115,7 @@ t2b_backup() {
 
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
-			lb_display_warning "Recurrent backups are disabled. You can enable it in configuration file."
+			lb_warning "Recurrent backups are disabled. You can enable it in configuration file."
 			return 20
 		fi
 
@@ -167,8 +167,8 @@ t2b_backup() {
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_display_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
-					lb_display_info "Recurrent backup: no need to backup."
+					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
+					lb_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
 					return 0
@@ -189,7 +189,7 @@ t2b_backup() {
 
 			# option exit if error
 			if $exec_before_block ; then
-				lb_display_debug --log "Before script exited with error."
+				lb_debug --log "Before script exited with error."
 				clean_exit --no-unmount
 			fi
 		fi
@@ -201,7 +201,7 @@ t2b_backup() {
 		1)
 			# destination not reachable
 			if ! $recurrent_backup ; then
-				lbg_display_error "$tr_backup_unreachable\n$tr_verify_media"
+				lbg_error "$tr_backup_unreachable\n$tr_verify_media"
 			fi
 			return 6
 			;;
@@ -216,14 +216,14 @@ t2b_backup() {
 		if $recurrent_backup ; then
 			lb_display_error "$tr_backup_already_running"
 		else
-			lbg_display_error "$tr_backup_already_running"
+			lbg_error "$tr_backup_already_running"
 		fi
 		# exit
 		return 8
 	fi
 
 	create_lock
-	
+
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
@@ -278,7 +278,7 @@ t2b_backup() {
 		if $hard_links ; then
 			if ! $force_hard_links ; then
 				if ! test_hardlinks "$destination" ; then
-					lb_display_debug --log "Destination does not support hard links. Continue in trash mode."
+					lb_debug --log "Destination does not support hard links. Continue in trash mode."
 					hard_links=false
 				fi
 			fi
@@ -366,7 +366,7 @@ t2b_backup() {
 						homedir=$config_directory
 						for ((d=1; d<=4; d++)) ; do
 							homedir=$(dirname "$homedir")
-							lb_display_debug "Finding windows homedir: $homedir"
+							lb_debug "Finding windows homedir: $homedir"
 						done
 
 						# then complete by \{user}
@@ -441,7 +441,7 @@ t2b_backup() {
 					# must not be empty
 					if ! lb_dir_is_empty "$old_backup_path" ; then
 
-						lb_display_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${all_backups[$b]}/$path_dest"
+						lb_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${all_backups[$b]}/$path_dest"
 
 						# save last backup date and continue
 						lastcleanbackup=${all_backups[$b]}
@@ -617,7 +617,7 @@ t2b_backup() {
 		fi
 
 		lb_display --log "Running backup..."
-		lb_display_debug --log "Executing: ${cmd[@]}\n"
+		lb_debug --log "Executing: ${cmd[@]}\n"
 
 		# real backup: execute rsync command, print result into terminal and logfile
 		"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -675,7 +675,7 @@ t2b_backup() {
 	# if backup succeeded (all OK or even if warnings)
 	case $lb_exitcode in
 		0|5|15)
-			lb_display_debug --log "Save backup timestamp"
+			lb_debug --log "Save backup timestamp"
 
 			# save current timestamp into config/.lastbackup file
 			date '+%s' > "$last_backup_file"
@@ -684,7 +684,7 @@ t2b_backup() {
 			fi
 
 			# create a latest link to the last backup directory
-			lb_display_debug --log "Create latest link..."
+			lb_debug --log "Create latest link..."
 
 			# create a new link
 			# in a sub-context to avoid confusion and do not care of errors
@@ -709,7 +709,7 @@ t2b_backup() {
 			if [ "$lb_current_os" == Windows ] ; then
 				# do not popup dialog that would prevent PC from shutdown
 				if ! $shutdown ; then
-					lbg_display_info "$tr_backup_finished\n$(report_duration)"
+					lbg_info "$tr_backup_finished\n$(report_duration)"
 				fi
 			else
 				lbg_notify "$tr_backup_finished\n$(report_duration)"
@@ -737,7 +737,7 @@ t2b_backup() {
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
-						lbg_display_warning "$tr_backup_finished_warnings\n$(report_duration)"
+						lbg_warning "$tr_backup_finished_warnings\n$(report_duration)"
 					fi
 				else
 					lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
@@ -756,7 +756,7 @@ t2b_backup() {
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
-						lbg_display_error "$tr_backup_failed\n$(report_duration)"
+						lbg_error "$tr_backup_failed\n$(report_duration)"
 					fi
 				else
 					lbg_notify "$tr_backup_failed\n$(report_duration)"
@@ -780,7 +780,7 @@ t2b_backup() {
 
 			# option exit if error
 			if $exec_after_block ; then
-				lb_display_debug --log "After script exited with error."
+				lb_debug --log "After script exited with error."
 				clean_exit
 			fi
 		fi
@@ -854,7 +854,7 @@ t2b_restore() {
 	backups=($(get_backups))
 	# if no backups, exit
 	if [ ${#backups[@]} == 0 ] ; then
-		lbg_display_error "$tr_no_backups_available"
+		lbg_error "$tr_no_backups_available"
 		return 5
 	fi
 
@@ -959,7 +959,7 @@ t2b_restore() {
 
 			# test if path to restore is stored in the backup directory
 			if [[ "$file" != "$backup_destination"* ]] ; then
-				lbg_display_error "$tr_path_is_not_backup"
+				lbg_error "$tr_path_is_not_backup"
 				return 1
 			fi
 
@@ -973,7 +973,7 @@ t2b_restore() {
 			# get backup date
 			backup_date=$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)
 			if [ -z "$backup_date" ] ; then
-				lbg_display_error "$tr_path_is_not_backup"
+				lbg_error "$tr_path_is_not_backup"
 				return 1
 			fi
 
@@ -989,7 +989,7 @@ t2b_restore() {
 
 			# check if it is a file backup
 			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
-				lbg_display_error "$tr_path_is_not_backup"
+				lbg_error "$tr_path_is_not_backup"
 				lb_error "Restoring ssh/network files is not supported yet."
 				return 12
 			fi
@@ -1008,7 +1008,7 @@ t2b_restore() {
 
 	# case of symbolic links
 	if [ -L "$file" ] ; then
-		lbg_display_error "$tr_cannot_restore_links"
+		lbg_error "$tr_cannot_restore_links"
 		return 12
 	fi
 
@@ -1019,7 +1019,7 @@ t2b_restore() {
 		fi
 	fi
 
-	lb_display_debug "Path to restore: $file"
+	lb_debug "Path to restore: $file"
 
 	# get backup full path
 	backup_file_path=$(get_backup_path "$file")
@@ -1034,7 +1034,7 @@ t2b_restore() {
 
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
-		lbg_display_error "$tr_no_backups_for_file"
+		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
 
@@ -1042,7 +1042,7 @@ t2b_restore() {
 	if [ "$backup_date" != "latest" ] ; then
 		# if date was specified but not here, error
 		if ! lb_array_contains "$backup_date" "${file_history[@]}" ; then
-			lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
+			lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
 			return 7
 		fi
 	fi
@@ -1094,7 +1094,7 @@ t2b_restore() {
 	if [ -d "$src" ] ; then
 		# trash mode: cannot restore directories
 		if ! $hard_links ; then
-			lbg_display_error "$tr_cannot_restore_from_trash"
+			lbg_error "$tr_cannot_restore_from_trash"
 			return 12
 		else
 			# enable directory mode
@@ -1120,8 +1120,8 @@ t2b_restore() {
 		common_path=$(get_common_path "$backup_destination" "$dest")
 
 		if [ $? != 0 ] ; then
-			lb_display_debug "Cannot exclude directory backup from $dest!"
-			lbg_display_error "$tr_restore_unknown_error"
+			lb_debug "Cannot exclude directory backup from $dest!"
+			lbg_error "$tr_restore_unknown_error"
 			return 8
 		fi
 
@@ -1153,7 +1153,7 @@ t2b_restore() {
 			fi
 
 			echo "Preparing restore..."
-			lb_display_debug ${cmd[@]}
+			lb_debug ${cmd[@]}
 
 			# test rsync to check newer files
 			"${cmd[@]}" | grep "^deleting "
@@ -1188,7 +1188,7 @@ t2b_restore() {
 	cmd+=("$src" "$dest")
 
 	echo "Restore file from backup $backup_date..."
-	lb_display_debug "Executing: ${cmd[@]}"
+	lb_debug "Executing: ${cmd[@]}"
 
 	# execute rsync command
 	"${cmd[@]}"
@@ -1198,15 +1198,15 @@ t2b_restore() {
 	# rsync results
 	if [ $res == 0 ] ; then
 		# file restored
-		lbg_display_info "$tr_restore_finished"
+		lbg_info "$tr_restore_finished"
 	else
 		if rsync_result $res ; then
 			# rsync minor errors (partial transfers)
-			lbg_display_warning "$tr_restore_finished_warnings"
+			lbg_warning "$tr_restore_finished_warnings"
 			lb_exitcode=10
 		else
 			# critical errors that caused backup to fail
-			lbg_display_error "$tr_restore_failed"
+			lbg_error "$tr_restore_failed"
 			lb_exitcode=9
 		fi
 	fi
@@ -1376,7 +1376,7 @@ t2b_explore() {
 	backups=($(get_backups))
 	# if no backups, exit
 	if [ ${#backups[@]} == 0 ] ; then
-		lbg_display_error "$tr_no_backups_available"
+		lbg_error "$tr_no_backups_available"
 		return 5
 	fi
 
@@ -1394,7 +1394,7 @@ t2b_explore() {
 
 	# if no backup found
 	if [ ${#path_history[@]} == 0 ] ; then
-		lbg_display_error "$tr_no_backups_for_file"
+		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
 
@@ -1406,7 +1406,7 @@ t2b_explore() {
 		if [ "$backup_date" != latest ] ; then
 			# if date was specified but not here, error
 			if ! lb_array_contains "$backup_date" "${path_history[@]}" ; then
-				lbg_display_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
+				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
 				return 7
 			fi
 		fi
