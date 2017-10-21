@@ -246,7 +246,7 @@ t2b_backup() {
 	if $remote_destination ; then
 		last_backup=latest
 	else
-		last_backup=$(ls "$backup_destination" | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$" | tail -n 1)
+		last_backup=$(get_backups | tail -1)
 	fi
 
 	# set new backup directory
@@ -971,7 +971,7 @@ t2b_restore() {
 			fi
 
 			# get backup date
-			backup_date=$(echo "$file" | grep -oE "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]" 2> /dev/null)
+			backup_date=$(echo "$file" | grep -oE "^$backup_date_format" 2> /dev/null)
 			if [ -z "$backup_date" ] ; then
 				lbg_error "$tr_path_is_not_backup"
 				return 1

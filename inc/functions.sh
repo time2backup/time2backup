@@ -26,7 +26,7 @@
 #   0: OK
 #   1: non OK
 check_backup_date() {
-	echo $1 | grep -Eq "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
+	echo $1 | grep -Eq "^$backup_date_format$"
 }
 
 

@@ -674,7 +674,7 @@ get_backup_path() {
 # Usage: get_backups
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 get_backups() {
-	ls "$backup_destination" 2> /dev/null | grep -E "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
+	ls "$backup_destination" 2> /dev/null | grep -E "^$backup_date_format$"
 }
 
 
