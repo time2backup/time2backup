@@ -59,8 +59,7 @@
 get_backup_fulldate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
-	echo "$1" | grep -Eq "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
-	if [ $? != 0 ] ; then
+	if ! check_backup_date $1 ; then
 		return 1
 	fi
 

@@ -9,6 +9,7 @@
 
 # Index of functions
 #
+#   check_backup_date
 #   get_common_path
 #   get_relative_path
 #   get_protocol
@@ -17,6 +18,16 @@
 #   test_space_available
 #   rsync_result
 #   file_for_windows
+
+
+# Check syntax of a backup date
+# Usage: check_backup_date DATE
+# Exit codes:
+#   0: OK
+#   1: non OK
+check_backup_date() {
+	echo $1 | grep -Eq "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]$"
+}
 
 
 # Get common path of 2 paths
