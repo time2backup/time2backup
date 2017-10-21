@@ -8,6 +8,7 @@
 * [explore](#explore)
 * [status](#status)
 * [stop](#stop)
+* [mv](#mv)
 * [clean](#clean)
 * [config](#config)
 * [install](#install)
@@ -221,6 +222,35 @@ time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
 - 5: Failed to stop process
 - 6: Cannot get status of backup
 - 7: No rsync process found
+
+---------------------------------------------------------------
+<a name="mv"></a>
+## mv
+Move or rename backuped files.
+
+Use this command if you want to rename/move a huge file/directory and avoid
+time2backup to consider it as deleted and retransfer the file/directory.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] mv [OPTIONS] PATH DESTINATION
+```
+
+### Options
+```
+-f, --force  Force move; do not display confirmation"
+-q, --quiet  Quiet mode"
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: File(s) moved
+- 1: Usage error
+- 3: Config error
+- 4: Backup device is not reachable
+- 5: No backup found for the path
+- 6: Cannot determine the backup path of source path or destination
+- 7: mv command error
 
 ---------------------------------------------------------------
 <a name="clean"></a>
