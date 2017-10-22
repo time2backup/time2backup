@@ -608,6 +608,7 @@ t2b_backup() {
 			# (ignoring vanished files in transfer)
 			success+=("$src")
 		else
+			# determine between warnings and errors
 			if rsync_result $res ; then
 				# rsync minor errors (partial transfers)
 				warnings+=("$src (some files were not backuped; code: $res)")
@@ -634,20 +635,13 @@ t2b_backup() {
 	# final cleanup
 	clean_empty_directories "$dest"
 
-	# if nothing was backuped, consider it as a critical error
-	# and do not rotate backups
-	if ! [ -d "$dest" ] ; then
+	if [ -d "$dest" ] ; then
+		rotate_backups
+	else
+		# if nothing was backuped, consider it as a critical error
+		# and do not rotate backups
 		errors+=("nothing was backuped!")
 		lb_exitcode=14
-	else
-		# rotate backups
-		if [ $keep_limit -ge 0 ] ; then
-			if $notifications ; then
-				lbg_notify "$tr_notify_rotate_backup"
-			fi
-
-			rotate_backups $keep_limit
-		fi
 	fi
 
 	# if backup succeeded (all OK or even if warnings)

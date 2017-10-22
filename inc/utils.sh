@@ -717,28 +717,22 @@ delete_backup() {
 }
 
 
-# Clean old backups if limit is reached or if space is not available
-# Usage: rotate_backups NB_TO_KEEP
+# Clean old backups
+# Usage: rotate_backups
 # Exit codes:
 #   0: rotate OK
-#   1: usage error
-#   2: rm error
+#   1: rm error
 rotate_backups() {
 
-	if ! lb_is_integer $1 ; then
-		lb_display_error "rotate_backups: $1 is not a number"
-		return 1
-	fi
-
 	# if unlimited, do not rotate
-	if [ $1 -lt 0 ] ; then
+	if [ $keep_limit -lt 0 ] ; then
 		return 0
 	fi
 
 	# always keep nb + 1 (do not delete current backup)
-	local rb_keep=$(($1 + 1))
+	local rb_keep=$(($keep_limit + 1))
 
-	# get backups
+	# get backups & number
 	local rb_backups=($(get_backups))
 	local rb_nb=${#rb_backups[@]}
 
@@ -749,6 +743,10 @@ rotate_backups() {
 
 	lb_display --log "Cleaning old backups..."
 	lb_debug --log "Clean to keep $rb_keep/$rb_nb"
+
+	if $notifications ; then
+		lbg_notify "$tr_notify_rotate_backup"
+	fi
 
 	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
 
