@@ -995,7 +995,7 @@ t2b_restore() {
 	fi
 
 	# search for dates
-	if [ "$backup_date" != "latest" ] ; then
+	if [ "$backup_date" != latest ] ; then
 		# if date was specified but not here, error
 		if ! lb_array_contains "$backup_date" "${file_history[@]}" ; then
 			lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
@@ -1039,7 +1039,7 @@ t2b_restore() {
 	fi
 
 	# if latest backup wanted, get most recent date
-	if [ "$backup_date" == "latest" ] ; then
+	if [ "$backup_date" == latest ] ; then
 		backup_date=${file_history[0]}
 	fi
 
@@ -1353,7 +1353,6 @@ t2b_explore() {
 		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
-
 
 	if $explore_all ; then
 		backup_date=${path_history[@]}

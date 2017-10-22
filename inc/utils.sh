@@ -787,16 +787,19 @@ report_duration() {
 #   4: cannot write into the temporary crontab file
 crontab_config() {
 
-	local crontab_enable=false
 	local crontab_opts=""
 
-	if [ $# == 0 ] ; then
-		return 1
-	fi
-
-	if [ "$1" == enable ] ; then
-		crontab_enable=true
-	fi
+	case $1 in
+		enable)
+			crontab_enable=true
+			;;
+		disable)
+			crontab_enable=false
+			;;
+		*)
+			return 1
+			;;
+	esac
 
 	# get crontab
 	tmpcrontab="$config_directory/crontmp"
@@ -1558,7 +1561,7 @@ clean_exit() {
 	fi
 
 	# prevent from deleting logs
-	if [ "$keep_logs" == "always" ] ; then
+	if [ "$keep_logs" == always ] ; then
 		delete_logs=false
 	elif [ "$keep_logs" == "on_error" ] && [ $lb_exitcode != 0 ] ; then
 		delete_logs=false
@@ -1590,13 +1593,13 @@ clean_exit() {
 	fi
 
 	# send email report
-	if [ "$email_report" == "on_error" ] || [ "$email_report" == "always" ] ; then
+	if [ "$email_report" == "on_error" ] || [ "$email_report" == always ] ; then
 
 		# if email recipient is set,
 		if [ -n "$email_recipient" ] ; then
 
 			# if report is set or there was an error
-			if [ "$email_report" == "always" ] || [ $lb_exitcode != 0 ] ; then
+			if [ "$email_report" == always ] || [ $lb_exitcode != 0 ] ; then
 
 				# email options
 				email_opts=()
