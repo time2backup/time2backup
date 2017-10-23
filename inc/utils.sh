@@ -97,18 +97,18 @@ get_backup_fulldate() {
 #   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
 
-	file_history=()
-	local all_versions=false
-	local last_version=false
+	# default options and variables
+	local gbh_all_versions=false
+	local gbh_last_version=false
 
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
 			-a)
-				all_versions=true
+				gbh_all_versions=true
 				;;
 			-l)
-				last_version=true
+				gbh_last_version=true
 				;;
 			*)
 				break
@@ -123,121 +123,111 @@ get_backup_history() {
 	fi
 
 	# get all backups
-	backups=($(get_backups))
-	if [ ${#backups[@]} == 0 ] ; then
+	local gbh_backups=($(get_backups))
+	if [ ${#gbh_backups[@]} == 0 ] ; then
+		# no backups found
 		return 2
 	fi
 
-	# get path
-	file=$*
-
 	# get backup path
-	abs_file=$(get_backup_path "$file")
-	if [ -z "$abs_file" ] ; then
+	local gbh_backup_path=$(get_backup_path "$*")
+	if [ -z "$gbh_backup_path" ] ; then
 		return 3
 	fi
 
-	# try to find backup
-	last_inode=""
-	last_symlink_target=""
-	for ((h=${#backups[@]}-1; h>=0; h--)) ; do
+	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
+	if [ "${gbh_backup_path:${#gbh_backup_path}-1}" == "/" ] ; then
+		# return path without the last /
+		gbh_backup_path=${gbh_backup_path:0:${#gbh_backup_path}-1}
+	fi
 
-		backup_date=${backups[$h]}
+	# prepare for loop
+	local gbh_last_inode=""
+	local gbh_last_symlink_target=""
+	declare -i gbh_versions=0
+
+	# try to find backup from latest to oldest
+	for ((gbh_i=${#gbh_backups[@]}-1 ; gbh_i>=0 ; gbh_i--)) ; do
+
+		gbh_date=${gbh_backups[$gbh_i]}
 
 		# check if file/directory exists
-		backup_file="$backup_destination/$backup_date/$abs_file"
+		gbh_backup_file="$backup_destination/$gbh_date/$gbh_backup_path"
 
-		# if file/directory exists,
-		if [ -e "$backup_file" ] ; then
+		# if file/directory does not exists, continue
+		if ! [ -e "$gbh_backup_file" ] ; then
+			continue
+		fi
 
-			# check if a backup is currently running
-			if [ "$(current_lock)" == "$backup_date" ] ; then
-				# ignore current backup (if running, it could contain errors)
+		# check if a backup is currently running
+		if [ "$(current_lock)" == "$gbh_date" ] ; then
+			# ignore current backup (if running, it could contain errors)
+			continue
+		fi
+
+		# if get only last version, print and exit
+		if $gbh_last_version ; then
+			echo $gbh_date
+			return 0
+		fi
+
+		# if get all versions, do not compare files and continue
+		if $gbh_all_versions ; then
+			echo $gbh_date
+			gbh_versions+=1
+			continue
+		fi
+
+		#  DIRECTORIES
+
+		if [ -d "$gbh_backup_file" ] ; then
+			# if it's not a symlink,
+			if ! [ -L "$gbh_backup_file" ] ; then
+				# TODO: DETECT DIRECTORY CHANGES
+				# for now, just add it to list
+				echo $gbh_date
+				gbh_versions+=1
 				continue
 			fi
+		fi
 
-			# if get last version, exit loop
-			if $last_version ; then
-				file_history+=("$backup_date")
-				break
+		#  SYMLINKS
+
+		if [ -L "$gbh_backup_file" ] ; then
+			# detect if symlink target has changed
+			# TODO: move this part to directory section and test target file inodes
+			gbh_symlink_target=$(readlink "$gbh_backup_file")
+
+			if [ "$gbh_symlink_target" != "$gbh_last_symlink_target" ] ; then
+				echo $gbh_date
+				gbh_versions+=1
+
+				# save target to compare to the next one
+				gbh_last_symlink_target=$gbh_symlink_target
 			fi
 
-			# if get all versions, do not compare files and continue
-			if $all_versions ; then
-				file_history+=("$backup_date")
-				continue
-			fi
+			continue
+		fi
 
-			#  DIRECTORIES
+		#  REGULAR FILES
 
-			if [ -d "$backup_file" ] ; then
+		# compare inodes to detect different versions
+		if [ "$lb_current_os" == macOS ] ; then
+			gbh_inode=$(stat -f %i "$gbh_backup_file")
+		else
+			gbh_inode=$(stat --format %i "$gbh_backup_file")
+		fi
 
-				# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
-				if [ "${backup_file:${#backup_file}-1}" == "/" ] ; then
-					# return path without the last /
-					backup_dir=${backup_file:0:${#backup_file}-1}
-				else
-					backup_dir=$backup_file
-				fi
+		if [ "$gbh_inode" != "$gbh_last_inode" ] ; then
+			echo $gbh_date
+			gbh_versions+=1
 
-				backup_file=$backup_dir
-
-				# if it is really a directory and not a symlink,
-				if ! [ -L "$backup_file" ] ; then
-					# NEW FEATURE TO COME: DETECT DIRECTORY CHANGES
-					# for now, just add it to list
-					file_history+=("$backup_date")
-					continue
-				fi
-			fi
-
-			#  SYMLINKS
-
-			# detect symlinks changes
-			if [ -L "$backup_file" ] ; then
-				symlink_target=$(readlink "$backup_file")
-
-				if [ "$symlink_target" != "$last_symlink_target" ] ; then
-					file_history+=("$backup_date")
-
-					# save last target to compare to next one
-					last_symlink_target=$symlink_target
-				fi
-
-				continue
-			fi
-
-			#  REGULAR FILES
-
-			# if no hardlinks, no need to test inodes
-			if ! test_hardlinks "$destination" ; then
-				file_history+=("$backup_date")
-				continue
-			fi
-
-			# compare inodes to detect different versions
-			if [ "$lb_current_os" == macOS ] ; then
-				inode=$(stat -f %i "$backup_file")
-			else
-				inode=$(stat --format %i "$backup_file")
-			fi
-
-			if [ "$inode" != "$last_inode" ] ; then
-				file_history+=("$backup_date")
-
-				# save last inode to compare to next
-				last_inode=$inode
-			fi
+			# save last inode to compare to next
+			gbh_last_inode=$gbh_inode
 		fi
 	done
 
-	# return file versions
-	if [ ${#file_history[@]} -gt 0 ] ; then
-		for h in ${file_history[@]} ; do
-			echo "$h"
-		done
-	else
-		# no backups
+	if [ $gbh_versions == 0 ] ; then
 		return 2
 	fi
 }
