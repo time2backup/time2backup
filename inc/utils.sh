@@ -90,6 +90,7 @@ get_backup_fulldate() {
 # Options:
 #   -a  get all versions (including same)
 #   -l  get only last version
+#   -n  get non-empty directories
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -100,6 +101,7 @@ get_backup_history() {
 	# default options and variables
 	local gbh_all_versions=false
 	local gbh_last_version=false
+	local gbh_nonempty=false
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -109,6 +111,9 @@ get_backup_history() {
 				;;
 			-l)
 				gbh_last_version=true
+				;;
+			-n)
+				gbh_nonempty=true
 				;;
 			*)
 				break
@@ -163,6 +168,15 @@ get_backup_history() {
 		if [ "$(current_lock)" == "$gbh_date" ] ; then
 			# ignore current backup (if running, it could contain errors)
 			continue
+		fi
+
+		# if get only non empty directories
+		if $gbh_nonempty ; then
+			if [ -d "$gbh_backup_file" ] ; then
+				if lb_dir_is_empty "$gbh_backup_file" ; then
+					continue
+				fi
+			fi
 		fi
 
 		# if get only last version, print and exit

@@ -405,30 +405,10 @@ t2b_backup() {
 		# reset last backup date
 		lastcleanbackup=""
 
-		# if there is at least one old backup
+		# find the last backup of this source (non empty)
 		if [ -n "$last_backup" ] ; then
-
-			# get all backup dates
-			all_backups=($(get_backups))
-
-			# find the last backup of this source
-			# starting from the latest to the oldest but ignore current date (array length - 2)
-			for ((b=${#all_backups[@]}-2; b>=0; b--)) ; do
-				old_backup_path="$backup_destination/${all_backups[$b]}/$path_dest"
-
-				# found an old backup for the current source
-				if [ -d "$old_backup_path" ] ; then
-					# must not be empty
-					if ! lb_dir_is_empty "$old_backup_path" ; then
-
-						lb_debug --log "Last backup found: $lastcleanbackup for $backup_destination/${all_backups[$b]}/$path_dest"
-
-						# save last backup date and continue
-						lastcleanbackup=${all_backups[$b]}
-						break
-					fi
-				fi
-			done
+			lastcleanbackup=$(get_backup_history -n -l "$abs_src")
+			lb_debug --log "Last backup used for link/trash: $lastcleanbackup"
 		fi
 
 		# no hard links means to use the trash mode
