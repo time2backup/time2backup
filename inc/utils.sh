@@ -643,8 +643,8 @@ get_backup_path() {
 	# if file or directory (relative path)
 
 	# remove file:// prefix
-	if [ "${src:0:7}" == "file://" ] ; then
-		src=${src:7}
+	if [ "${gbp_file:0:7}" == "file://" ] ; then
+		gbp_file=${gbp_file:7}
 	fi
 
 	# if not exists (file moved or deleted), try to get parent directory path
