@@ -9,11 +9,11 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.2.0 (2017-09-10)                          #
+#  Version 1.2.0 (2017-10-27)                          #
 #                                                      #
 ########################################################
 
-version=1.2.0-beta.1
+version=1.2.0-rc.1
 
 ####################
 #  INITIALIZATION  #
@@ -217,13 +217,6 @@ else
 	fi
 fi
 
-# default options for Windows systems
-if [ "$lb_current_os" == Windows ] ; then
-	ask_to_install=false
-	enable_recurrent=false
-	shutdown_cmd=(shutdown /s)
-fi
-
 # set default configuration file and path
 if [ -z "$config_directory" ] ; then
 
@@ -318,6 +311,11 @@ if [ -f "$config_file" ] ; then
 else
 	# config file does not exists
 	new_config=true
+fi
+
+# security recheck: set default rsync path if not defined
+if [ -z "$rsync_path" ] ; then
+	rsync_path=$default_rsync_path
 fi
 
 # test if rsync command is available

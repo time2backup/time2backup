@@ -481,6 +481,16 @@ load_config() {
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
+
+	# set default rsync path if not defined or if custom commands not allowed
+	if [ -z "$rsync_path" ] || $disable_custom_commands ; then
+		rsync_path=$default_rsync_path
+	fi
+
+	# set default shutdown command or if custom commands not allowed
+	if [ ${#shutdown_cmd[@]} == 0 ] || $disable_custom_commands ; then
+		shutdown_cmd=("${default_shutdown_cmd[@]}")
+	fi
 }
 
 
@@ -1489,8 +1499,15 @@ prepare_remote() {
 # Usage: run_before
 run_before() {
 	if [ ${#exec_before[@]} -gt 0 ] ; then
-		# run command/script
-		"${exec_before[@]}"
+
+		# if disabled, inform user and exit
+		if $disable_custom_commands ; then
+			lb_display_error "Custom commands are disabled."
+			false # bad command to go into the if $? != 0
+		else
+			# run command/script
+			"${exec_before[@]}"
+		fi
 
 		if [ $? != 0 ] ; then
 			lb_exitcode=5
@@ -1509,8 +1526,15 @@ run_before() {
 # Usage: run_after
 run_after() {
 	if [ ${#exec_after[@]} -gt 0 ] ; then
-		# run command/script
-		"${exec_after[@]}"
+
+		# if disabled, inform user and exit
+		if $disable_custom_commands ; then
+			lb_display_error "Custom commands are disabled."
+			false # bad command to go into the if $? != 0
+		else
+			# run command/script
+			"${exec_after[@]}"
+		fi
 
 		if [ $? != 0 ] ; then
 			# if error, do not overwrite rsync exit code

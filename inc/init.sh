@@ -24,9 +24,19 @@ mirror_mode=false
 #  DEFAULT CORE CONFIG  #
 #########################
 
-enable_recurrent=true
-ask_to_install=true
 cmd_alias=/usr/bin/time2backup
+default_rsync_path=rsync
+disable_custom_commands=false
+
+if [ "$lb_current_os" == Windows ] ; then
+  enable_recurrent=false
+  ask_to_install=false
+  default_shutdown_cmd=(shutdown /s)
+else
+  enable_recurrent=true
+  ask_to_install=true
+  default_shutdown_cmd=(shutdown -h now)
+fi
 
 
 ####################
@@ -49,7 +59,6 @@ exec_before_block=false
 unmount=false
 unmount_auto=true
 shutdown=false
-shutdown_cmd=(shutdown -h now)
 exec_after_block=false
 
 keep_logs=on_error
@@ -65,7 +74,6 @@ server_sudo=false
 
 hard_links=true
 force_hard_links=false
-rsync_path=rsync
 verbose_level=$default_verbose_level
 
 resume_cancelled=true
