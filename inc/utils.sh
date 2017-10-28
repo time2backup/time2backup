@@ -338,14 +338,12 @@ upgrade_config() {
 	# save old config file
 	old_config="$config_file.v$old_config_version"
 
-	lb_debug "Save old config..."
 	cp -p "$config_file" "$old_config"
 	if [ $? != 0 ] ; then
 		lb_display_error "Cannot save old config! Please check your access rights."
 		return 2
 	fi
 
-	lb_debug "Replace by new config..."
 	cat "$script_directory/config/time2backup.example.conf" > "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
@@ -718,7 +716,7 @@ delete_backup() {
 	rm -rf "$backup_destination/$1" 2> "$logfile"
 
 	if [ $? != 0 ] ; then
-		lb_debug --log "... Failed!"
+		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
 		return 2
 	fi
 
@@ -756,7 +754,7 @@ rotate_backups() {
 	fi
 
 	lb_display --log "Cleaning old backups..."
-	lb_debug --log "Clean to keep $rb_keep/$rb_nb"
+	lb_debug --log "Clean to keep $rb_keep backups on $rb_nb"
 
 	if $notifications ; then
 		lbg_notify "$tr_notify_rotate_backup"
@@ -1668,8 +1666,13 @@ clean_exit() {
 
 				email_content+="$tr_email_report_regards\ntime2backup"
 
+				lb_debug --log "Sending email report..."
+
 				# send email without managing errors and without blocking script
-				lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &
+				lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content"
+				if [ $? != 0 ] ; then
+					lb_debug --log "...Failed!"
+				fi
 			fi
 		else
 			# email not sent
@@ -1680,25 +1683,18 @@ clean_exit() {
 	# delete log file
 	if $delete_logs ; then
 
-		lb_debug --log "Deleting log file..."
-
-		# delete file
 		rm -f "$logfile" &> /dev/null
 
-		# if failed
 		if [ $? != 0 ] ; then
-			lb_debug "...Failed!"
+			lb_debug --log "Failed to delete logfile!"
 		fi
 
 		# delete logs directory if empty
 		if lb_dir_is_empty "$logs_directory" ; then
-			lb_debug "Deleting log directory..."
-
 			rmdir "$logs_directory" &> /dev/null
 
-			# if failed
 			if [ $? != 0 ] ; then
-				lb_debug "...Failed!"
+				lb_debug "Failed to delete logs directory!"
 			fi
 		fi
 	fi
@@ -1722,7 +1718,7 @@ clean_exit() {
 # Usage: cancel_exit
 cancel_exit() {
 
-	lb_display --log
+	echo
 	lb_info --log "Cancelled. Exiting..."
 
 	# display notification and exit
@@ -1776,7 +1772,7 @@ haltpc() {
 	# run shutdown command
 	"${shutdown_cmd[@]}"
 	if [ $? != 0 ] ; then
-		lb_display_error "Error with shutdown command. PC is still up."
+		lb_display_error --log "Error with shutdown command. PC is still up."
 		return 2
 	fi
 }
