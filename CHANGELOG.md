@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 (2017-10-30)
+- New clean command to delete backup files
+- New mv command to reorganize backup files
+- Fixed bug that prevent Windows to backup on network shared folders
+- New option to prevent user to execute custom commands
+- Improve output of the history command
+- Fixed quiet mode that printed some info
+- libbash.sh upgraded to 1.6.2
+- Various code improvements and optimizations
+
 ## 1.1.0 (2017-09-29)
 - New explore command to open backups in the file manager
 - New stop command to interrupt a running backup

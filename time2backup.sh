@@ -9,11 +9,11 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.2.0 (2017-10-27)                          #
+#  Version 1.2.0 (2017-10-30)                          #
 #                                                      #
 ########################################################
 
-version=1.2.0-rc.1
+version=1.2.0
 
 ####################
 #  INITIALIZATION  #
