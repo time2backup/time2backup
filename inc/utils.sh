@@ -397,7 +397,7 @@ test_config() {
 		return 1
 	fi
 
-	# convert destination for windows systems
+	# convert destination path for Windows systems
 	if [ "$lb_current_os" == Windows ] ; then
 		destination=$(lb_realpath "$destination")
 

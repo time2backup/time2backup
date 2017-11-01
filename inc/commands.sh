@@ -371,13 +371,13 @@ t2b_backup() {
 					src="$homedir/$(echo "$src" | sed 's/^[^/]*\///')"
 				fi
 
-				# get absolute path for source
+				# get UNIX format for Windows paths
 				if [ "$lb_current_os" == Windows ] ; then
-					# get realpath for Windows formats
-					abs_src=$(lb_realpath "$src")
-				else
-					abs_src=$(lb_abspath "$src")
+					src=$(cygpath "$src")
 				fi
+
+				# get absolute path for source
+				abs_src=$(lb_abspath "$src")
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
@@ -407,7 +407,7 @@ t2b_backup() {
 
 		# find the last backup of this source (non empty)
 		if [ -n "$last_backup" ] ; then
-			lastcleanbackup=$(get_backup_history -n -l "$abs_src")
+			lastcleanbackup=$(get_backup_history -n -l "$src")
 			lb_debug --log "Last backup used for link/trash: $lastcleanbackup"
 		fi
 
