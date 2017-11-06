@@ -253,18 +253,6 @@ t2b_backup() {
 		clean_exit 7
 	fi
 
-	# check if destination supports hard links
-	if ! $remote_destination ; then
-		if $hard_links ; then
-			if ! $force_hard_links ; then
-				if ! test_hardlinks "$destination" ; then
-					lb_debug --log "Destination does not support hard links. Continue in trash mode."
-					hard_links=false
-				fi
-			fi
-		fi
-	fi
-
 	# prepare rsync command
 	prepare_rsync backup
 
@@ -778,13 +766,6 @@ t2b_restore() {
 	# test backup destination
 	if ! prepare_destination ; then
 		return 4
-	fi
-
-	# test hard links
-	if ! $force_hard_links ; then
-		if ! test_hardlinks "$destination" ; then
-			hard_links=false
-		fi
 	fi
 
 	# get all backups

@@ -153,7 +153,7 @@ get_relative_path() {
 # Return: files|ssh|t2b
 get_protocol() {
 
-	local gptc_protocol=$(echo $* | cut -d: -f1)
+	local gptc_protocol=$(echo $1 | cut -d: -f1)
 
 	# get protocol
 	case $gptc_protocol in

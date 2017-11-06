@@ -956,14 +956,12 @@ prepare_destination() {
 			# quit ok
 			return 0
 			;;
-
-		*)
-			# remove file:// prefix
-			if [ "${destination:0:7}" == "file://" ] ; then
-				destination=${destination:7}
-			fi
-			;;
 	esac
+
+	# remove file:// prefix
+	if [ "${destination:0:7}" == "file://" ] ; then
+		destination=${destination:7}
+	fi
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
@@ -1023,6 +1021,16 @@ prepare_destination() {
 				lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
 			fi
 			return 2
+		fi
+	fi
+
+	# check if destination supports hard links
+	if $hard_links ; then
+		if ! $force_hard_links ; then
+			if ! test_hardlinks "$destination" ; then
+				lb_debug --log "Destination does not support hard links. Continue in trash mode."
+				hard_links=false
+			fi
 		fi
 	fi
 
@@ -1559,18 +1567,9 @@ run_after() {
 # Usage: clean_exit [EXIT_CODE]
 clean_exit() {
 
-	local delete_logs=true
-
 	# set exit code if specified
 	if [ -n "$1" ] ; then
 		lb_exitcode=$1
-	fi
-
-	# prevent from deleting logs
-	if [ "$keep_logs" == always ] ; then
-		delete_logs=false
-	elif [ "$keep_logs" == "on_error" ] && [ $lb_exitcode != 0 ] ; then
-		delete_logs=false
 	fi
 
 	lb_debug --log "Clean exit"
@@ -1601,6 +1600,19 @@ clean_exit() {
 	send_email_report
 
 	# delete log file
+	local delete_logs=true
+
+	case $keep_logs in
+		always)
+			delete_logs=false
+			;;
+		on_error)
+			if [ $lb_exitcode != 0 ] ; then
+				delete_logs=false
+			fi
+			;;
+	esac
+
 	if $delete_logs ; then
 
 		rm -f "$logfile" &> /dev/null
@@ -1904,7 +1916,7 @@ config_wizard() {
 
 						res_edit=$?
 						if [ $res_edit != 0 ] ; then
-							lb_debug "Error in setting config parameter force_hard_links (result code: $res_edit)"
+							lb_display_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
 						fi
 					fi
 				fi
