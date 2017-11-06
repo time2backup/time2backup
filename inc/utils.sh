@@ -1702,7 +1702,7 @@ send_email_report() {
 	esac
 
 	# if email recipient is not set
-	if [ -n "$email_recipient" ] ; then
+	if [ -z "$email_recipient" ] ; then
 		lb_display_error --log "Email recipient not set, cannot send email report."
 		return 1
 	fi
