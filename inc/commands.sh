@@ -76,7 +76,7 @@ t2b_backup() {
 
 		if ! lb_read_config "$config_sources" ; then
 			lbg_error "Cannot read sources.conf file!"
-			return 3
+			clean_exit 3
 		fi
 
 		sources=("${lb_read_config[@]}")
@@ -88,7 +88,7 @@ t2b_backup() {
 	# if no sources to backup, exit
 	if [ $nbsrc == 0 ] ; then
 		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
-		return 4
+		clean_exit 4
 	fi
 
 	# get last backup file
@@ -109,19 +109,19 @@ t2b_backup() {
 		# if disabled in default configuration
 		if ! $enable_recurrent ; then
 			lb_display_error "Recurrent backups are disabled."
-			return 20
+			clean_exit 20
 		fi
 
 		# recurrent backups not enabled in configuration
 		if ! $recurrent ; then
 			lb_warning "Recurrent backups are disabled. You can enable it in configuration file."
-			return 20
+			clean_exit 20
 		fi
 
 		# if cannot get last timestamp, cancel (avoid to backup every minute)
 		if ! [ -w "$last_backup_file" ] ; then
 			lb_display_error "Cannot get/save the last backup timestamp."
-			return 21
+			clean_exit 21
 		fi
 
 		# compare timestamps
@@ -189,11 +189,11 @@ t2b_backup() {
 			if ! $recurrent_backup ; then
 				lbg_error "$tr_backup_unreachable\n$tr_verify_media"
 			fi
-			return 6
+			clean_exit 6
 			;;
 		2)
 			# destination not writable
-			return 7
+			clean_exit 7
 			;;
 	esac
 
@@ -204,8 +204,7 @@ t2b_backup() {
 		else
 			lbg_error "$tr_backup_already_running"
 		fi
-		# exit
-		return 8
+		clean_exit 8
 	fi
 
 	create_lock
@@ -346,11 +345,13 @@ t2b_backup() {
 						homedir=$config_directory
 						for ((d=1; d<=4; d++)) ; do
 							homedir=$(dirname "$homedir")
-							lb_debug "Finding windows homedir: $homedir"
 						done
 
 						# then complete by \{user}
 						homedir="$homedir/$homeuser"
+
+						lb_debug "Windows homedir: $homedir"
+
 						# and test it
 						[ -d "$homedir" ]
 					else

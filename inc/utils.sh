@@ -43,6 +43,7 @@
 #   Exit functions
 #      clean_exit
 #      cancel_exit
+#      email_report
 #      haltpc
 #   Wizards
 #      choose_operation
@@ -1597,67 +1598,7 @@ clean_exit() {
 		fi
 	fi
 
-	# send email report
-	if [ "$email_report" == "on_error" ] || [ "$email_report" == always ] ; then
-
-		# if email recipient is set,
-		if [ -n "$email_recipient" ] ; then
-
-			# if report is set or there was an error
-			if [ "$email_report" == always ] || [ $lb_exitcode != 0 ] ; then
-
-				# email options
-				email_opts=()
-				if [ -n "$email_sender" ] ; then
-					email_opts+=(--sender "$email_sender")
-				fi
-
-				# prepare email content
-				email_subject="$email_subject_prefix"
-
-				if [ -n "$email_subject_prefix" ] ; then
-					email_subject+=" "
-				fi
-
-				email_subject+="$tr_email_report_subject "
-				email_content="$tr_email_report_greetings\n\n"
-
-				if [ $lb_exitcode == 0 ] ; then
-					email_subject+=$(printf "$tr_email_report_subject_success" $(hostname))
-					email_content+=$(printf "$tr_email_report_success" $(hostname))
-				else
-					email_subject+=$(printf "$tr_email_report_subject_failed" $(hostname))
-					email_content+=$(printf "$tr_email_report_failed" $(hostname) $lb_exitcode)
-				fi
-
-				email_content+="\n\n$(printf "$tr_email_report_details" "$current_date")"
-				email_content+="\n$(report_duration)\n\n"
-
-				# error report
-				if [ $lb_exitcode != 0 ] ; then
-					email_content+="$report_details\n\n"
-				fi
-
-				# if logs are kept,
-				if ! $delete_logs ; then
-					email_content+="$tr_email_report_see_logs\n\n"
-				fi
-
-				email_content+="$tr_email_report_regards\ntime2backup"
-
-				lb_debug --log "Sending email report..."
-
-				# send email without managing errors and without blocking script
-				lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content"
-				if [ $? != 0 ] ; then
-					lb_debug --log "...Failed!"
-				fi
-			fi
-		else
-			# email not sent
-			lb_display_error --log "Email recipient not set, do not send email report."
-		fi
-	fi
+	send_email_report
 
 	# delete log file
 	if $delete_logs ; then
@@ -1721,6 +1662,82 @@ cancel_exit() {
 			exit 255
 			;;
 	esac
+}
+
+
+# Send email report
+# Usage: send_email_report
+# Exit codes:
+#   0: email sent, not enabled or no error
+#   1: email recipient not set
+#   2: failed to send email
+send_email_report() {
+
+	case $email_report in
+		always)
+			# continue
+			;;
+		on_error)
+			# if there was no error, do not send email
+			if [ $lb_exitcode == 0 ] ; then
+				return 0
+			fi
+			;;
+		*)
+			# email report not enabled
+			return 0
+			;;
+	esac
+
+	# if email recipient is not set
+	if [ -n "$email_recipient" ] ; then
+		lb_display_error --log "Email recipient not set, cannot send email report."
+		return 1
+	fi
+
+	# email options
+	email_opts=()
+	if [ -n "$email_sender" ] ; then
+		email_opts+=(--sender "$email_sender")
+	fi
+
+	# prepare email content
+	email_subject="$email_subject_prefix"
+
+	if [ -n "$email_subject_prefix" ] ; then
+		email_subject+=" "
+	fi
+
+	email_subject+="$tr_email_report_subject "
+	email_content="$tr_email_report_greetings\n\n"
+
+	if [ $lb_exitcode == 0 ] ; then
+		email_subject+=$(printf "$tr_email_report_subject_success" $(hostname))
+		email_content+=$(printf "$tr_email_report_success" $(hostname))
+	else
+		email_subject+=$(printf "$tr_email_report_subject_failed" $(hostname))
+		email_content+=$(printf "$tr_email_report_failed" $(hostname) $lb_exitcode)
+	fi
+
+	email_content+="\n\n$(printf "$tr_email_report_details" "$current_date")"
+	email_content+="\n$(report_duration)\n\n"
+
+	# error report
+	if [ $lb_exitcode != 0 ] ; then
+		email_content+="$report_details\n\n"
+	fi
+
+	email_content+="$tr_email_report_see_logs\n\n"
+	email_content+="$tr_email_report_regards\ntime2backup"
+
+	lb_debug --log "Sending email report..."
+
+	# send email without managing errors and without blocking script
+	lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content"
+	if [ $? != 0 ] ; then
+		lb_debug --log "...Failed!"
+		return 2
+	fi
 }
 
 
