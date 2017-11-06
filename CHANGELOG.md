@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 (2017-11-06)
+- Fixed hard links bug for distant sources (previous backup were not found)
+- Send email reports even if first tests fails (already running, not mounted, ...)
+- Hard links compatibility is now tested from a list of known supported filesystems
+
 ## 1.2.0 (2017-10-30)
 - New clean command to delete backup files
 - New mv command to reorganize backup files
