@@ -1513,7 +1513,7 @@ run_before() {
 			# option exit if error
 			if $exec_before_block ; then
 				lb_debug --log "Before script exited with error."
-				clean_exit --no-unmount
+				clean_exit
 			fi
 		fi
 	fi
@@ -1555,31 +1555,10 @@ run_after() {
 ####################
 
 # Clean things before exit
-# Usage: clean_exit [OPTIONS] [EXIT_CODE]
-# Options:
-#   --no-unmount   Do not unmount
-#   --no-email     Do not send email report
+# Usage: clean_exit [EXIT_CODE]
 clean_exit() {
 
 	local delete_logs=true
-
-	# get options
-	while [ -n "$1" ] ; do
-		case $1 in
-			--no-unmount)
-				if ! $force_unmount ; then
-					unmount=false
-				fi
-				;;
-			--no-email)
-				email_report=none
-				;;
-			*)
-				break
-				;;
-		esac
-		shift # load next argument
-	done
 
 	# set exit code if specified
 	if [ -n "$1" ] ; then
@@ -1593,7 +1572,7 @@ clean_exit() {
 		delete_logs=false
 	fi
 
-	lb_debug --log "Clean exit."
+	lb_debug --log "Clean exit"
 
 	# cleanup backup directory if empty
 	clean_empty_directories "$dest"
@@ -1686,7 +1665,7 @@ clean_exit() {
 		rm -f "$logfile" &> /dev/null
 
 		if [ $? != 0 ] ; then
-			lb_debug --log "Failed to delete logfile!"
+			lb_debug --log "Failed to delete logfile"
 		fi
 
 		# delete logs directory if empty
@@ -1694,7 +1673,7 @@ clean_exit() {
 			rmdir "$logs_directory" &> /dev/null
 
 			if [ $? != 0 ] ; then
-				lb_debug "Failed to delete logs directory!"
+				lb_debug "Failed to delete logs directory"
 			fi
 		fi
 	fi
