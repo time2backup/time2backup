@@ -180,11 +180,10 @@ get_protocol() {
 #   2: destination does not support hard links
 test_hardlinks() {
 
-	# Details:
-	#   vfat:    FAT16/32 on Linux systems
-	#   msdos:   FAT16/32 on macOS systems
-	#   vboxsf:  VirtualBox shared folder on Linux guests
-	local thl_no_hardlinks_fs=(vfat msdos exfat vboxsf)
+	# supported filesystems
+	local thl_hardlinks_fs=(ext2 ext3 ext4 btrfs aufs \
+	hfs hfsplus apfs \
+	ntfs)
 
 	# get destination filesystem
 	local thl_fstype=$(lb_df_fstype "$*")
@@ -193,11 +192,9 @@ test_hardlinks() {
 	fi
 
 	# if destination filesystem does not support hard links, return error
-	if lb_array_contains "$thl_fstype" "${thl_no_hardlinks_fs[@]}" ; then
+	if ! lb_array_contains "$thl_fstype" "${thl_hardlinks_fs[@]}" ; then
 		return 2
 	fi
-
-	return 0
 }
 
 
