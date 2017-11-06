@@ -918,7 +918,8 @@ t2b_restore() {
 	else
 		# get specified path
 		if [ "$lb_current_os" == Windows ] ; then
-			file=$(lb_realpath "$*")
+			# get UNIX format for Windows paths
+			file=$(cygpath "$*")
 		else
 			file=$*
 		fi
@@ -1177,7 +1178,8 @@ t2b_history() {
 
 	# get file
 	if [ "$lb_current_os" == Windows ] ; then
-		file=$(lb_realpath "$*")
+		# get UNIX format for Windows paths
+		file=$(cygpath "$*")
 	else
 		file=$*
 	fi
@@ -1577,13 +1579,13 @@ t2b_mv() {
 		return 4
 	fi
 
-	src=$1
-	dest=$2
-
-	# get realpath for Windows
 	if [ "$lb_current_os" == Windows ] ; then
-		src=$(lb_realpath "$src")
-		dest=$(lb_realpath "$dest")
+		# get UNIX format for Windows paths
+		src=$(cygpath "$1")
+		dest=$(cygpath "$2")
+	else
+		src=$1
+		dest=$2
 	fi
 
 	# get all backup versions of this file

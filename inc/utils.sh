@@ -520,7 +520,7 @@ mount_destination() {
 	fi
 
 	# test if UUID exists (disk plugged)
-	ls /dev/disk/by-uuid/ | grep -q "$backup_disk_uuid"
+	ls /dev/disk/by-uuid/ 2> /dev/null | grep -q "$backup_disk_uuid"
 	if [ $? != 0 ] ; then
 		lb_debug --log "Disk not available."
 		return 2
