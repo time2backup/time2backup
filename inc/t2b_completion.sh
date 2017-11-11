@@ -7,6 +7,12 @@
 # Copyright (c) 2017 Jean Prunneaux
 #
 
+# Determine command name and honour $cmd_alias defined in inc/init.sh
+_t2b_current_script=$(readlink -f "$0")
+_t2b_script_directory=$(dirname "$current_script")
+source "$script_directory/init.sh" --gui > /dev/null
+_t2b_cmd=$(basename $cmd_alias)
+
 _t2b_complete()
 {
     local cur_word prev_word type_list
@@ -32,6 +38,13 @@ _t2b_complete()
     return 0
 }
 
-# Register _pss_complete to provide completion for the following commands
-complete -F _t2b_complete time2backup
-# To remove `complete -W "" time2backup`
+# Register _t2b_complete to provide completion for the following commands
+complete -F _t2b_complete $_t2b_cmd
+
+# To install :
+# sudo ln -s $PWD/inc/t2b_completion.sh /etc/bash_completion.d/
+# . /etc/bash_completion.d/tb2-completion.sh
+
+# To remove
+# sudo rm /etc/bash_completion.d/t2b_completion.sh
+# `complete -W "" time2backup`
