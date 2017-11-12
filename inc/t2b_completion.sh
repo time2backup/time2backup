@@ -35,6 +35,7 @@ _t2b_complete()
     else
         COMPREPLY=( $(compgen -W 'backup restore history explore status stop clean config install uninstall' -- ${cur_word}))
     fi
+    echo $_t2b_cmd
     return 0
 }
 
@@ -43,7 +44,7 @@ complete -F _t2b_complete $_t2b_cmd
 
 # To install :
 # sudo ln -s $PWD/inc/t2b_completion.sh /etc/bash_completion.d/
-# . /etc/bash_completion.d/tb2-completion.sh
+# . /etc/bash_completion.d/t2b_completion.sh
 
 # To remove
 # sudo rm /etc/bash_completion.d/t2b_completion.sh
