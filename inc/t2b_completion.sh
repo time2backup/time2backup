@@ -9,8 +9,8 @@
 
 # Determine command name and honour $cmd_alias defined in inc/init.sh
 _t2b_current_script=$(readlink -f "$0")
-_t2b_script_directory=$(dirname "$current_script")
-source "$script_directory/init.sh" --gui > /dev/null
+_t2b_script_directory=$(dirname "$_t2b_current_script")
+source "$_t2b_script_directory/init.sh" > /dev/null
 _t2b_cmd=$(basename $cmd_alias)
 
 _t2b_complete()
@@ -35,7 +35,6 @@ _t2b_complete()
     else
         COMPREPLY=( $(compgen -W 'backup restore history explore status stop clean config install uninstall' -- ${cur_word}))
     fi
-    echo $_t2b_cmd
     return 0
 }
 
@@ -43,7 +42,7 @@ _t2b_complete()
 complete -F _t2b_complete $_t2b_cmd
 
 # To install :
-# sudo ln -s $PWD/inc/t2b_completion.sh /etc/bash_completion.d/
+# sudo ln -fs $PWD/inc/t2b_completion.sh /etc/bash_completion.d/
 # . /etc/bash_completion.d/t2b_completion.sh
 
 # To remove
