@@ -14,7 +14,6 @@
 #      get_backup_history
 #      create_config
 #      upgrade_config
-#      test_config
 #      load_config
 #      mount_destination
 #      unmount_destination
@@ -385,63 +384,6 @@ upgrade_config() {
 }
 
 
-# Test configuration
-# Usage: test_config
-# Exit codes:
-#   0: OK
-#   1: there are errors in config
-test_config() {
-
-	# test if destination is defined
-	if [ -z "$destination" ] ; then
-		lb_error "Destination is not set!"
-		return 1
-	fi
-
-	# convert destination path for Windows systems
-	if [ "$lb_current_os" == Windows ] ; then
-		destination=$(lb_realpath "$destination")
-
-		if [ $? != 0 ] ; then
-			lb_error "Error in Windows destination path!"
-			return 1
-		fi
-	fi
-
-	# test if sources file exists
-	if ! [ -f "$config_sources" ] ; then
-		lb_error "No sources file found!"
-		return 1
-	fi
-
-	# test config values
-
-	# test boolean values
-	test_boolean=(destination_subdirectories test_destination resume_cancelled resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications console_mode network_compression hard_links force_hard_links)
-	for v in ${test_boolean[@]} ; do
-		if ! lb_is_boolean ${!v} ; then
-			lb_error "$v must be a boolean!"
-			return 1
-		fi
-	done
-
-	# test integer values
-	test_integer=(keep_limit clean_keep)
-	for v in ${test_integer[@]} ; do
-		if ! lb_is_integer ${!v} ; then
-			lb_error "$v must be an integer!"
-			return 1
-		fi
-	done
-
-	# other specific tests
-	if [ $clean_keep -lt 0 ] ; then
-		lb_error "clean_keep must be a positive integer!"
-		return 1
-	fi
-}
-
-
 # Load configuration file
 # Usage: load_config
 # Exit codes:
@@ -454,6 +396,12 @@ load_config() {
 		echo -e "\n$tr_loading_config\n"
 	fi
 
+	# test if sources file exists
+	if ! [ -f "$config_sources" ] ; then
+		lb_error "No sources file found!"
+		return 1
+	fi
+
 	# load config
 	if ! lb_import_config "$config_file" ; then
 		lb_display_error "$tr_error_read_config"
@@ -464,6 +412,51 @@ load_config() {
 	if [ -n "$force_destination" ] ; then
 		destination=$force_destination
 	fi
+
+	# test if destination is defined
+	if [ -z "$destination" ] ; then
+		lb_error "Destination is not set!"
+		return 2
+	fi
+
+	# convert destination path for Windows systems
+	if [ "$lb_current_os" == Windows ] ; then
+		destination=$(cygpath "$destination")
+
+		if [ $? != 0 ] ; then
+			lb_error "Error in Windows destination path!"
+			return 2
+		fi
+	fi
+
+	# test config values
+
+	# test boolean values
+	test_boolean=(destination_subdirectories test_destination resume_cancelled resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications console_mode network_compression hard_links force_hard_links)
+	for v in ${test_boolean[@]} ; do
+		if ! lb_is_boolean ${!v} ; then
+			lb_error "$v must be a boolean!"
+			return 2
+		fi
+	done
+
+	# test integer values
+	test_integer=(keep_limit clean_keep)
+	for v in ${test_integer[@]} ; do
+		if ! lb_is_integer ${!v} ; then
+			lb_error "$v must be an integer!"
+			return 2
+		fi
+	done
+
+	# other specific tests
+
+	if [ $clean_keep -lt 0 ] ; then
+		lb_error "clean_keep must be a positive integer!"
+		return 2
+	fi
+
+	# init some variables
 
 	# set backup destination
 	if $destination_subdirectories ; then
@@ -828,7 +821,7 @@ crontab_config() {
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
-	if [ "$(whoami)" == root ] ; then
+	if [ "$lb_current_user" == root ] ; then
 		crontab_opts="-u $user"
 	fi
 
@@ -1317,12 +1310,12 @@ open_config() {
 			edit_file=$(cygpath -w "$edit_file")
 		fi
 
-		# open editor
+		# open editor and wait until process ends (does not work with all editors)
 		"$editor" "$edit_file" 2> /dev/null
 		wait $!
 	else
 		if $custom_editor ; then
-			lb_error "Editor '$editors' was not found on this system."
+			lb_error "Editor '$editor' was not found on this system."
 		else
 			lb_error "No editor was found on this system."
 			lb_error "Please edit $edit_file manually."
@@ -2056,7 +2049,7 @@ config_wizard() {
 	fi
 
 	# reload config
-	if ! load_config || ! test_config ; then
+	if ! load_config ; then
 		lbg_error "$tr_errors_in_config"
 		return 3
 	fi

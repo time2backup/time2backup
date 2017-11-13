@@ -1839,6 +1839,7 @@ t2b_config() {
 			# run config wizard
 			config_wizard
 			;;
+
 		show)
 			# if not set, file config is general config
 			if [ -z "$file" ] ; then
@@ -1857,18 +1858,20 @@ t2b_config() {
 				return 5
 			fi
 			;;
+
 		test)
-			# load and test configuration
 			echo "Testing configuration..."
 			load_config
 			lb_result
 			;;
+
 		reset)
 			# reset config file
 			if lb_yesno "$tr_confirm_reset_config" ; then
 				cat "$script_directory/config/time2backup.example.conf" > "$config_file"
 			fi
 			;;
+			
 		*)
 			# edit configuration
 			echo "Opening configuration file..."
@@ -1879,11 +1882,6 @@ t2b_config() {
 				0)
 					# config ok: reload it
 					if ! load_config ; then
-						return 3
-					fi
-
-					# retest config
-					if ! test_config ; then
 						return 3
 					fi
 

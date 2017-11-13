@@ -235,7 +235,7 @@ fi
 
 # validate commands
 case $command in
-	backup|restore|history|explore|status|stop|mv|clean|config)
+	""|backup|restore|history|explore|status|stop|mv|clean|config)
 		# search for quiet modes options
 		for arg in $* ; do
 			case $arg in
@@ -304,10 +304,8 @@ if [ -f "$config_file" ] ; then
 		exit 3
 	fi
 
-	# load config
-	if ! load_config ; then
-		exit 3
-	fi
+	# load config; ignore errors
+	load_config &> /dev/null
 
 else
 	# config file does not exists
@@ -344,9 +342,9 @@ if [ -z "$command" ] ; then
 fi
 
 # commands that needs to load config
-if [ $command  != config ] ; then
+if [ $command != config ] ; then
 		# test configuration
-		if ! test_config ; then
+		if ! load_config ; then
 			lb_error "\nThere are errors in your configuration."
 			lb_error "Please edit your configuration with 'config' command or manually."
 			exit 3
