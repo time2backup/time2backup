@@ -8,9 +8,12 @@
 #
 
 # Determine command name and honour $cmd_alias defined in inc/init.sh
-_t2b_current_script=$(readlink -f "$0")
+##
+## Here we can't use "$0" to get script name, always returning home
+## directory in a new console
+_t2b_current_script=$(readlink -f /etc/bash_completion.d/t2b_completion)
 _t2b_script_directory=$(dirname "$_t2b_current_script")
-source "$_t2b_script_directory/inc/init.sh" > /dev/null
+source "$_t2b_script_directory/init.sh" > /dev/null
 _t2b_cmd=$(basename $cmd_alias)
 
 _t2b_complete()
