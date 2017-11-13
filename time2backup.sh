@@ -217,27 +217,6 @@ else
 	fi
 fi
 
-# set default configuration file and path
-if [ -z "$config_directory" ] ; then
-
-	# default config directory
-	if [ -n "$default_config_directory" ] ; then
-		config_directory=$default_config_directory
-	else
-		config_directory="$(lb_homepath $user)/.config/time2backup/"
-		if [ $? != 0 ] ; then
-			lbg_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
-			exit 3
-		fi
-	fi
-fi
-
-# define config files
-config_file="$config_directory/time2backup.conf"
-config_sources="$config_directory/sources.conf"
-config_excludes="$config_directory/excludes.conf"
-config_includes="$config_directory/includes.conf"
-
 if $debug_mode ; then
 	lb_debug "Running in DEBUG mode..."
 else
@@ -289,8 +268,29 @@ case $command in
 		;;
 esac
 
+# set default configuration file and path
+if [ -z "$config_directory" ] ; then
+
+	# default config directory
+	if [ -n "$default_config_directory" ] ; then
+		config_directory=$default_config_directory
+	else
+		config_directory="$(lb_homepath $user)/.config/time2backup/"
+		if [ $? != 0 ] ; then
+			lbg_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+			exit 3
+		fi
+	fi
+fi
+
+# define config files
+config_file="$config_directory/time2backup.conf"
+config_sources="$config_directory/sources.conf"
+config_excludes="$config_directory/excludes.conf"
+config_includes="$config_directory/includes.conf"
+
 if ! $quiet_mode ; then
-	echo time2backup $version
+	echo "time2backup $version"
 	lb_debug "Using config file: $config_file"
 fi
 
