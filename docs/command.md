@@ -325,8 +325,7 @@ time2backup [GLOBAL_OPTIONS] install [OPTIONS]
 
 ### Options
 ```
--r, --reset-config  Reset configuration files to default
--h, --help          Print help
+-h, --help  Print help
 ```
 
 ### Exit codes
@@ -334,7 +333,6 @@ time2backup [GLOBAL_OPTIONS] install [OPTIONS]
 - 1: Usage error
 - 3: Configuration errors
 - 4: Error while creating application shortcuts
-- 5: Error in reset configuration
 
 ---------------------------------------------------------------
 <a name="uninstall"></a>
@@ -351,10 +349,9 @@ time2backup [GLOBAL_OPTIONS] uninstall [OPTIONS]
 
 ### Options
 ```
--y, --yes            Do not prompt confirmation to uninstall
--c, --delete-config  Delete configuration files
--x, --delete         Delete time2backup files
--h, --help           Print help
+-y, --yes           Do not prompt confirmation to uninstall
+-x, --delete-files  Delete time2backup files
+-h, --help          Print help
 ```
 
 ### Exit codes
@@ -363,5 +360,4 @@ time2backup [GLOBAL_OPTIONS] uninstall [OPTIONS]
 - 3: Cannot remove cron jobs
 - 4: Cannot delete application link
 - 5: Cannot delete command alias
-- 6: Cannot delete configuration files
-- 7: Cannot delete time2backup files
+- 6: Cannot delete time2backup files

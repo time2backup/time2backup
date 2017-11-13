@@ -1917,14 +1917,9 @@ t2b_config() {
 # Usage: t2b_install [OPTIONS]
 t2b_install() {
 
-	local reset_config=false
-
 	# get options
 	while [ -n "$1" ] ; do
 		case $1 in
-			-r|--reset-config)
-				reset_config=true
-				;;
 			-h|--help)
 				print_help
 				return 0
@@ -1975,21 +1970,6 @@ EOF
 		fi
 	fi
 
-	# reset configuration
-	if $reset_config ; then
-		# delete old config files
-		rm -f "$config_directory/*" &> /dev/null
-		if [ $? == 0 ] ; then
-			# recreate config
-			if ! create_config ; then
-				lb_exitcode=3
-			fi
-		else
-			echo "Error: cannot reset configuration files!"
-			lb_exitcode=5
-		fi
-	fi
-
 	# considering that we are installed (don't care of errors)
 	touch "$script_directory/config/.install" &> /dev/null
 
@@ -2026,7 +2006,6 @@ EOF
 t2b_uninstall() {
 
 	# default options
-	local delete_config=false
 	local delete_files=false
 	local force_mode=false
 
@@ -2035,9 +2014,6 @@ t2b_uninstall() {
 		case $1 in
 			-y|--yes)
 				force_mode=true
-				;;
-			-c|--delete-config)
-				delete_config=true
 				;;
 			-x|--delete-files)
 				delete_files=true
@@ -2100,26 +2076,16 @@ t2b_uninstall() {
 	# delete .install file
 	rm -f "$script_directory/config/.install" &> /dev/null
 
-	# delete configuration
-	if $delete_config ; then
-		rm -rf "$config_directory"
-		if [ $? != 0 ] ; then
-			lb_error "Failed to delete config directory."
-			lb_exitcode=6
-		fi
-	fi
-
 	# delete files
 	if $delete_files ; then
 		rm -rf "$script_directory"
 		if [ $? != 0 ] ; then
 			lb_error "Failed to delete time2backup directory."
-			lb_exitcode=7
+			lb_exitcode=6
 		fi
 	fi
 
-	# simple print
-	if [ $lb_exitcode == 0 ] || [ $lb_exitcode == 5 ] ; then
+	if [ $lb_exitcode == 0 ] ; then
 		echo
 		echo "time2backup is uninstalled"
 	fi

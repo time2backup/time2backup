@@ -233,10 +233,22 @@ else
 	fi
 fi
 
-# run commands not depending on configuration and search for quiet modes
+# validate commands
 case $command in
+	backup|restore|history|explore|status|stop|mv|clean|config)
+		# search for quiet modes options
+		for arg in $* ; do
+			case $arg in
+				-q|--quiet)
+					quiet_mode=true
+					break
+					;;
+			esac
+		done
+		;;
+
 	install|uninstall)
-		# prepare command
+		# run commands not depending on configuration
 		t2b_cmd=(t2b_$command)
 
 		# forward arguments in space safe mode
@@ -250,21 +262,10 @@ case $command in
 		exit $?
 		;;
 
-	history|status|stop|mv|clean)
-		# search for quiet modes options
-		for arg in $* ; do
-			case $arg in
-				-q|--quiet)
-					quiet_mode=true
-					break
-					;;
-			esac
-		done
-		;;
-
-	help)
+	*)
+		# invalid commands
 		print_help global
-		exit 0
+		exit 1
 		;;
 esac
 
@@ -342,10 +343,8 @@ if [ -z "$command" ] ; then
 	choose_operation
 fi
 
-# main command operations
-case $command in
-	backup|restore|history|explore|status|stop|mv|clean)
-
+# commands that needs to load config
+if [ $command  != config ] ; then
 		# test configuration
 		if ! test_config ; then
 			lb_error "\nThere are errors in your configuration."
@@ -353,19 +352,9 @@ case $command in
 			exit 3
 		fi
 
-		# apply configuration in quiet mode; don't care of errors
+		# apply configuration in a quiet mode; don't care of errors
 		apply_config &> /dev/null
-		;;
-
-	config)
-		# do nothing (continue)
-		;;
-
-	*)
-		print_help global
-		exit 1
-		;;
-esac
+fi
 
 # prepare command
 t2b_cmd=(t2b_$command)
