@@ -468,7 +468,7 @@ load_config() {
 	# set backup destination
 	if $destination_subdirectories ; then
 		# add subdirectories
-		backup_destination="$destination/backups/$(hostname)/"
+		backup_destination="$destination/backups/$lb_current_hostname/"
 	else
 		backup_destination="$destination/"
 	fi
@@ -1724,11 +1724,11 @@ send_email_report() {
 	email_content="$tr_email_report_greetings\n\n"
 
 	if [ $lb_exitcode == 0 ] ; then
-		email_subject+=$(printf "$tr_email_report_subject_success" $(hostname))
-		email_content+=$(printf "$tr_email_report_success" $(hostname))
+		email_subject+=$(printf "$tr_email_report_subject_success" $lb_current_hostname)
+		email_content+=$(printf "$tr_email_report_success" $lb_current_hostname)
 	else
-		email_subject+=$(printf "$tr_email_report_subject_failed" $(hostname))
-		email_content+=$(printf "$tr_email_report_failed" $(hostname) $lb_exitcode)
+		email_subject+=$(printf "$tr_email_report_subject_failed" $lb_current_hostname)
+		email_content+=$(printf "$tr_email_report_failed" $lb_current_hostname $lb_exitcode)
 	fi
 
 	email_content+="\n\n$(printf "$tr_email_report_details" "$current_date")"
