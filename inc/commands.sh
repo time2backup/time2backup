@@ -650,6 +650,8 @@ t2b_backup() {
 			if [ "$lb_current_os" == Windows ] ; then
 				# do not popup dialog that would prevent PC from shutdown
 				if ! $shutdown ; then
+					# release lock now, do not wait until user closes the window!
+					release_lock
 					lbg_info "$tr_backup_finished\n$(report_duration)"
 				fi
 			else
@@ -678,6 +680,8 @@ t2b_backup() {
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
+						# release lock now, do not wait until user closes the window!
+						release_lock
 						lbg_warning "$tr_backup_finished_warnings\n$(report_duration)"
 					fi
 				else
@@ -697,6 +701,8 @@ t2b_backup() {
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
+						# release lock now, do not wait until user closes the window!
+						release_lock
 						lbg_error "$tr_backup_failed\n$(report_duration)"
 					fi
 				else
