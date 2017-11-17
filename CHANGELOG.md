@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.2 (2017-11-17)
+- Fix bug 'Cannot find homepath' on Windows install
+- Fix bug that can crash uninstall command
+- Release backup lock on Windows before displaying info dialogs to avoid locks stucked
+- Remove the reset/delete config options in install/uninstall commands to avoid malicious uses
+- Test config values before call them to avoid bugs, especially for boolean values
+- Some improvements in source code
+
 ## 1.2.1 (2017-11-06)
 - Fixed hard links bug for distant sources (previous backup were not found)
 - Send email reports even if first tests fails (already running, not mounted, ...)
