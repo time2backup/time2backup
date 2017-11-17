@@ -1871,7 +1871,7 @@ t2b_config() {
 				cat "$script_directory/config/time2backup.example.conf" > "$config_file"
 			fi
 			;;
-			
+
 		*)
 			# edit configuration
 			echo "Opening configuration file..."
@@ -2089,5 +2089,6 @@ t2b_uninstall() {
 	fi
 
 	# we quit as soon as possible (do not use libbash that may be already deleted)
-	exit $lb_exitcode
+	# do not exit with error to avoid crashes in packages removal
+	exit
 }

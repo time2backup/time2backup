@@ -794,6 +794,7 @@ report_duration() {
 crontab_config() {
 
 	local crontab_opts=""
+	local result_config=0
 
 	case $1 in
 		enable)
@@ -874,7 +875,7 @@ crontab_config() {
 			# delete line(s)
 			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
 			if [ $? != 0 ] ; then
-				res_install=4
+				result_config=4
 			fi
 
 			rm -f "$tmpcrontab~"
@@ -891,13 +892,13 @@ crontab_config() {
 	# install new crontab
 	crontab $crontab_opts "$tmpcrontab"
 	if [ $? != 0 ] ; then
-		res_install=3
+		result_config=3
 	fi
 
 	# delete temporary crontab
 	rm -f "$tmpcrontab" &> /dev/null
 
-	return $res_install
+	return $result_config
 }
 
 
