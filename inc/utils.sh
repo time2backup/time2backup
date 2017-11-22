@@ -776,7 +776,7 @@ rotate_backups() {
 report_duration() {
 
 	# calculate
-	duration=$(($(date +%s) - $current_timestamp))
+	duration=$(($(date +%s) - $start_timestamp))
 
 	# print report
 	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
@@ -1107,6 +1107,7 @@ test_backup() {
 	total_size=$(($total_size + 1000000))
 
 	lb_debug --log "Backup total size (in bytes): $total_size"
+	echo "size = $total_size" >> "$infofile"
 
 	return 0
 }

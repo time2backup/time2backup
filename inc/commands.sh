@@ -31,11 +31,11 @@ t2b_backup() {
 	source_ssh=false
 
 	# get current date
-	current_timestamp=$(date +%s)
-	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $current_timestamp)
+	start_timestamp=$(date +%s)
+	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $start_timestamp)
 
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $current_timestamp)
+	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
 
 	# get options
 	while [ -n "$1" ] ; do
@@ -162,11 +162,11 @@ t2b_backup() {
 			esac
 
 			# test if delay is passed
-			test_timestamp=$(($current_timestamp - $last_backup_timestamp))
+			test_timestamp=$(($start_timestamp - $last_backup_timestamp))
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
+					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $start_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
 					lb_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
@@ -256,6 +256,10 @@ t2b_backup() {
 	# prepare rsync command
 	prepare_rsync backup
 
+	# create the info file
+	infofile="$dest/backup.info"
+	echo -e "[destination]\npath = \"$backup_destination\"\nhard_links = $hard_links" > "$infofile"
+
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
 	# do not use for ... in ... syntax
@@ -275,6 +279,12 @@ t2b_backup() {
 		fi
 
 		lb_display --log "Preparing backup..."
+
+		# save current timestamp
+		src_timestamp=$(date +%s)
+
+		# write to info file
+		echo -e "\n[source$(($s + 1))]\npath = \"$src\"" >> "$infofile"
 
 		# get source path
 		protocol=$(get_protocol "$src")
@@ -437,6 +447,8 @@ t2b_backup() {
 					linkdest=$(get_relative_path "$finaldest" "$backup_destination")
 					if [ -e "$linkdest" ] ; then
 						cmd+=(--link-dest="$linkdest/$lastcleanbackup/$path_dest")
+
+						echo "trash = $lastcleanbackup" >> "$infofile"
 					fi
 				else
 					# backups with a "trash" folder that contains older revisions
@@ -449,6 +461,8 @@ t2b_backup() {
 
 					# move last destination
 					cmd+=(-b --backup-dir "$trash")
+
+					echo "trash = $lastcleanbackup" >> "$infofile"
 				fi
 			fi
 		fi
@@ -519,9 +533,6 @@ t2b_backup() {
 		# prepare backup: testing space
 		if $test_destination ; then
 
-			# reset backup size
-			total_size=0
-
 			# test rsync and space available for backup
 			if ! test_backup ; then
 				lb_display --log "Error in rsync test."
@@ -572,6 +583,8 @@ t2b_backup() {
 		# get backup result and prepare report
 		res=${PIPESTATUS[0]}
 
+		echo "rsync_result = $res" >> "$infofile"
+
 		if [ $res == 0 ] ; then
 			# backup succeeded
 			# (ignoring vanished files in transfer)
@@ -596,6 +609,8 @@ t2b_backup() {
 
 		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
+
+		echo "duration = $(($(date +%s) - $src_timestamp))" >> "$infofile"
 
 	done # end of backup sources
 
