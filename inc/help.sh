@@ -48,6 +48,7 @@ print_help() {
 			echo "Backup your files"
 			echo
 			echo "Options:"
+			echo "  -p, --progress   Display backup progress for each file (overrides configuration)"
 			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
 			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
 			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs)"
@@ -66,6 +67,7 @@ print_help() {
 			echo "  --directory      Path to restore is a directory (not necessary if path exists)"
 			echo "                   If deleted or moved, indicate that the chosen path is a directory."
 			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
+			echo "  -p, --progress   Display restore progress for each file (overrides configuration)"
 			echo "  -f, --force      Force restore; do not display confirmation"
 			echo "  -h, --help       Print help"
 			;;

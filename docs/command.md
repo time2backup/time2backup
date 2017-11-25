@@ -60,6 +60,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 
 ### Options
 ```
+-p, --progress   Display backup progress for each file (overrides configuration)
 -u, --unmount    Unmount destination after backup (overrides configuration)
 -s, --shutdown   Shutdown after backup (overrides configuration)
 -r, --recurrent  Perform a recurrent backup (used in cron jobs)
@@ -106,6 +107,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 --directory      Path to restore is a directory (not necessary if path exists)
                  If deleted or moved, indicate that the chosen path is a directory.
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
+-p, --progress   Display restore progress for each file (overrides configuration)
 -f, --force      Force restore; do not display confirmation
 -h, --help       Print help
 ```
