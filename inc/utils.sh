@@ -127,6 +127,12 @@ get_backup_history() {
 		return 1
 	fi
 
+	# if remote destination, always latest
+	if $remote_destination ; then
+		echo latest
+		return 0
+	fi
+
 	# get all backups
 	local gbh_backups=($(get_backups))
 	if [ ${#gbh_backups[@]} == 0 ] ; then
@@ -1065,7 +1071,7 @@ create_logfile() {
 #   1: rsync test command failed
 test_backup() {
 
-	lb_display --log "Testing backup..."
+	lb_display --log "\nTesting backup..."
 
 	# prepare rsync in test mode
 	test_cmd=(rsync --dry-run --stats)

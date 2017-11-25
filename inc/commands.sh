@@ -85,11 +85,8 @@ t2b_backup() {
 		sources=("${lb_read_config[@]}")
 	fi
 
-	# get number of sources to backup
-	nbsrc=${#sources[@]}
-
 	# if no sources to backup, exit
-	if [ $nbsrc == 0 ] ; then
+	if [ ${#sources[@]} == 0 ] ; then
 		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
 		clean_exit 4
 	fi
@@ -230,19 +227,13 @@ t2b_backup() {
 
 	lb_display --log "Backup started on $current_date\n"
 
-	# get last backup
-	if $remote_destination ; then
-		last_backup=latest
-	else
-		last_backup=$(get_backups | tail -1)
-	fi
-
 	# set new backup directory
 	dest="$backup_destination/$backup_date"
 
 	lb_display --log "Prepare backup destination..."
 
 	# if mirror mode and there is an old backup, move last backup to current directory
+	last_backup=$(get_backups | tail -1)
 	if $mirror_mode && [ -n "$last_backup" ] ; then
 		mv "$backup_destination/$last_backup" "$dest"
 	else
@@ -266,12 +257,12 @@ t2b_backup() {
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
 	# do not use for ... in ... syntax
-	for ((s=0; s < $nbsrc; s++)) ; do
+	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
 		src=${sources[$s]}
 
 		lb_display --log "\n********************************************\n"
-		lb_display --log "Backup $src... ($(($s + 1))/$nbsrc)\n"
+		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
 
 		# display notification when preparing backups
 		# (just display the first notification, not for every sources)
@@ -286,8 +277,15 @@ t2b_backup() {
 		# save current timestamp
 		src_timestamp=$(date +%s)
 
+		# source path checksum
+		if [ "$lb_current_os" == macOS ] ; then
+			src_checksum=$(echo "$src" | md5)
+		else
+			src_checksum=$(echo "$src" | md5sum | awk '{print $1}')
+		fi
+
 		# write to info file
-		echo -e "\n[source$(($s + 1))]\npath = \"$src\"" >> "$infofile"
+		echo -e "\n[$src_checksum]\npath = \"$src\"" >> "$infofile"
 
 		# get source path
 		protocol=$(get_protocol "$src")
@@ -405,19 +403,30 @@ t2b_backup() {
 		prepare_dest=$?
 
 		# reset last backup date
-		lastcleanbackup=""
+		last_clean_backup=""
 
 		# find the last backup of this source (non empty)
 		if [ -n "$last_backup" ] ; then
-			lastcleanbackup=$(get_backup_history -n -l "$src")
-			lb_debug --log "Last backup used for link/trash: $lastcleanbackup"
+			last_clean_backup=$(get_backup_history -n -l "$src")
+			lb_debug --log "Last backup used for link/trash: $last_clean_backup"
 		fi
 
-		# no hard links means to use the trash mode
-		if ! $hard_links ; then
-			# move old backup as current backup, if exists
-			if [ -n "$lastcleanbackup" ] ; then
-				mv "$backup_destination/$lastcleanbackup/$path_dest" "$(dirname "$finaldest")"
+		if [ -n "$last_clean_backup" ] && ! $remote_destination ; then
+
+			# load last backup info
+			last_backup_info="$backup_destination/$last_clean_backup/backup.info"
+
+			if [ -f "$last_backup_info" ] ; then
+				estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
+
+				if lb_is_integer $estimated_time ; then
+					lb_info $(printf "$tr_estimated_time" $(($estimated_time / 60 + 1)))
+				fi
+			fi
+
+			# trash mode: move old backup as current backup
+			if ! $hard_links ; then
+				mv "$backup_destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
 				prepare_dest=$?
 			fi
 		fi
@@ -443,21 +452,21 @@ t2b_backup() {
 
 		if ! $mirror_mode ; then
 			# if first backup, no need to add incremental options
-			if [ -n "$lastcleanbackup" ] ; then
+			if [ -n "$last_clean_backup" ] ; then
 				# if destination supports hard links, use incremental with hard links system
 				if $hard_links ; then
 					# revision folder
 					linkdest=$(get_relative_path "$finaldest" "$backup_destination")
 					if [ -e "$linkdest" ] ; then
-						cmd+=(--link-dest="$linkdest/$lastcleanbackup/$path_dest")
+						cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
 
-						echo "trash = $lastcleanbackup" >> "$infofile"
+						echo "trash = $last_clean_backup" >> "$infofile"
 					fi
 				else
 					# backups with a "trash" folder that contains older revisions
 					# be careful that trash must be set to parent directory
 					# or it will create something like dest/src/src
-					trash="$backup_destination/$lastcleanbackup/$path_dest"
+					trash="$backup_destination/$last_clean_backup/$path_dest"
 
 					# create trash
 					mkdir -p "$trash"
@@ -465,7 +474,7 @@ t2b_backup() {
 					# move last destination
 					cmd+=(-b --backup-dir "$trash")
 
-					echo "trash = $lastcleanbackup" >> "$infofile"
+					echo "trash = $last_clean_backup" >> "$infofile"
 				fi
 			fi
 		fi
@@ -577,7 +586,7 @@ t2b_backup() {
 			fi
 		fi
 
-		lb_display --log "Running backup..."
+		lb_display --log "\nRunning backup..."
 		lb_debug --log "Executing: ${cmd[@]}\n"
 
 		# real backup: execute rsync command, print result into terminal and logfile
@@ -681,14 +690,14 @@ t2b_backup() {
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
 		if [ ${#success[@]} -gt 0 ] ; then
-			report_details+="Success: (${#success[@]}/$nbsrc)\n"
+			report_details+="Success: (${#success[@]}/${#sources[@]})\n"
 			for ((i=0; i<${#success[@]}; i++)) ; do
 				report_details+="   - ${success[$i]}\n"
 			done
 		fi
 
 		if [ ${#warnings[@]} -gt 0 ] ; then
-			report_details+="Warnings: (${#warnings[@]}/$nbsrc)\n"
+			report_details+="Warnings: (${#warnings[@]}/${#sources[@]})\n"
 			for ((i=0; i<${#warnings[@]}; i++)) ; do
 				report_details+="   - ${warnings[$i]}\n"
 			done
@@ -709,7 +718,7 @@ t2b_backup() {
 		fi
 
 		if [ ${#errors[@]} -gt 0 ] ; then
-			report_details+="Errors: (${#errors[@]}/$nbsrc)\n"
+			report_details+="Errors: (${#errors[@]}/${#sources[@]})\n"
 			for ((i=0; i<${#errors[@]}; i++)) ; do
 				report_details+="   - ${errors[$i]}\n"
 			done
