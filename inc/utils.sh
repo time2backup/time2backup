@@ -1867,6 +1867,16 @@ config_wizard() {
 			else
 				lbg_error "$tr_error_set_destination\n$tr_edit_config_manually"
 			fi
+
+			# detect changed hostname
+			if $destination_subdirectories && [ -d "$destination/backups" ] ; then
+				existing_hostname=($(ls "$destination/backups"))
+				if [ ${#existing_hostname[@]} == 1 ] && [ "$existing_hostname" != "$lb_current_hostname" ] ; then
+					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" $existing_hostname)" ; then
+						mv "$destination/backups/$existing_hostname" "$destination/backups/$lb_current_hostname"
+					fi
+				fi
+			fi
 		fi
 
 		# set mountpoint in config file

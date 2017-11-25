@@ -50,6 +50,8 @@ tr_confirm_reset_config="Do you really want to reset configuration?"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups:"
+tr_change_hostname="Backups from another PC named '%s' were found. Do you want to use them?"
+tr_change_hostname_no="Choose 'no' if you are not owner of those backups."
 tr_error_set_destination="Error while setting destination."
 tr_edit_config_manually="Please edit configuration file manually."
 tr_force_hard_links_confirm="Previously you chose to force using hard links. Keep this choice?"

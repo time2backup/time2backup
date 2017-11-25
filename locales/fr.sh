@@ -50,6 +50,8 @@ tr_confirm_reset_config="Voulez-vous vraiment réinitialiser la configuration ?"
 
 # Config wizard
 tr_choose_backup_destination="Choisissez le dossier de destination des sauvegardes :"
+tr_change_hostname="Des sauvegardes provenant d'un PC nommé '%s' ont été trouvées. Voulez-vous les utiliser?"
+tr_change_hostname_no="Choisissez 'non' si vous n'êtes pas le propriétaire de ces données."
 tr_error_set_destination="Erreur lors de l'enregistrement de la destination."
 tr_edit_config_manually="Veuillez éditer le fichier de configuration manuellement."
 tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
