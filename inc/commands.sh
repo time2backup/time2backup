@@ -1355,6 +1355,12 @@ t2b_explore() {
 	fi
 
 	if $explore_all ; then
+		if [ ${#path_history[@]} -ge 10 ] ; then
+			if ! lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" ; then
+				return 0
+			fi
+		fi
+
 		backup_date=${path_history[@]}
 	else
 		# search for dates
