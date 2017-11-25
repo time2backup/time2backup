@@ -40,6 +40,9 @@ t2b_backup() {
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
+			-p|--progress)
+				files_progress=true
+				;;
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
@@ -765,6 +768,9 @@ t2b_restore() {
 				;;
 			--delete-new)
 				delete_newer_files=true
+				;;
+			-p|--progress)
+				files_progress=true
 				;;
 			-f|--force)
 				force_mode=true

@@ -67,7 +67,9 @@ log_level=$default_log_level
 notifications=true
 email_report=none
 
+files_progress=false
 console_mode=false
+
 network_compression=false
 
 server_sudo=false
