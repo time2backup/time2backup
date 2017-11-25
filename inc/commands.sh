@@ -1995,6 +1995,22 @@ EOF
 		fi
 	fi
 
+	# Install bash auto-completion
+	ln -fs $PWD/inc/t2b_completion.sh /etc/bash_completion.d/t2b_completion
+	if [ $? != 0 ] ; then
+		echo
+		echo "Cannot install bash auto-completion"
+
+		# Set exit code to the first unused one
+		if [ $lb_exitcode == 0 ] ; then
+		    lb_exitcode=16
+		fi
+	else
+	    # Makes the completion workling now (doesn't need a new sesion)
+	    . /etc/bash_completion.d/t2b_completion
+	fi
+
+
 	return $lb_exitcode
 }
 
@@ -2083,6 +2099,20 @@ t2b_uninstall() {
 		fi
 	fi
 
+	# Delete and reset bash auto-completion
+	sudo rm /etc/bash_completion.d/t2b_completion.sh
+	if [ $? != 0 ] ; then
+	    lb_error "Failed to remove bash auto-completion script."
+	    lb_exitcode=16
+	fi
+	complete -W "" time2backup
+	if [ $? != 0 ] ; then
+	    lb_error "Failed to reset bash auto-completion."
+	    lb_exitcode=17
+	fi
+
+
+	# simple print
 	if [ $lb_exitcode == 0 ] ; then
 		echo
 		echo "time2backup is uninstalled"
