@@ -30,11 +30,9 @@ disable_custom_commands=false
 
 if [ "$lb_current_os" == Windows ] ; then
   enable_recurrent=false
-  ask_to_install=false
   default_shutdown_cmd=(shutdown /s)
 else
   enable_recurrent=true
-  ask_to_install=true
   default_shutdown_cmd=(shutdown -h now)
 fi
 

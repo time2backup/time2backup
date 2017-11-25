@@ -1451,16 +1451,6 @@ prepare_rsync() {
 }
 
 
-# Test if time2backup is installed
-# Usage: is_installed
-# Exit codes:
-#   0: installed
-#   1: not installed
-is_installed() {
-	[ -f "$script_directory/config/.install" ]
-}
-
-
 # Prepare the remote destination command
 # Usage: prepare_remote
 prepare_remote() {
@@ -2091,34 +2081,4 @@ config_wizard() {
 	lbg_info "$tr_info_time2backup_ready"
 
 	return 0
-}
-
-
-# First run wizard
-# Usage: first_run
-# Exit codes: forwarded from config_wizard
-first_run() {
-
-	install_result=0
-
-	# ask to install
-	if $ask_to_install ; then
-		if ! is_installed ; then
-			# confirm install
-			if lbg_yesno "$tr_confirm_install_1\n$tr_confirm_install_2" ; then
-				# install time2backup (create links)
-				t2b_install
-				install_result=$?
-			fi
-		fi
-	fi
-
-	# confirm config
-	if ! lbg_yesno "$tr_ask_first_config" ; then
-		# if not continuing, return install result
-		return $install_result
-	fi
-
-	# run config wizard
-	config_wizard
 }

@@ -331,9 +331,15 @@ if ! create_config ; then
 fi
 
 # if configuration is not set (destination empty),
-# run first wizard and exit
 if $new_config || [ -z "$destination" ] ; then
-	first_run
+
+	# ask to configure
+	if ! lbg_yesno "$tr_ask_first_config" ; then
+		exit
+	fi
+
+	# run config wizard
+	config_wizard
 	exit $?
 fi
 

@@ -2037,9 +2037,6 @@ EOF
 		fi
 	fi
 
-	# considering that we are installed (don't care of errors)
-	touch "$script_directory/config/.install" &> /dev/null
-
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
 		# if the same path, OK
@@ -2139,9 +2136,6 @@ t2b_uninstall() {
 			lb_exitcode=5
 		fi
 	fi
-
-	# delete .install file
-	rm -f "$script_directory/config/.install" &> /dev/null
 
 	# delete files
 	if $delete_files ; then
