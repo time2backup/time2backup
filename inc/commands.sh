@@ -1277,24 +1277,25 @@ t2b_history() {
 t2b_explore() {
 
 	# default options
-	backup_date=latest
-	choose_date=true
+	backup_date=""
 	local explore_all=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
-			-a|--all)
-				explore_all=true
-				;;
 			-d|--date)
 				if [ -z "$2" ] ; then
 					print_help
 					return 1
 				fi
 				backup_date=$2
-				choose_date=false
 				shift
+				;;
+			-l|--latest)
+				backup_date=latest
+				;;
+			-a|--all)
+				explore_all=true
 				;;
 			-h|--help)
 				print_help
@@ -1354,29 +1355,36 @@ t2b_explore() {
 		return 6
 	fi
 
-	if $explore_all ; then
-		if [ ${#path_history[@]} -ge 10 ] ; then
-			if ! lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" ; then
-				return 0
-			fi
-		fi
-
-		backup_date=${path_history[@]}
-	else
-		# search for dates
-		if [ "$backup_date" != latest ] ; then
-			# if date was specified but not here, error
+	# if backup date is specified,
+	if [ -n "$backup_date" ] ; then
+		# get the latest one
+		if [ "$backup_date" == latest ] ; then
+			backup_date=${path_history[0]}
+		else
+			# test if specified date exists
 			if ! lb_array_contains "$backup_date" "${path_history[@]}" ; then
 				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
 				return 7
 			fi
 		fi
 
-		# if only one backup, no need to choose one
-		if [ ${#path_history[@]} -gt 1 ] ; then
+	else
+		# explore all backups
+		if $explore_all ; then
+			# warn user if displaying many folders
+			if [ ${#path_history[@]} -ge 10 ] ; then
+				if ! lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" ; then
+					return 0
+				fi
+			fi
+			backup_date=${path_history[@]}
 
-			# if interactive mode, prompt user to choose a backup date
-			if $choose_date ; then
+		else
+			# if only one backup, no need to choose one
+			if [ ${#path_history[@]} == 1 ] ; then
+				backup_date=${path_history[0]}
+			else
+				# prompt user to choose a backup date
 
 				# change dates to a user-friendly format
 				history_dates=(${path_history[@]})
@@ -1403,13 +1411,8 @@ t2b_explore() {
 				esac
 
 				# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-				backup_date=${path_history[$(($lbg_choose_option - 1))]}
+				backup_date=${path_history[$lbg_choose_option-1]}
 			fi
-		fi
-
-		# if latest backup wanted, get most recent date
-		if [ "$backup_date" == latest ] ; then
-			backup_date=${path_history[0]}
 		fi
 	fi
 
