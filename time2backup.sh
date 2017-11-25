@@ -238,8 +238,8 @@ fi
 case $command in
 	""|backup|restore|history|explore|status|stop|mv|clean|config)
 		# search for quiet modes options
-		for arg in $* ; do
-			case $arg in
+		for ((i=1; i<=$#; i++)) ; do
+			case ${!i} in
 				-q|--quiet)
 					quiet_mode=true
 					break

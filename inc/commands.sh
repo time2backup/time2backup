@@ -53,6 +53,9 @@ t2b_backup() {
 			-r|--recurrent)
 				recurrent_backup=true
 				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
 			-h|--help)
 				print_help
 				return 0
@@ -785,6 +788,9 @@ t2b_restore() {
 			-f|--force)
 				force_mode=true
 				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
 			-h|--help)
 				print_help
 				return 0
@@ -828,7 +834,6 @@ t2b_restore() {
 		case $? in
 			0)
 				# continue
-				:
 				;;
 			2)
 				# cancelled
@@ -844,7 +849,6 @@ t2b_restore() {
 		case $lbg_choose_option in
 			1)
 				# restore a file
-				:
 				;;
 			2)
 				# restore a moved file
@@ -872,7 +876,6 @@ t2b_restore() {
 			case $? in
 				0)
 					# continue
-					:
 					;;
 				2)
 					# cancelled
@@ -893,7 +896,6 @@ t2b_restore() {
 			case $? in
 				0)
 					# continue
-					:
 					;;
 				2)
 					# cancelled
@@ -1029,7 +1031,6 @@ t2b_restore() {
 			case $? in
 				0)
 					# continue
-					:
 					;;
 				2)
 					# cancelled
@@ -1428,7 +1429,6 @@ t2b_explore() {
 				case $? in
 					0)
 						# continue
-						:
 						;;
 					2)
 						# cancelled

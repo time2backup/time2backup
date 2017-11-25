@@ -1413,7 +1413,11 @@ release_lock() {
 prepare_rsync() {
 
 	# basic command
-	rsync_cmd=("$rsync_path" -aHv)
+	rsync_cmd=("$rsync_path" -aH)
+
+	if ! $quiet_mode ; then
+		rsync_cmd+=(-v)
+	fi
 
 	if $files_progress ; then
 		rsync_cmd+=(--progress)
