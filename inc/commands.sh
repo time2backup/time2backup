@@ -38,7 +38,7 @@ t2b_backup() {
 	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-u|--unmount)
 				force_unmount=true
@@ -66,7 +66,7 @@ t2b_backup() {
 	done
 
 	# specified source(s)
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		sources+=("$1")
 		shift
 	done
@@ -749,7 +749,7 @@ t2b_restore() {
 	delete_newer_files=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-d|--date)
 				if [ -z "$2" ] ; then
@@ -1163,7 +1163,7 @@ t2b_history() {
 	local history_opts=""
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-a|--all)
 				history_opts="-a "
@@ -1267,7 +1267,7 @@ t2b_explore() {
 	local explore_all=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-a|--all)
 				explore_all=true
@@ -1412,7 +1412,7 @@ t2b_explore() {
 t2b_status() {
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-q|--quiet)
 				quiet_mode=true
@@ -1459,7 +1459,7 @@ t2b_stop() {
 	local exit_code=5
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-q|--quiet)
 				quiet_mode=true
@@ -1561,7 +1561,7 @@ t2b_mv() {
 	local force_mode=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-f|--force)
 				force_mode=true
@@ -1674,7 +1674,7 @@ t2b_clean() {
 	local clean_result=0
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-f|--force)
 				force_mode=true
@@ -1766,7 +1766,7 @@ t2b_config() {
 
 	# get options
 	# following other options to open_config() function
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-g|--general)
 				file=$config_file
@@ -1931,7 +1931,7 @@ t2b_config() {
 t2b_install() {
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-h|--help)
 				print_help
@@ -2023,7 +2023,7 @@ t2b_uninstall() {
 	local force_mode=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-y|--yes)
 				force_mode=true

@@ -104,7 +104,7 @@ get_backup_history() {
 	local gbh_nonempty=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-a)
 				gbh_all_versions=true
@@ -1237,7 +1237,7 @@ open_config() {
 	local custom_editor=false
 
 	# get options
-	while [ -n "$1" ] ; do
+	while [ $# -gt 0 ] ; do
 		case $1 in
 			-e)
 				if [ -z "$2" ] ; then

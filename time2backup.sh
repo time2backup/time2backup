@@ -9,11 +9,12 @@
 #  MIT License                                         #
 #  Copyright (c) 2017 Jean Prunneaux                   #
 #                                                      #
-#  Version 1.2.2 (2017-11-17)                          #
+#  Version 1.3.0 (2017-11-25)                          #
 #                                                      #
 ########################################################
 
-version=1.2.2
+version=1.3.0-beta.1
+
 
 ####################
 #  INITIALIZATION  #
@@ -107,7 +108,7 @@ if [ -f "$default_config" ] ; then
 fi
 
 # get global options
-while [ -n "$1" ] ; do
+while [ $# -gt 0 ] ; do
 	case $1 in
 		-C|--console)
 			console_mode=true
@@ -252,7 +253,7 @@ case $command in
 		t2b_cmd=(t2b_$command)
 
 		# forward arguments in space safe mode
-		while [ -n "$1" ] ; do
+		while [ $# -gt 0 ] ; do
 			t2b_cmd+=("$1")
 			shift
 		done
@@ -358,7 +359,7 @@ fi
 t2b_cmd=(t2b_$command)
 
 # forward arguments in space safe mode
-while [ -n "$1" ] ; do
+while [ $# -gt 0 ] ; do
 	t2b_cmd+=("$1")
 	shift
 done
