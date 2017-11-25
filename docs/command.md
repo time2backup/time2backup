@@ -95,6 +95,9 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ## restore
 Restore a file or directory
 
+Be careful when restoring a deleted/moved directory, don't forget to put a "/" at the end of the path
+if you are specify path via the command line.
+
 ### Usage
 ```bash
 time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
@@ -104,8 +107,6 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 ```
 -d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
                  by default it restores the last available backup
---directory      Path to restore is a directory (not necessary if path exists)
-                 If deleted or moved, indicate that the chosen path is a directory.
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
 -p, --progress   Display restore progress for each file (overrides configuration)
 -f, --force      Force restore; do not display confirmation

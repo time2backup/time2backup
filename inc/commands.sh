@@ -772,9 +772,6 @@ t2b_restore() {
 				choose_date=false
 				shift
 				;;
-			--directory)
-				directory_mode=true
-				;;
 			--delete-new)
 				delete_newer_files=true
 				;;
@@ -919,7 +916,7 @@ t2b_restore() {
 
 			# remove destination path prefix
 			file=${file#$backup_destination}
-			# remove slashes
+			# remove first slash
 			if [ "${file:0:1}" == "/" ] ; then
 				file=${file:1}
 			fi
@@ -953,11 +950,19 @@ t2b_restore() {
 		fi
 	else
 		# get specified path
+		file=$*
+
+		# detect directory mode (useful for deleted directories)
+		if [ "${file:${#file}-1}" == "/" ] ; then
+			directory_mode=true
+		fi
+
+		# get UNIX format for Windows paths
 		if [ "$lb_current_os" == Windows ] ; then
-			# get UNIX format for Windows paths
 			file=$(cygpath "$*")
-		else
-			file=$*
+			if $directory_mode ; then
+				file+="/"
+			fi
 		fi
 	fi
 
@@ -1033,7 +1038,7 @@ t2b_restore() {
 			esac
 
 			# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-			backup_date=${file_history[$(($lbg_choose_option - 1))]}
+			backup_date=${file_history[$lbg_choose_option-1]}
 		fi
 	fi
 

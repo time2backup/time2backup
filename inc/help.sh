@@ -64,8 +64,6 @@ print_help() {
 			echo "Options:"
 			echo "  -d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
 			echo "                   by default it restores the last available backup"
-			echo "  --directory      Path to restore is a directory (not necessary if path exists)"
-			echo "                   If deleted or moved, indicate that the chosen path is a directory."
 			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
 			echo "  -p, --progress   Display restore progress for each file (overrides configuration)"
 			echo "  -f, --force      Force restore; do not display confirmation"
