@@ -1579,10 +1579,16 @@ clean_exit() {
 
 	lb_debug --log "Clean exit"
 
-	# cleanup backup directory if empty
-	clean_empty_directories "$dest"
-	# if previous failed (not empty, try to clean last backup directory)
+	# try to clean final destination directory
 	clean_empty_directories "$finaldest"
+
+	# if there is nothing more than the backup.info, delete it
+	if [ "$(ls -A "$dest" 2> /dev/null)" == "backup.info" ] ; then
+		rm -f "$dest/backup.info" 2> /dev/null
+	fi
+
+	# cleanup backup directory date if empty
+	clean_empty_directories "$dest"
 
 	# delete backup lock
 	release_lock

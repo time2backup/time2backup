@@ -252,7 +252,7 @@ t2b_backup() {
 
 	# create the info file
 	infofile="$dest/backup.info"
-	echo -e "[destination]\npath = \"$backup_destination\"\nhard_links = $hard_links" > "$infofile"
+	echo -e "[destination]\npath = $backup_destination\nhard_links = $hard_links" > "$infofile"
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
@@ -285,7 +285,7 @@ t2b_backup() {
 		fi
 
 		# write to info file
-		echo -e "\n[$src_checksum]\npath = \"$src\"" >> "$infofile"
+		echo -e "\n[$src_checksum]\npath = $src" >> "$infofile"
 
 		# get source path
 		protocol=$(get_protocol "$src")
@@ -479,6 +479,9 @@ t2b_backup() {
 			fi
 		fi
 
+		# set a bad result to detect cancelled backups
+		echo "rsync_result = -1" >> "$infofile"
+
 		# of course, we exclude the backup destination itself if it is included
 		# into the backup source
 		# e.g. to backup /media directory, we must exclude /user/device/path/to/backups
@@ -582,7 +585,7 @@ t2b_backup() {
 		# (just display the first notification, not for every sources)
 		if $notifications ; then
 			if [ $s == 0 ] ; then
-				lbg_notify "$tr_notify_progress_1\n$tr_notify_progress_2 $(date '+%H:%M:%S')"
+				lbg_notify "$(printf "$tr_backup_in_progress\n$tr_backup_started_at" $(date +%H:%M:%S))"
 			fi
 		fi
 
@@ -595,7 +598,8 @@ t2b_backup() {
 		# get backup result and prepare report
 		res=${PIPESTATUS[0]}
 
-		echo "rsync_result = $res" >> "$infofile"
+		# save rsync result in info file
+		lb_set_config "$infofile" rsync_result $res
 
 		if [ $res == 0 ] ; then
 			# backup succeeded
@@ -646,7 +650,7 @@ t2b_backup() {
 			lb_debug --log "Save backup timestamp"
 
 			# save current timestamp into config/.lastbackup file
-			date '+%s' > "$last_backup_file"
+			date +%s > "$last_backup_file"
 			if [ $? != 0 ] ; then
 				lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
 			fi
@@ -1065,6 +1069,27 @@ t2b_restore() {
 	# prepare destination
 	dest=$file
 
+	# warn user if incomplete backup of directory
+	if $directory_mode ; then
+		infofile="$backup_destination/$backup_date/backup.info"
+		if [ -f "$infofile" ] ; then
+			# search sections
+			for section in $(grep -Eo "^\[.*\]" "$infofile" 2> /dev/null | grep -v destination | tr -d '[]') ; do
+				# if current path
+				if [[ "$dest" == "$(lb_get_config -s $section "$infofile" path)"* ]] ; then
+					# and rsync result was not good
+					if [ "$(lb_get_config -s $section "$infofile" rsync_result)" != 0 ] ; then
+						# warn user
+						if ! lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" ; then
+							return 0
+						fi
+					fi
+					break
+				fi
+			done
+		fi
+	fi
+
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
@@ -1132,7 +1157,7 @@ t2b_restore() {
 	# confirm restore
 	if ! $force_mode ; then
 		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
-			# cancelled
+			lbg_notify "$tr_restore_cancelled"
 			return 0
 		fi
 	fi
