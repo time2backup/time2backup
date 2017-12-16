@@ -425,6 +425,7 @@ t2b_backup() {
 		if [ $prepare_dest == 0 ] ; then
 			# reset last backup date
 			last_clean_backup=""
+			last_clean_backup_linkdest=""
 
 			# find the last backup of this source (non empty)
 			if [ -n "$last_backup" ] ; then
@@ -433,6 +434,13 @@ t2b_backup() {
 			fi
 
 			if [ -n "$last_clean_backup" ] && ! $remote_destination ; then
+
+				# default behaviour: mkdir or mv destination
+				if $hard_links ; then
+					mv_dest=false
+				else
+					mv_dest=true
+				fi
 
 				# load last backup info
 				last_backup_info="$backup_destination/$last_clean_backup/backup.info"
@@ -443,17 +451,56 @@ t2b_backup() {
 					if lb_is_integer $estimated_time ; then
 						lb_info $(printf "$tr_estimated_time" $(($estimated_time / 60 + 1)))
 					fi
+
+					# check status of the last backup
+					if $hard_links ; then
+						last_backup_status=$(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
+						# if rsync status found,
+						if [ $? == 0 ] ; then
+
+							# if last backup was canncelled
+							if [ "$last_backup_status" == "-1" ] ; then
+								lb_debug "Retry from cancelled backup: $last_clean_backup"
+
+								# search again for the last clean backup before that
+								for b in $(get_backup_history -n "$src" | head -2) ; do
+									# ignore the current last backup
+									if [ "$b" == "$last_clean_backup" ] ; then
+										continue
+									fi
+									last_clean_backup_linkdest=$b
+									break
+								done
+
+								mv_dest=true
+							fi
+						fi
+					fi
 				fi
 
-				# hard links: create destination folder
-				if $hard_links ; then
-					mkdir "$finaldest"
-				else
-					# trash mode: move old backup as current backup
+				if $mv_dest ; then
+					# move old backup as current backup
 					mv "$backup_destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
-				fi
+					prepare_dest=$?
 
-				prepare_dest=$?
+					# clean old directory if empty
+					clean_empty_directories "$(dirname "$backup_destination/$last_clean_backup/$path_dest")"
+
+					# change last clean backup for hard links
+					if $hard_links ; then
+						if [ -n "$last_clean_backup_linkdest" ] ; then
+							lb_debug "Last backup used for links: $last_clean_backup_linkdest"
+							last_clean_backup=$last_clean_backup_linkdest
+						else
+							# if no older link, reset it
+							last_clean_backup=""
+						fi
+					fi
+				else
+					# create destination
+					mkdir "$finaldest"
+					prepare_dest=$?
+				fi
 			fi
 		fi
 
