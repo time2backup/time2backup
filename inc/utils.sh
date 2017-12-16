@@ -295,6 +295,11 @@ create_config() {
 			return 3
 		fi
 	fi
+
+	# if user is different, try to give him ownership on config files
+	if [ $user != $lb_current_user ] ; then
+		chown -R $user:$user "$config_directory" &> /dev/null
+	fi
 }
 
 
@@ -800,7 +805,6 @@ report_duration() {
 crontab_config() {
 
 	local crontab_opts=""
-	local result_config=0
 
 	case $1 in
 		enable)
@@ -814,8 +818,8 @@ crontab_config() {
 			;;
 	esac
 
-	# prepare backup task
-	crontask="* * * * *	\"$current_script\" "
+	# prepare backup task in quiet mode
+	crontask="* * * * *	\"$current_script\" -q "
 
 	if $custom_config ; then
 		crontask+="-c \"$config_directory\" "
@@ -835,7 +839,7 @@ crontab_config() {
 		# special case for error when no crontab
 		echo "$crontab" | grep -q "no crontab for "
 		if [ $? == 0 ] ; then
-			# disable mode: nothing to do
+			# if empty and disable mode: nothing to do
 			if ! $crontab_enable ; then
 				return 0
 			fi
@@ -843,7 +847,7 @@ crontab_config() {
 			# reset crontab
 			crontab=""
 		else
-			# cannot access to user crontab
+			# if other error (cannot access to user crontab)
 
 			# inform user to add cron job manually
 			if $crontab_enable ; then
@@ -879,7 +883,7 @@ crontab_config() {
 		fi
 
 	else
-		# cron task does not exists
+		# if cron task does not exists, add it
 		if $crontab_enable ; then
 			# append command to crontab
 			crontab+=$(echo -e "\n# time2backup recurrent backups\n$crontask")

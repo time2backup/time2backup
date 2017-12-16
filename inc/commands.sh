@@ -514,6 +514,10 @@ t2b_backup() {
 				lb_exitcode=7
 			fi
 
+			# if mv failed, we have to clean the parent directory, because the final dest does not exists
+			clean_empty_directories "$(dirname "$finaldest")"
+
+			# clean final destination directory
 			clean_empty_directories "$finaldest"
 
 			# continue to next source
@@ -734,9 +738,9 @@ t2b_backup() {
 			# create a new link
 			# in a sub-context to avoid confusion and do not care of errors
 			if [ "$lb_current_os" == Windows ] ; then
-				dummy=$(cd "$backup_destination" && rm -f latest && cmd /c mklink /j latest "$backup_date")
+				dummy=$(cd "$backup_destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest "$backup_date")
 			else
-				dummy=$(cd "$backup_destination" && rm -f latest && ln -s "$backup_date" latest)
+				dummy=$(cd "$backup_destination" 2> /dev/null && rm -f latest && ln -s "$backup_date" latest 2> /dev/null)
 			fi
 			;;
 	esac

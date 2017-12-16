@@ -32,9 +32,9 @@ fi
 script_directory=$(dirname "$current_script")
 
 # load libbash
-source "$script_directory/libbash/libbash.sh" --gui > /dev/null
+source "$script_directory/libbash/libbash.sh" --gui &> /dev/null
 if [ $? != 0 ] ; then
-	echo >&2 "Error: cannot load libbash. Please add it to the '$script_directory/libbash' directory."
+	echo >&2 "[ERROR] cannot load libbash.sh. Please initialize submodules."
 	exit 1
 fi
 
@@ -270,9 +270,19 @@ case $command in
 		;;
 esac
 
-# set default configuration file and path
-if [ -z "$config_directory" ] ; then
-
+if [ -n "$config_directory" ] ; then
+	# get current config directory absolute path
+	config_directory=$(lb_abspath "$config_directory")
+	if [ $? != 0 ] ; then
+		# try to get parent directory path
+		parent_config_directory=$(lb_abspath "$(dirname "$config_directory")")
+		if [ $? != 0 ] ; then
+			lb_error "Please set an existing directory for config path!"
+			exit 3
+		fi
+		config_directory="$parent_config_directory/$(basename "$config_directory")"
+	fi
+else
 	# default config directory
 	if [ -n "$default_config_directory" ] ; then
 		config_directory=$default_config_directory
@@ -301,7 +311,14 @@ if [ -f "$config_file" ] ; then
 
 	# upgrade config if needed
 	if ! upgrade_config ; then
-		lbg_error "$tr_error_upgrade_config"
+
+		# if failed, display an error and quit
+		if $quiet_mode ; then
+			lb_error "$tr_error_upgrade_config"
+		else
+			lbg_error "$tr_error_upgrade_config"
+		fi
+
 		exit 3
 	fi
 
