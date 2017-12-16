@@ -54,7 +54,7 @@ t2b_backup() {
 			-r|--recurrent)
 				recurrent_backup=true
 				;;
-			---force-lock)
+			--force-lock)
 				force_lock=true
 				;;
 			-q|--quiet)
@@ -205,7 +205,7 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	existing_lock=$(current_lock)
+	existing_lock=$(ls "$backup_destination/.lock_"* 2> /dev/null)
 	if [ -n "$existing_lock" ] ; then
 
 		# force mode: delete old lock
