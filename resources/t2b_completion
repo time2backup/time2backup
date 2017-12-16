@@ -45,7 +45,7 @@ _t2b_complete() {
 
 	# search if a global command has already been called
 	local subcommand=false
-	for ((i=1; i<${#COMP_WORDS[@]}; i++)); do
+	for ((i=1; i<$COMP_CWORD; i++)); do
 		case ${COMP_WORDS[i]} in
 			backup|restore|history|explore|status|stop|clean|config|install|uninstall)
 				subcommand=true

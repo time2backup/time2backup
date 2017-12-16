@@ -1341,9 +1341,7 @@ open_config() {
 
 
 # Return date of the current lock (if exists)
-# Usage: current_lock [OPTIONS]
-# Options:
-#   -q  Quiet mode
+# Usage: current_lock
 # Return: date of lock, empty if no lock
 # Exit code:
 #   0: lock exists
@@ -1361,11 +1359,6 @@ current_lock() {
 	# if no lock, return 1
 	if [ -z "$current_lock_file" ] ; then
 		return 1
-	fi
-
-	# quiet mode
-	if [ "$1" == "-q" ] ; then
-		return 0
 	fi
 
 	# return date of lock

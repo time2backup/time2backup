@@ -352,7 +352,7 @@ fi
 if [ $command != config ] ; then
 		# test configuration
 		if ! load_config ; then
-			lb_error "\nThere are errors in your configuration."
+			lb_error "There are errors in your configuration."
 			lb_error "Please edit your configuration with 'config' command or manually."
 			exit 3
 		fi

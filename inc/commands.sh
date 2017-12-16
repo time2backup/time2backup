@@ -201,7 +201,7 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	if current_lock -q ; then
+	if current_lock &> /dev/null ; then
 		if $recurrent_backup ; then
 			lb_display_error "$tr_backup_already_running"
 		else
@@ -1492,7 +1492,7 @@ t2b_status() {
 	fi
 
 	# test if a backup is running
-	if current_lock -q ; then
+	if current_lock &> /dev/null ; then
 		if ! $quiet_mode ; then
 			echo "backup is running"
 		fi
@@ -2002,8 +2002,6 @@ t2b_install() {
 		shift # load next argument
 	done
 
-	echo "Installing time2backup..."
-
 	# create a desktop file (Linux)
 	if [ "$lb_current_os" == Linux ] ; then
 
@@ -2036,25 +2034,28 @@ EOF
 		fi
 	fi
 
+	create_link=true
+
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
-		# if the same path, OK
+		# if the same path, do not recreate link
 		if [ "$(lb_realpath "$cmd_alias")" == "$(lb_realpath "$lb_current_script")" ] ; then
-			# quit
-			return $lb_exitcode
+			create_link=false
 		fi
 	fi
 
 	# (re)create link
-	ln -s -f "$current_script" "$cmd_alias" &> /dev/null
-	if [ $? != 0 ] ; then
-		echo
-		echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
-		echo "You may have to run install command in sudo, or add an alias in your bashrc file."
+	if $create_link ; then
+		ln -s -f "$current_script" "$cmd_alias" &> /dev/null
+		if [ $? != 0 ] ; then
+			echo
+			echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
+			echo "You may have to run install command in sudo, or add an alias in your bashrc file."
 
-		# this exit code is less important
-		if [ $lb_exitcode == 0 ] ; then
-			lb_exitcode=4
+			# this exit code is less important
+			if [ $lb_exitcode == 0 ] ; then
+				lb_exitcode=4
+			fi
 		fi
 	fi
 
@@ -2072,6 +2073,8 @@ EOF
 
 	# make completion working in the current session (does not need to create a new one)
 	. "$lb_current_script_directory/resources/t2b_completion"
+
+	echo "time2backup is installed"
 
 	return $lb_exitcode
 }

@@ -1,3 +1,12 @@
+#
+# time2backup init variables and configuration default values
+#
+# This file is part of time2backup (https://time2backup.github.io)
+#
+# MIT License
+# Copyright (c) 2017 Jean Prunneaux
+#
+
 ###########################
 #  VARIABLES DECLARATION  #
 ###########################
