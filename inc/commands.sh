@@ -2030,8 +2030,7 @@ EOF
 			if [ $? != 0 ] ; then
 				echo
 				echo "Cannot create application link. It's not critical, but you may not have the icon on your system."
-				echo "You can try the following command:"
-				echo "   sudo cp -f \"$desktop_file\" /usr/share/applications/"
+				echo "You may have to run install command in sudo."
 				lb_exitcode=4
 			fi
 		fi
@@ -2051,9 +2050,7 @@ EOF
 	if [ $? != 0 ] ; then
 		echo
 		echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
-		echo "You can try the following command:"
-		echo "   sudo ln -s \"$current_script\" \"$cmd_alias\""
-		echo "or add an alias in your bashrc file."
+		echo "You may have to run install command in sudo, or add an alias in your bashrc file."
 
 		# this exit code is less important
 		if [ $lb_exitcode == 0 ] ; then
@@ -2061,21 +2058,20 @@ EOF
 		fi
 	fi
 
-	# Install bash auto-completion
-	ln -fs $PWD/inc/t2b_completion.sh /etc/bash_completion.d/t2b_completion
+	# copy bash completion script
+	cp "$lb_current_script_directory/resources/t2b_completion" /etc/bash_completion.d/time2backup
 	if [ $? != 0 ] ; then
 		echo
-		echo "Cannot install bash auto-completion"
+		echo "Cannot install bash completion script. It's not critical, but you can retry in sudo."
 
-		# Set exit code to the first unused one
+		# this exit code is less important
 		if [ $lb_exitcode == 0 ] ; then
-		    lb_exitcode=16
+			lb_exitcode=5
 		fi
-	else
-	    # Makes the completion workling now (doesn't need a new sesion)
-	    . /etc/bash_completion.d/t2b_completion
 	fi
 
+	# make completion working in the current session (does not need to create a new one)
+	. "$lb_current_script_directory/resources/t2b_completion"
 
 	return $lb_exitcode
 }
@@ -2135,9 +2131,7 @@ t2b_uninstall() {
 	if [ -f "$application_link" ] ; then
 		rm -f "$application_link"
 		if [ $? != 0 ] ; then
-			lb_error "Failed to remove application link."
-			lb_error "Please retry in sudo, or run the following command:"
-			lb_error "   sudo rm -f \"$application_link\""
+			lb_error "Failed to remove application link.  You may have to run in sudo."
 			lb_exitcode=4
 		fi
 	fi
@@ -2146,9 +2140,7 @@ t2b_uninstall() {
 	if [ -e "$cmd_alias" ] ; then
 		rm -f "$cmd_alias"
 		if [ $? != 0 ] ; then
-			lb_error "Failed to remove command alias."
-			lb_error "Please retry in sudo, or run the following command:"
-			lb_error "   sudo rm -f \"$cmd_alias\""
+			lb_error "Failed to remove command alias. You may have to run in sudo."
 			lb_exitcode=5
 		fi
 	fi
@@ -2157,23 +2149,22 @@ t2b_uninstall() {
 	if $delete_files ; then
 		rm -rf "$script_directory"
 		if [ $? != 0 ] ; then
-			lb_error "Failed to delete time2backup directory."
+			lb_error "Failed to delete time2backup directory. You may have to run in sudo."
 			lb_exitcode=6
 		fi
 	fi
 
-	# Delete and reset bash auto-completion
-	sudo rm /etc/bash_completion.d/t2b_completion.sh
-	if [ $? != 0 ] ; then
-	    lb_error "Failed to remove bash auto-completion script."
-	    lb_exitcode=16
-	fi
-	complete -W "" time2backup
-	if [ $? != 0 ] ; then
-	    lb_error "Failed to reset bash auto-completion."
-	    lb_exitcode=17
-	fi
+	# delete bash completion script
+	if [ -f /etc/bash_completion.d/time2backup ] ; then
+		rm -f /etc/bash_completion.d/time2backup
+		if [ $? != 0 ] ; then
+			lb_error "Failed to remove bash auto-completion script. You may have to run in sudo."
+			lb_exitcode=7
+		fi
 
+		# reset completion for current session
+		complete -W "" time2backup &> /dev/null
+	fi
 
 	# simple print
 	if [ $lb_exitcode == 0 ] ; then

@@ -336,6 +336,7 @@ time2backup [GLOBAL_OPTIONS] install [OPTIONS]
 - 1: Usage error
 - 3: Configuration errors
 - 4: Error while creating application shortcuts
+- 5: Error while creating bash completion file
 
 ---------------------------------------------------------------
 <a name="uninstall"></a>
@@ -364,3 +365,4 @@ time2backup [GLOBAL_OPTIONS] uninstall [OPTIONS]
 - 4: Cannot delete application link
 - 5: Cannot delete command alias
 - 6: Cannot delete time2backup files
+- 7: Cannot delete bash completion file

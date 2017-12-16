@@ -1,0 +1,86 @@
+#
+# time2backup bash auto-completion handling
+#
+# This file is part of time2backup (https://time2backup.github.io)
+#
+# MIT License
+# Copyright (c) 2017 Jean Prunneaux
+#
+
+# complete global options
+_t2b_complete_global_options() {
+	COMPREPLY+=($(compgen -W '-C --console -l --log-level -v --verbose-level -d --destination -c --config -D --debug -V --version -h --help' -- "${COMP_WORDS[$COMP_CWORD]}"))
+}
+
+# complete commands
+_t2b_complete_commands() {
+	COMPREPLY+=($(compgen -W 'backup restore history explore status stop clean config install uninstall' -- "${COMP_WORDS[COMP_CWORD]}"))
+}
+
+# complete t2b command
+_t2b_complete() {
+
+	local cur_word prev_word
+
+	COMPREPLY=()
+
+	# COMP_WORDS is an array of words in the current command line.
+	# COMP_CWORD is the index of the current word (the one the cursor is
+	# in). So COMP_WORDS[COMP_CWORD] is the current word; we also record
+	# the previous word here, although this specific script doesn't
+	# use it yet.
+	cur_word="${COMP_WORDS[COMP_CWORD]}"
+	prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+
+	# if first word
+	if [ $COMP_CWORD == 1 ] ; then
+		if [[ $cur_word == -* ]] ; then
+			_t2b_complete_global_options
+		else
+			_t2b_complete_commands
+		fi
+
+		return
+	fi
+
+	# search if a global command has already been called
+	local subcommand=false
+	for ((i=1; i<${#COMP_WORDS[@]}; i++)); do
+		case ${COMP_WORDS[i]} in
+			backup|restore|history|explore|status|stop|clean|config|install|uninstall)
+				subcommand=true
+				break
+				;;
+		esac
+	done
+
+	# for now, do not autocomplete suboptions (autocomplete with paths)
+	if $subcommand ; then
+		COMPREPLY=($(compgen -f -- "$cur_word"))
+		return
+	fi
+
+	# complete with compare to the previous word
+	case $prev_word in
+		# log levels
+		-l|--log-level|-v|-verbose-level)
+			COMPREPLY=($(compgen -W 'ERROR WARNING INFO DEBUG' -- "$cur_word"))
+			;;
+		# paths: complete with directories
+		-d|--destination|-c|--config)
+			COMPREPLY=($(compgen -d -- "$cur_word"))
+			;;
+		*)
+			# if previous was global option with no parameter,
+			# complete with other options or commands
+			if [[ $cur_word == -* ]] ; then
+				_t2b_complete_global_options
+			else
+				_t2b_complete_commands
+			fi
+			;;
+	esac
+}
+
+# Register _t2b_complete to provide completion for the following commands
+complete -F _t2b_complete -o filenames time2backup
