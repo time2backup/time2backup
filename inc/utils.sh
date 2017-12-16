@@ -891,7 +891,7 @@ crontab_config() {
 	else
 		# if cron task does not exists, add it
 		if $crontab_enable ; then
-			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
+			echo -e "# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
 			if [ $? != 0 ] ; then
 				crontab_result=4
 			fi
