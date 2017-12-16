@@ -814,9 +814,6 @@ crontab_config() {
 			;;
 	esac
 
-	# get crontab
-	tmpcrontab="$config_directory/crontmp"
-
 	# prepare backup task
 	crontask="* * * * *	\"$current_script\" "
 
@@ -833,26 +830,18 @@ crontab_config() {
 	fi
 
 	# check if crontab exists
-	crontab $crontab_opts -l > "$tmpcrontab" 2>&1
+	crontab=$(crontab $crontab_opts -l 2>&1)
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
-		grep -q "no crontab for " "$tmpcrontab"
+		echo "$crontab" | grep -q "no crontab for "
 		if [ $? == 0 ] ; then
 			# disable mode: nothing to do
 			if ! $crontab_enable ; then
-				# delete temporary crontab and exit
-				rm -f "$tmpcrontab" &> /dev/null
 				return 0
 			fi
 
 			# reset crontab
-			echo > "$tmpcrontab"
-
-			# if error, delete temporary crontab and exit
-			if [ $? != 0 ] ; then
-				rm -f "$tmpcrontab" &> /dev/null
-				return 2
-			fi
+			crontab=""
 		else
 			# cannot access to user crontab
 
@@ -860,51 +849,51 @@ crontab_config() {
 			if $crontab_enable ; then
 				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
 				lb_display --log "$crontask"
+				return 2
+			else
+				# we don't care
+				return 0
 			fi
-
-			# delete temporary crontab and exit
-			rm -f "$tmpcrontab" &> /dev/null
-			return 2
 		fi
 	fi
 
 	# test if line exists
-	grep -q "$crontask" "$tmpcrontab"
+	echo "$crontab" | grep -q "$crontask"
 
 	# cron task already exists
 	if [ $? == 0 ] ; then
-		# delete if option disabled
-		if ! $crontab_enable ; then
+		if $crontab_enable ; then
+			# do nothing
+			return 0
+		else
+			# delete if option disabled
+
 			# avoid bugs in sed commands
 			crontask=$(echo "$crontask" | sed 's/\//\\\//g')
 
 			# delete line(s)
-			sed -i~ "/^\# time2backup recurrent backups/d ; /$crontask/d" "$tmpcrontab"
+			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; /$crontask/d")
 			if [ $? != 0 ] ; then
-				result_config=4
+				return 4
 			fi
-
-			rm -f "$tmpcrontab~"
 		fi
 
 	else
 		# cron task does not exists
 		if $crontab_enable ; then
 			# append command to crontab
-			echo -e "\n# time2backup recurrent backups\n$crontask" >> "$tmpcrontab"
+			crontab+=$(echo -e "\n# time2backup recurrent backups\n$crontask")
+		else
+			# do nothing
+			return 0
 		fi
 	fi
 
 	# install new crontab
-	crontab $crontab_opts "$tmpcrontab"
+	echo "$crontab" | crontab $crontab_opts -
 	if [ $? != 0 ] ; then
-		result_config=3
+		return 3
 	fi
-
-	# delete temporary crontab
-	rm -f "$tmpcrontab" &> /dev/null
-
-	return $result_config
 }
 
 
