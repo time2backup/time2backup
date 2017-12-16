@@ -310,7 +310,14 @@ if [ -f "$config_file" ] ; then
 
 	# upgrade config if needed
 	if ! upgrade_config ; then
-		lbg_error "$tr_error_upgrade_config"
+
+		# if failed, display an error and quit
+		if $quiet_mode ; then
+			lb_error "$tr_error_upgrade_config"
+		else
+			lbg_error "$tr_error_upgrade_config"
+		fi
+
 		exit 3
 	fi
 

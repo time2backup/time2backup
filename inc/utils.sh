@@ -816,8 +816,8 @@ crontab_config() {
 	# get crontab
 	tmpcrontab="$config_directory/crontmp"
 
-	# prepare backup task
-	crontask="* * * * *	\"$current_script\" "
+	# prepare backup task (in quiet mode)
+	crontask="* * * * *	\"$current_script\" -q "
 
 	if $custom_config ; then
 		crontask+="-c \"$config_directory\" "
