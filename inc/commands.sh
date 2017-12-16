@@ -29,6 +29,7 @@ t2b_backup() {
 	# default values and options
 	recurrent_backup=false
 	source_ssh=false
+	force_lock=false
 
 	# get current date
 	start_timestamp=$(date +%s)
@@ -52,6 +53,9 @@ t2b_backup() {
 				;;
 			-r|--recurrent)
 				recurrent_backup=true
+				;;
+			---force-lock)
+				force_lock=true
 				;;
 			-q|--quiet)
 				quiet_mode=true
@@ -201,13 +205,26 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	if current_lock &> /dev/null ; then
-		if $recurrent_backup ; then
-			lb_display_error "$tr_backup_already_running"
+	existing_lock=$(current_lock)
+	if [ -n "$existing_lock" ] ; then
+
+		# force mode: delete old lock
+		if $force_lock ; then
+			rm -f "$existing_lock"
 		else
-			lbg_error "$tr_backup_already_running"
+			false
 		fi
-		clean_exit 8
+
+		# if no force mode or failed to delete lock
+		if [ $? != 0 ] ; then
+			# print error message
+			if $recurrent_backup ; then
+				lb_display_error "$tr_backup_already_running"
+			else
+				lbg_error "$tr_backup_already_running"
+			fi
+			clean_exit 8
+		fi
 	fi
 
 	create_lock

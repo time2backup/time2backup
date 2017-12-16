@@ -64,6 +64,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 -u, --unmount    Unmount destination after backup (overrides configuration)
 -s, --shutdown   Shutdown after backup (overrides configuration)
 -r, --recurrent  Perform a recurrent backup (used in cron jobs)
+--force-lock     Force to backup if a lock is stuck (use with caution)
 -h, --help       Print help
 ```
 
