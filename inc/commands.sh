@@ -401,35 +401,41 @@ t2b_backup() {
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
 		finaldest="$dest/$path_dest"
 
-		# create destination folder
-		mkdir -p "$finaldest"
+		# create parent destination folder
+		mkdir -p "$(dirname "$finaldest")"
 		prepare_dest=$?
 
-		# reset last backup date
-		last_clean_backup=""
+		if [ $prepare_dest == 0 ] ; then
+			# reset last backup date
+			last_clean_backup=""
 
-		# find the last backup of this source (non empty)
-		if [ -n "$last_backup" ] ; then
-			last_clean_backup=$(get_backup_history -n -l "$src")
-			lb_debug --log "Last backup used for link/trash: $last_clean_backup"
-		fi
-
-		if [ -n "$last_clean_backup" ] && ! $remote_destination ; then
-
-			# load last backup info
-			last_backup_info="$backup_destination/$last_clean_backup/backup.info"
-
-			if [ -f "$last_backup_info" ] ; then
-				estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
-
-				if lb_is_integer $estimated_time ; then
-					lb_info $(printf "$tr_estimated_time" $(($estimated_time / 60 + 1)))
-				fi
+			# find the last backup of this source (non empty)
+			if [ -n "$last_backup" ] ; then
+				last_clean_backup=$(get_backup_history -n -l "$src")
+				lb_debug --log "Last backup used for link/trash: $last_clean_backup"
 			fi
 
-			# trash mode: move old backup as current backup
-			if ! $hard_links ; then
-				mv "$backup_destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
+			if [ -n "$last_clean_backup" ] && ! $remote_destination ; then
+
+				# load last backup info
+				last_backup_info="$backup_destination/$last_clean_backup/backup.info"
+
+				if [ -f "$last_backup_info" ] ; then
+					estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
+
+					if lb_is_integer $estimated_time ; then
+						lb_info $(printf "$tr_estimated_time" $(($estimated_time / 60 + 1)))
+					fi
+				fi
+
+				# hard links: create destination folder
+				if $hard_links ; then
+					mkdir "$finaldest"
+				else
+					# trash mode: move old backup as current backup
+					mv "$backup_destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
+				fi
+
 				prepare_dest=$?
 			fi
 		fi
