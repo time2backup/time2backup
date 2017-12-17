@@ -675,8 +675,9 @@ t2b_backup() {
 		# get backup result and prepare report
 		res=${PIPESTATUS[0]}
 
-		# save rsync result in info file
-		lb_set_config "$infofile" rsync_result $res
+		# save rsync result in info file and delete temporary file
+		lb_set_config "$infofile" rsync_result $res && \
+		rm -f "$infofile~" &> /dev/null
 
 		if [ $res == 0 ] ; then
 			# backup succeeded

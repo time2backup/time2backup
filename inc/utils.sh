@@ -47,7 +47,6 @@
 #   Wizards
 #      choose_operation
 #      config_wizard
-#      first_run
 
 
 ######################
