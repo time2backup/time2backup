@@ -454,26 +454,23 @@ t2b_backup() {
 
 					# check status of the last backup
 					if $hard_links ; then
-						last_backup_status=$(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
-						# if rsync status found,
-						if [ $? == 0 ] ; then
+						# if last backup failed or was cancelled
+						rsync_result $(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
 
-							# if last backup was canncelled
-							if [ "$last_backup_status" == "-1" ] ; then
-								lb_debug "Retry from cancelled backup: $last_clean_backup"
+						if [ $? == 2 ] ; then
+							lb_debug "Resume from failed backup: $last_clean_backup"
 
-								# search again for the last clean backup before that
-								for b in $(get_backup_history -n "$src" | head -2) ; do
-									# ignore the current last backup
-									if [ "$b" == "$last_clean_backup" ] ; then
-										continue
-									fi
-									last_clean_backup_linkdest=$b
-									break
-								done
+							# search again for the last clean backup before that
+							for b in $(get_backup_history -n "$src" | head -2) ; do
+								# ignore the current last backup
+								if [ "$b" == "$last_clean_backup" ] ; then
+									continue
+								fi
+								last_clean_backup_linkdest=$b
+								break
+							done
 
-								mv_dest=true
-							fi
+							mv_dest=true
 						fi
 					fi
 				fi
@@ -556,7 +553,7 @@ t2b_backup() {
 			fi
 		fi
 
-		# set a bad result to detect cancelled backups
+		# set a bad result to detect cancelled or interrupted backups
 		echo "rsync_result = -1" >> "$infofile"
 
 		# of course, we exclude the backup destination itself if it is included
