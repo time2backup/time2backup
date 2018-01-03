@@ -511,9 +511,6 @@ t2b_backup() {
 				lb_exitcode=7
 			fi
 
-			# if mv failed, we have to clean the parent directory, because the final dest does not exists
-			clean_empty_directories "$(dirname "$finaldest")"
-
 			# clean final destination directory
 			clean_empty_directories "$finaldest"
 

@@ -1188,6 +1188,15 @@ clean_empty_directories() {
 	# delete empty directories recursively
 	while true ; do
 
+		# if does not exists, go to parent directory and continue loop
+		if ! [ -e "$d" ] ; then
+			d=$(dirname "$d")
+			# avoid useless loop
+			if ! [ -e "$d" ] ; then
+				return 1
+			fi
+		fi
+
 		# if is not a directory, this is an usage error
 		if ! [ -d "$d" ] ; then
 			return 1
@@ -1196,6 +1205,14 @@ clean_empty_directories() {
 		# security check: do not delete destination path
 		if [ "$(dirname "$d")" == "$(dirname "$destination")" ] ; then
 			return 0
+		fi
+
+		# if only a backup info file, delete it
+		if [ "$d" == "$dest" ] ; then
+			if [ "$(ls "$d")" == backup.info ] ; then
+				lb_debug "Deleting backup.info file: $d/backup.info"
+				rm -f "$d/backup.info" 2> /dev/null
+			fi
 		fi
 
 		# if directory is not empty, quit loop
