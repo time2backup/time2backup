@@ -250,6 +250,7 @@ t2b_backup() {
 	# set new backup directory
 	dest="$backup_destination/$backup_date"
 
+	notify "$tr_notify_prepare_backup"
 	lb_display --log "Prepare backup destination..."
 
 	# if mirror mode and there is an old backup, move last backup to current directory
@@ -280,15 +281,16 @@ t2b_backup() {
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
 		src=${sources[$s]}
+		estimated_time=""
 
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
 
-		# display notification when preparing backups
-		# (just display the first notification, not for every sources)
-		if $notifications ; then
-			if [ $s == 0 ] ; then
-				lbg_notify "$tr_notify_prepare_backup"
+		# display notification when preparing more than one backup
+		if [ ${#sources[@]} -gt 1 ] ; then
+			# do not display a 2nd time the first source notification
+			if [ $s -gt 0 ] ; then
+				notify "$tr_notify_prepare_backup ($(($s + 1))/${#sources[@]})"
 			fi
 		fi
 
@@ -448,8 +450,9 @@ t2b_backup() {
 				if [ -f "$last_backup_info" ] ; then
 					estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
 
-					if lb_is_integer $estimated_time ; then
-						lb_info $(printf "$tr_estimated_time" $(($estimated_time / 60 + 1)))
+					# if bad result, reset it
+					if ! lb_is_integer $estimated_time ; then
+						estimated_time=""
 					fi
 
 					# check status of the last backup
@@ -517,6 +520,23 @@ t2b_backup() {
 			# continue to next source
 			continue
 		fi
+
+		# display start notification
+		notification_started_backup=$tr_backup_in_progress
+		if [ ${#sources[@]} -gt 1 ] ; then
+			notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
+		fi
+
+		# display estimated time
+		if [ -n "$estimated_time" ] ; then
+			info_estimated_time=$(printf "$tr_estimated_time" $estimated_time)
+
+			lb_info "$info_estimated_time"
+
+			notification_started_backup+="\n$info_estimated_time"
+		fi
+
+		notify "$notification_started_backup"
 
 		# define rsync command
 		cmd=("${rsync_cmd[@]}")
@@ -652,14 +672,6 @@ t2b_backup() {
 			fi
 		fi # end of free space tests
 
-		# display notification when backup starts
-		# (just display the first notification, not for every sources)
-		if $notifications ; then
-			if [ $s == 0 ] ; then
-				lbg_notify "$(printf "$tr_backup_in_progress\n$tr_backup_started_at" $(date +%H:%M:%S))"
-			fi
-		fi
-
 		lb_display --log "\nRunning backup..."
 		lb_debug --log "Executing: ${cmd[@]}\n"
 
@@ -698,7 +710,8 @@ t2b_backup() {
 		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
 
-		echo "duration = $(($(date +%s) - $src_timestamp))" >> "$infofile"
+		# save duration in minutes (rounded upper)
+		echo "duration = $((($(date +%s) - $src_timestamp) / 60 + 1))" >> "$infofile"
 
 	done # end of backup sources
 
@@ -1202,11 +1215,7 @@ t2b_restore() {
 			cmd=("${rsync_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")
 
-			# notify to prepare restore
-			if $notifications ; then
-				lbg_notify "$tr_notify_prepare_restore"
-			fi
-
+			notify "$tr_notify_prepare_restore"
 			echo "Preparing restore..."
 			lb_debug ${cmd[@]}
 
@@ -1227,7 +1236,7 @@ t2b_restore() {
 	# confirm restore
 	if ! $force_mode ; then
 		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
-			lbg_notify "$tr_restore_cancelled"
+			notify "$tr_restore_cancelled"
 			return 0
 		fi
 	fi

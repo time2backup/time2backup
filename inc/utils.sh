@@ -36,6 +36,7 @@
 #      prepare_rsync
 #      is_installed
 #      prepare_remote
+#      notify
 #   Backup steps
 #      run_before
 #      run_after
@@ -760,9 +761,7 @@ rotate_backups() {
 	lb_display --log "Cleaning old backups..."
 	lb_debug --log "Clean to keep $rb_keep backups on $rb_nb"
 
-	if $notifications ; then
-		lbg_notify "$tr_notify_rotate_backup"
-	fi
+	notify "$tr_notify_rotate_backup"
 
 	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
 
@@ -1139,11 +1138,8 @@ test_free_space() {
 		# display clean notification
 		# (just display the first notification, not for every clean)
 		if [ $i == 0 ] ; then
+			notify "$tr_notify_cleaning_space"
 			lb_display --log "Not enough space on device. Clean old backups to free space..."
-
-			if $notifications ; then
-				lbg_notify "$tr_notify_cleaning_space"
-			fi
 		fi
 
 		# recheck all backups list (more safety)
@@ -1504,6 +1500,17 @@ prepare_remote() {
 }
 
 
+# Display a notification if enabled
+# Usage: notify TEXT
+notify() {
+	if ! $notifications ; then
+		return 0
+	fi
+
+	lbg_notify "$*"
+}
+
+
 # Run before backup
 # Usage: run_before
 run_before() {
@@ -1664,21 +1671,15 @@ cancel_exit() {
 	# display notification and exit
 	case $command in
 		backup)
-			if $notifications ; then
-				lbg_notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
-			fi
+			notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
 			clean_exit 17
 			;;
 		restore)
-			if $notifications ; then
-				lbg_notify "$tr_restore_cancelled"
-			fi
+			notify "$tr_restore_cancelled"
 			exit 11
 			;;
 		*)
-			if $notifications ; then
-				lbg_notify "Unkown operation cancelled."
-			fi
+			notify "Unkown operation cancelled."
 			exit 255
 			;;
 	esac
