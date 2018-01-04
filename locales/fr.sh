@@ -32,6 +32,7 @@ tr_error_upgrade_config="Impossible de mettre à jour votre configuration. Veuil
 tr_choose_an_operation="Choisissez une opération :"
 tr_backup_files="Sauvegarder les fichiers"
 tr_restore_file="Restaurer un fichier"
+tr_explore_backups="Explorer les sauvegardes"
 tr_configure_time2backup="Configurer time2backup"
 
 # Config mode

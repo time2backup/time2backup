@@ -32,6 +32,7 @@ tr_error_upgrade_config="Cannot upgrade your configuration file. Please do it ma
 tr_choose_an_operation="Choose an operation:"
 tr_backup_files="Backup files"
 tr_restore_file="Restore a file"
+tr_explore_backups="Explore backups"
 tr_configure_time2backup="Configure time2backup"
 
 # Config mode

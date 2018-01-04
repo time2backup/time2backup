@@ -1803,7 +1803,7 @@ haltpc() {
 choose_operation() {
 
 	# display choice
-	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup" ; then
+	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_explore_backups" "$tr_configure_time2backup" ; then
 		exit
 	fi
 
@@ -1816,6 +1816,9 @@ choose_operation() {
 			command=restore
 			;;
 		3)
+			command=explore
+			;;
+		4)
 			command=config
 			;;
 		*)

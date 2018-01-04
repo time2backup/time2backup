@@ -367,15 +367,15 @@ fi
 
 # commands that needs to load config
 if [ $command != config ] ; then
-		# test configuration
-		if ! load_config ; then
-			lb_error "There are errors in your configuration."
-			lb_error "Please edit your configuration with 'config' command or manually."
-			exit 3
-		fi
+	# test configuration
+	if ! load_config ; then
+		lb_error "There are errors in your configuration."
+		lb_error "Please edit your configuration with 'config' command or manually."
+		exit 3
+	fi
 
-		# apply configuration in a quiet mode; don't care of errors
-		apply_config &> /dev/null
+	# apply configuration in a quiet mode; don't care of errors
+	apply_config &> /dev/null
 fi
 
 # prepare command
