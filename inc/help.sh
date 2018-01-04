@@ -82,7 +82,7 @@ print_help() {
 			echo "  -h, --help   Print help"
 			;;
 		explore)
-			echo "Command usage: $command [OPTIONS] PATH"
+			echo "Command usage: $command [OPTIONS] [PATH]"
 			echo
 			echo "Explore backups of a file or directory"
 			echo "Warning: This feature does not detect old renamed/moved files yet."
