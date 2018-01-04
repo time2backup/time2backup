@@ -159,7 +159,7 @@ Explore backups of a file/directory in the file browser.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] explore [OPTIONS] PATH
+time2backup [GLOBAL_OPTIONS] explore [OPTIONS] [PATH]
 ```
 
 ### Options

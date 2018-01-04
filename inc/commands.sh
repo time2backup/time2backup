@@ -1373,7 +1373,7 @@ t2b_history() {
 
 
 # Explore backups
-# Usage: t2b_explore [OPTIONS] PATH
+# Usage: t2b_explore [OPTIONS] [PATH]
 t2b_explore() {
 
 	# default options
@@ -1414,19 +1414,34 @@ t2b_explore() {
 
 	path=$*
 
-	if ! [ -e "$path" ] ; then
-		print_help
-		return 1
-	fi
-
 	if $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
 
+	# if path specified, test it
+	if [ -n "$path" ] ; then
+		if ! [ -e "$path" ] ; then
+			print_help
+			return 1
+		fi
+	fi
+
 	# test backup destination
 	if ! prepare_destination ; then
 		return 4
+	fi
+
+	# if path is not specified, open the backup destination folder
+	if [ -z "$path" ] ; then
+		echo "Exploring backups..."
+		lbg_open_directory "$backup_destination"
+
+		if [ $? == 0 ] ; then
+			return 0
+		else
+			return 8
+		fi
 	fi
 
 	# get all backups
