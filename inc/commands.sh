@@ -766,14 +766,14 @@ t2b_backup() {
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
 		if [ ${#success[@]} -gt 0 ] ; then
-			report_details+="Success: (${#success[@]}/${#sources[@]})\n"
+			report_details+="Success:\n"
 			for ((i=0; i<${#success[@]}; i++)) ; do
 				report_details+="   - ${success[$i]}\n"
 			done
 		fi
 
 		if [ ${#warnings[@]} -gt 0 ] ; then
-			report_details+="Warnings: (${#warnings[@]}/${#sources[@]})\n"
+			report_details+="Warnings:\n"
 			for ((i=0; i<${#warnings[@]}; i++)) ; do
 				report_details+="   - ${warnings[$i]}\n"
 			done
@@ -794,7 +794,7 @@ t2b_backup() {
 		fi
 
 		if [ ${#errors[@]} -gt 0 ] ; then
-			report_details+="Errors: (${#errors[@]}/${#sources[@]})\n"
+			report_details+="Errors:\n"
 			for ((i=0; i<${#errors[@]}; i++)) ; do
 				report_details+="   - ${errors[$i]}\n"
 			done

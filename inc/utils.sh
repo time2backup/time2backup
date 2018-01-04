@@ -1107,6 +1107,7 @@ test_backup() {
 	lb_debug --log "Backup total size (in bytes): $total_size"
 	echo "size = $total_size" >> "$infofile"
 
+	# force exit code to 0
 	return 0
 }
 
@@ -1329,7 +1330,7 @@ open_config() {
 
 		# open editor and wait until process ends (does not work with all editors)
 		"$editor" "$edit_file" 2> /dev/null
-		wait $!
+		wait $! 2> /dev/null
 	else
 		if $custom_editor ; then
 			lb_error "Editor '$editor' was not found on this system."
