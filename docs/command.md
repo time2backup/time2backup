@@ -155,12 +155,13 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 ---------------------------------------------------------------
 <a name="explore"></a>
 ## explore
-Explore backups of a file/directory in the file browser.
+Open file browser to explore backuped files
 
 ### Usage
 ```bash
 time2backup [GLOBAL_OPTIONS] explore [OPTIONS] [PATH]
 ```
+Note: If no path is specified, it will open the root backup folder.
 
 ### Options
 ```

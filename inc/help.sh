@@ -84,7 +84,8 @@ print_help() {
 		explore)
 			echo "Command usage: $command [OPTIONS] [PATH]"
 			echo
-			echo "Explore backups of a file or directory"
+			echo "Open file browser to explore backuped files"
+			echo "If no path is specified, it will open the root backup folder."
 			echo "Warning: This feature does not detect old renamed/moved files yet."
 			echo
 			echo "Options:"

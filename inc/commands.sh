@@ -232,11 +232,6 @@ t2b_backup() {
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
-	# set log file directory
-	if [ -z "$logs_directory" ] ; then
-		logs_directory="$backup_destination/logs"
-	fi
-
 	# set log file path
 	logfile="$logs_directory/time2backup_$backup_date.log"
 
@@ -792,16 +787,21 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
-				# Windows: display dialogs instead of notifications
-				if [ "$lb_current_os" == Windows ] ; then
-					# do not popup dialog that would prevent PC from shutdown
-					if ! $shutdown ; then
-						# release lock now, do not wait until user closes the window!
-						release_lock
-						lbg_warning "$tr_backup_finished_warnings\n$(report_duration)"
+				# do not display warning message if there are critical errors to come after that
+				if [ ${#errors[@]} == 0 ] ; then
+					fail_message="$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
+
+					# Windows: display dialogs instead of notifications
+					if [ "$lb_current_os" == Windows ] ; then
+						# do not popup dialog that would prevent PC from shutdown
+						if ! $shutdown ; then
+							# release lock now, do not wait until user closes the window!
+							release_lock
+							lbg_warning "$fail_message"
+						fi
+					else
+						lbg_notify "$fail_message"
 					fi
-				else
-					lbg_notify "$tr_backup_finished_warnings\n$(report_duration)"
 				fi
 			fi
 		fi
@@ -813,16 +813,18 @@ t2b_backup() {
 			done
 
 			if $notifications ; then
+				fail_message="$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
+
 				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
 					if ! $shutdown ; then
 						# release lock now, do not wait until user closes the window!
 						release_lock
-						lbg_error "$tr_backup_failed\n$(report_duration)"
+						lbg_error "$fail_message"
 					fi
 				else
-					lbg_notify "$tr_backup_failed\n$(report_duration)"
+					lbg_notify "$fail_message"
 				fi
 			fi
 		fi
@@ -1251,31 +1253,50 @@ t2b_restore() {
 
 	cmd+=("$src" "$dest")
 
-	echo "Restore file from backup $backup_date..."
-	lb_debug "Executing: ${cmd[@]}"
+	# set log file path
+	logfile="$logs_directory/restore_$(date '+%Y-%m-%d-%H%M%S').log"
 
-	# execute rsync command
-	"${cmd[@]}"
-	lb_result
-	res=$?
-
-	# rsync results
-	if [ $res == 0 ] ; then
-		# file restored
-		lbg_info "$tr_restore_finished"
-	else
-		if rsync_result $res ; then
-			# rsync minor errors (partial transfers)
-			lbg_warning "$tr_restore_finished_warnings"
-			lb_exitcode=10
-		else
-			# critical errors that caused backup to fail
-			lbg_error "$tr_restore_failed"
-			lb_exitcode=9
-		fi
+	# create log file for errors
+	if ! create_logfile "$logfile" ; then
+		lb_warning "Cannot create log file. If there are errors, you will not be able to check them easely."
 	fi
 
-	return $lb_exitcode
+	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
+	lb_debug --log "Executing: ${cmd[@]}\n"
+
+	# execute rsync command, print result into terminal and errors in logfile
+	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
+	lb_result
+	local res=$?
+
+	# if no errors,
+	if [ $res == 0 ] ; then
+		# delete logfile, print info and quit
+		rm -f "$logfile" &> /dev/null
+		lbg_info "$tr_restore_finished"
+		return 0
+	fi
+
+	# if the was errors,
+	if rsync_result $res ; then
+		# rsync minor errors (partial transfers)
+		lbg_warning "$tr_restore_finished_warnings"
+		res=10
+	else
+		# rsync critical error: open logfile and print message
+		if [ -r "$logfile" ] ; then
+			open_config "$logfile" &> /dev/null &
+		fi
+		lbg_error "$tr_restore_failed"
+		res=9
+	fi
+
+	# open logfile if exists and is readable
+	if [ -e "$logfile" ] && [ -r "$logfile" ] ; then
+		open_config "$logfile" &> /dev/null &
+	fi
+
+	return $res
 }
 
 

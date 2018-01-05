@@ -16,6 +16,7 @@ tr_directory="dossier"
 tr_not_sure_say_yes="Si vous n'êtes pas sûr(e), choisissez 'Oui'."
 tr_not_sure_say_no="Si vous n'êtes pas sûr(e), choisissez 'Non'."
 tr_please_retry="Veuillez réessayer."
+tr_see_logfile_for_details="Voir le fichier de log pour plus de détails."
 
 # Main program
 tr_error_no_rsync_1="rsync n'est pas installé. time2backup ne fonctionnera pas."
@@ -92,7 +93,7 @@ tr_estimated_time="Temps estimé: %s minutes"
 tr_backup_in_progress="Sauvegarde en cours..."
 tr_backup_finished="Sauvegarde terminée."
 tr_backup_finished_warnings="Sauvegarde terminée, mais certains fichiers n'ont pas été transférés."
-tr_backup_failed="Échec de la sauvegarde. Voir les fichiers de log pour plus de détails."
+tr_backup_failed="Échec de la sauvegarde."
 
 # Restore
 tr_choose_restore="Que voulez-vous restaurer ?"
@@ -131,5 +132,4 @@ tr_email_report_greetings="Cher utilisateur,"
 tr_email_report_success="Une sauvegarde s'est terminée avec succès sur %s."
 tr_email_report_failed="Une sauvegarde a échoué sur %s (code erreur : %s)."
 tr_email_report_details="Sauvegarde démarrée le %s"
-tr_email_report_see_logs="Voir le fichier de logs pour plus de détails."
 tr_email_report_regards="Cordialement,"

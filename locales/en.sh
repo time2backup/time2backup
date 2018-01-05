@@ -16,6 +16,7 @@ tr_directory="directory"
 tr_not_sure_say_yes="If you are not sure, choose 'Yes'."
 tr_not_sure_say_no="If you are not sure, choose 'No'."
 tr_please_retry="Please retry."
+tr_see_logfile_for_details="See the log file for more details."
 
 # Main program
 tr_error_no_rsync_1="rsync is not installed. time2backup will not work."
@@ -92,7 +93,7 @@ tr_estimated_time="Estimated time: %s minutes"
 tr_backup_in_progress="Backup in progress..."
 tr_backup_finished="Backup finished."
 tr_backup_finished_warnings="Backup finished, but some files may not be transferred."
-tr_backup_failed="Backup failed! See log files for more details."
+tr_backup_failed="Backup failed."
 
 # Restore
 tr_choose_restore="What do you want to restore?"
@@ -131,5 +132,4 @@ tr_email_report_greetings="Dear user,"
 tr_email_report_success="A backup succeeded on %s."
 tr_email_report_failed="A backup failed on %s (exit code: %s)."
 tr_email_report_details="Backup started on %s"
-tr_email_report_see_logs="See the log file for more details."
 tr_email_report_regards="Regards,"

@@ -947,6 +947,12 @@ prepare_destination() {
 			# quit ok
 			return 0
 			;;
+		*)
+			# define the default logs path
+			if [ -z "$logs_directory" ] ; then
+				logs_directory="$backup_destination/logs"
+			fi
+			;;
 	esac
 
 	# remove file:// prefix
@@ -1748,7 +1754,7 @@ send_email_report() {
 		email_content+="$report_details\n\n"
 	fi
 
-	email_content+="$tr_email_report_see_logs\n\n"
+	email_content+="$tr_see_logfile_for_details\n\n"
 	email_content+="$tr_email_report_regards\ntime2backup"
 
 	lb_debug --log "Sending email report..."
