@@ -7,13 +7,13 @@
 #                                                      #
 #  Website: https://time2backup.github.io              #
 #  MIT License                                         #
-#  Copyright (c) 2017 Jean Prunneaux                   #
+#  Copyright (c) 2017-2018 Jean Prunneaux              #
 #                                                      #
-#  Version 1.3.0 (2017-12-17)                          #
+#  Version 1.3.0 (2018-01-06)                          #
 #                                                      #
 ########################################################
 
-version=1.3.0-rc.2
+version=1.3.0-rc.3
 
 
 ####################
