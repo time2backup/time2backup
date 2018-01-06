@@ -319,18 +319,11 @@ t2b_backup() {
 
 				source_ssh=true
 
-				# get ssh [user@]host
-				ssh_host=$(echo "$src" | awk -F '/' '{print $3}')
-
-				# get ssh path
-				ssh_prefix="$protocol://$ssh_host"
-				ssh_path=${src#$ssh_prefix}
-
-				# do not include protocol in absolute path
-				abs_src="$ssh_host:$ssh_path"
-
 				# get full backup path
 				path_dest=$(get_backup_path "$src")
+
+				# get server path from URL
+				abs_src=$(url2ssh "$src")
 				;;
 
 			*)
@@ -1048,8 +1041,8 @@ t2b_restore() {
 		fi
 
 		# get UNIX format for Windows paths
-		if [ "$lb_current_os" == Windows ] ; then
-			file=$(cygpath "$*")
+		if [ "$(get_protocol "$file")" == files ] && [ "$lb_current_os" == Windows ] ; then
+			file=$(cygpath "$file")
 			if $directory_mode ; then
 				file+="/"
 			fi
@@ -1151,8 +1144,15 @@ t2b_restore() {
 		fi
 	fi
 
-	# prepare destination
-	dest=$file
+	# prepare destination path
+	case $(get_protocol "$file") in
+		ssh)
+			dest=$(url2ssh "$file")
+			;;
+		*)
+			dest=$file
+			;;
+	esac
 
 	# warn user if incomplete backup of directory
 	if $directory_mode ; then

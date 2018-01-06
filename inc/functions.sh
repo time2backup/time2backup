@@ -13,6 +13,7 @@
 #   get_common_path
 #   get_relative_path
 #   get_protocol
+#   url2ssh
 #   test_hardlinks
 #   folders_size
 #   test_space_available
@@ -169,6 +170,19 @@ get_protocol() {
 
 	# if not found or error of protocol, it is regular files
 	echo files
+}
+
+
+# Transform URLs to SSH path
+# e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
+# Usage: url2ssh URL
+# Return: path
+url2ssh() {
+
+	local ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
+	local ssh_prefix="ssh://$ssh_host"
+
+	echo "$ssh_host:${1#$ssh_prefix}"
 }
 
 

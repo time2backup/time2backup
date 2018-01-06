@@ -1474,10 +1474,11 @@ prepare_remote() {
 
 	# get destination path
 	t2bs_prefix="t2b://$t2bs_host"
-	t2bs_path=${gbp_file#$ssh_prefix}
+	#TODO
+	t2bs_path=${gbp_file#$t2bs_prefix}
 
 	# return complete path
-	echo "/$gbp_protocol/$ssh_hostname/$ssh_path"
+	echo "/t2b/$t2bs_hostname/$t2bs_path"
 
 	# if server path is specified, use it
 	if [ -n "$server_path" ] ; then
