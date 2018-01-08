@@ -1614,24 +1614,19 @@ t2b_status() {
 		return 0
 	fi
 
-	# search for a current rsync command and get parent PIDs
-	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
+	# search for a t2b PID
+	local t2b_pids=($(ps -ef | grep time2backup | awk '{print $2}'))
 
-	for pid in ${rsync_ppids[@]} ; do
-		# get parent PID
-		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
-		if [ -z "$parent_pid" ] ; then
+	for pid in ${t2b_pids[@]} ; do
+		# if current script, continue
+		if [ $pid == $$ ] ; then
 			continue
 		fi
 
-		# check if parent process is an instance of time2backup
-		local t2b_pid=$(ps -f $parent_pid 2> /dev/null | grep time2backup | awk '{print $2}')
-		if [ -n "$t2b_pid" ] ; then
-			if ! $quiet_mode ; then
-				echo "backup is running with PID $t2b_pid"
-			fi
-			return 5
+		if ! $quiet_mode ; then
+			echo "backup is running with PID $pid"
 		fi
+		return 5
 	done
 
 	# if no t2b process found,
@@ -1646,8 +1641,9 @@ t2b_status() {
 # Usage: t2b_stop [OPTIONS]
 t2b_stop() {
 
-	# default options
-	local exit_code=5
+	# default options and values
+	local quiet_mode=false
+	local pid_killed=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1671,13 +1667,13 @@ t2b_stop() {
 	done
 
 	# check status of backup
-	t2b_status --quiet
+	t2b_status &> /dev/null
 
 	# if no backup is running or error, cannot stop
 	case $? in
 		0)
 			if ! $quiet_mode ; then
-				echo "No backup running"
+				echo "backup is not running"
 			fi
 			return 0
 			;;
@@ -1689,58 +1685,63 @@ t2b_stop() {
 			;;
 		4)
 			if ! $quiet_mode ; then
-				echo "Cannot reach destination."
+				echo "backup destination not reachable"
 			fi
 			return 4
+			;;
+		6)
+			if ! $quiet_mode ; then
+				echo "backup lock is here, but there is no rsync command currently running"
+			fi
+			return 7
 			;;
 	esac
 
 	# search for a current rsync command and get parent PIDs
 	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
 
-	if [ ${#rsync_ppids[@]} == 0 ] ; then
-		echo "No rsync process found. Please find it manually"
-		return 7
-	fi
-
 	for pid in ${rsync_ppids[@]} ; do
-		# get parent process
-		parent_pid=$(ps -f $pid 2> /dev/null | awk '{print $3}')
+		# get parent PID
+		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
 		if [ -z "$parent_pid" ] ; then
 			continue
 		fi
 
-		# check if parent process is an instance of time2backup server
+		# check if parent process is an instance of time2backup
 		ps -f $parent_pid 2> /dev/null | grep -q time2backup
 		if [ $? == 0 ] ; then
-			# kill rsync process
-			kill $parent_pid
-			if [ $? != 0 ] ; then
-				return 5
+			# send to t2b THEN rsync subprocess the kill signal
+			kill $parent_pid $pid
+			if [ $? == 0 ] ; then
+				pid_killed=true
 			fi
 			break
 		fi
 	done
 
-	# wait 10 sec max until time2backup is really stopped
-	for ((i=0; i<10; i++)) ; do
-		t2b_status --quiet
-		if [ $? == 0 ] ; then
-			exit_code=0
-			break
+	# if no rsync process found, quit
+	if ! $pid_killed ; then
+		if ! $quiet_mode ; then
+			echo "Cannot found rsync PID"
+		fi
+		return 7
+	fi
+
+	# wait 30 sec max until time2backup is really stopped
+	for ((i=0; i<30; i++)) ; do
+		if t2b_status &> /dev/null ; then
+			if ! $quiet_mode ; then
+				echo "time2backup was successfully cancelled"
+			fi
+			return 0
 		fi
 		sleep 1
 	done
 
 	if ! $quiet_mode ; then
-		if [ $exit_code == 0 ] ; then
-			echo "Stopped"
-		else
-			echo "Still running! Could not stop time2backup process. Please retry maybe in root mode."
-		fi
+		echo "Still running! Could not stop time2backup process. You may retry in sudo."
 	fi
-
-	return $exit_code
+	return 5
 }
 
 
