@@ -202,6 +202,7 @@ time2backup [GLOBAL_OPTIONS] status [OPTIONS]
 - 3: Config error
 - 4: Backup device not reachable
 - 5: A backup is currently running
+- 6: A backup lock exists, but no time2backup instance is running
 
 ---------------------------------------------------------------
 <a name="stop"></a>

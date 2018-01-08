@@ -30,13 +30,7 @@ t2b_backup() {
 	recurrent_backup=false
 	source_ssh=false
 	force_lock=false
-
-	# get current date
-	start_timestamp=$(date +%s)
-	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $start_timestamp)
-
-	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
+	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -97,6 +91,13 @@ t2b_backup() {
 		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
 		clean_exit 4
 	fi
+
+	# get current date
+	start_timestamp=$(date +%s)
+	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $start_timestamp)
+
+	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
+	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
 
 	# get last backup file
 	last_backup_file="$config_directory/.lastbackup"
@@ -280,14 +281,6 @@ t2b_backup() {
 
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
-
-		# display notification when preparing more than one backup
-		if [ ${#sources[@]} -gt 1 ] ; then
-			# do not display a 2nd time the first source notification
-			if [ $s -gt 0 ] ; then
-				notify "$tr_notify_prepare_backup ($(($s + 1))/${#sources[@]})"
-			fi
-		fi
 
 		lb_display --log "Preparing backup..."
 
@@ -836,13 +829,14 @@ t2b_backup() {
 # Usage: t2b_restore [OPTIONS] [PATH]
 t2b_restore() {
 
-	# default options
+	# default option values
 	backup_date=latest
 	force_mode=false
 	choose_date=true
 	directory_mode=false
 	restore_moved=false
 	delete_newer_files=false
+	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1304,8 +1298,9 @@ t2b_restore() {
 # Usage: t2b_history [OPTIONS] PATH
 t2b_history() {
 
-	# default options
+	# default option values
 	local history_opts=""
+	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1579,6 +1574,9 @@ t2b_explore() {
 # Usage: t2b_status [OPTIONS]
 t2b_status() {
 
+	# default option values
+	local quiet_mode=false
+
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -1601,21 +1599,46 @@ t2b_status() {
 	done
 
 	# test backup destination
-	if ! prepare_destination ; then
+	if ! prepare_destination &> /dev/null ; then
+		if ! $quiet_mode ; then
+			echo "backup destination not reachable"
+		fi
 		return 4
 	fi
 
-	# test if a backup is running
-	if current_lock &> /dev/null ; then
-		if ! $quiet_mode ; then
-			echo "backup is running"
-		fi
-		return 5
-	else
+	# if no backup lock exists, exit
+	if ! current_lock &> /dev/null ; then
 		if ! $quiet_mode ; then
 			echo "backup is not running"
 		fi
+		return 0
 	fi
+
+	# search for a current rsync command and get parent PIDs
+	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
+
+	for pid in ${rsync_ppids[@]} ; do
+		# get parent PID
+		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
+		if [ -z "$parent_pid" ] ; then
+			continue
+		fi
+
+		# check if parent process is an instance of time2backup
+		local t2b_pid=$(ps -f $parent_pid 2> /dev/null | grep time2backup | awk '{print $2}')
+		if [ -n "$t2b_pid" ] ; then
+			if ! $quiet_mode ; then
+				echo "backup is running with PID $t2b_pid"
+			fi
+			return 5
+		fi
+	done
+
+	# if no t2b process found,
+	if ! $quiet_mode ; then
+		echo "backup lock is here, but there is no rsync command currently running"
+	fi
+	return 6
 }
 
 
@@ -1725,8 +1748,9 @@ t2b_stop() {
 # Usage: t2b_mv [OPTIONS] PATH
 t2b_mv() {
 
-	# default options
+	# default option values
 	local force_mode=false
+	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1837,9 +1861,10 @@ t2b_mv() {
 # Usage: t2b_clean [OPTIONS] PATH
 t2b_clean() {
 
-	# default options
+	# default option values
 	local force_mode=false
 	local clean_result=0
+	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
