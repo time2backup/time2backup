@@ -216,6 +216,7 @@ time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
 
 ### Options
 ```
+-f, --force  Do not print confirmation before stop
 -q, --quiet  Quiet mode
 -h, --help   Print help
 ```

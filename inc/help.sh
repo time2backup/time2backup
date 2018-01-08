@@ -108,6 +108,7 @@ print_help() {
 			echo "Cancel a running backup"
 			echo
 			echo "Options:"
+			echo "  -f, --force  Do not print confirmation before stop"
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"
 			;;

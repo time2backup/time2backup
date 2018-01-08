@@ -1642,12 +1642,16 @@ t2b_status() {
 t2b_stop() {
 
 	# default options and values
+	local force_mode=false
 	local quiet_mode=false
 	local pid_killed=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
+			-f|--force)
+				force_mode=true
+				;;
 			-q|--quiet)
 				quiet_mode=true
 				;;
@@ -1696,6 +1700,13 @@ t2b_stop() {
 			return 7
 			;;
 	esac
+
+	# prompt confirmation
+	if ! $force_mode ; then
+		if ! lb_yesno "Are you sure you want to interrupt the current backup?" ; then
+			return 0
+		fi
+	fi
 
 	# search for a current rsync command and get parent PIDs
 	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
