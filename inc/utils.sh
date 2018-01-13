@@ -443,7 +443,7 @@ load_config() {
 	# test config values
 
 	# test boolean values
-	test_boolean=(destination_subdirectories test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links)
+	test_boolean=(destination_subdirectories test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
 	for v in ${test_boolean[@]} ; do
 		if ! lb_is_boolean ${!v} ; then
 			lb_error "$v must be a boolean!"
@@ -1426,6 +1426,11 @@ prepare_rsync() {
 
 	if $files_progress ; then
 		rsync_cmd+=(--progress)
+	fi
+
+	# if disable preserve ownership and access rights
+	if ! $preserve_permissions ; then
+		rsync_cmd+=(--no-o --no-g --no-p)
 	fi
 
 	# get config for inclusions

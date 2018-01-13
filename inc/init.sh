@@ -40,9 +40,11 @@ disable_custom_commands=false
 if [ "$lb_current_os" == Windows ] ; then
   enable_recurrent=false
   default_shutdown_cmd=(shutdown /s)
+  preserve_permissions=false
 else
   enable_recurrent=true
   default_shutdown_cmd=(shutdown -h now)
+  preserve_permissions=true
 fi
 
 
