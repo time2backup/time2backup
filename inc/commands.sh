@@ -752,7 +752,7 @@ t2b_backup() {
 					lbg_info "$tr_backup_finished\n$(report_duration)"
 				fi
 			else
-				lbg_notify "$tr_backup_finished\n$(report_duration)"
+				notify "$tr_backup_finished\n$(report_duration)"
 			fi
 		fi
 
@@ -786,7 +786,7 @@ t2b_backup() {
 							lbg_warning "$fail_message"
 						fi
 					else
-						lbg_notify "$fail_message"
+						notify "$fail_message"
 					fi
 				fi
 			fi
@@ -810,7 +810,7 @@ t2b_backup() {
 						lbg_error "$fail_message"
 					fi
 				else
-					lbg_notify "$fail_message"
+					notify "$fail_message"
 				fi
 			fi
 		fi

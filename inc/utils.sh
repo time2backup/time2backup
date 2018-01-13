@@ -1514,7 +1514,7 @@ notify() {
 		return 0
 	fi
 
-	lbg_notify "$*"
+	lbg_notify "$*" &
 }
 
 
