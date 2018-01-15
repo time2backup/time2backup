@@ -48,43 +48,44 @@ get_common_path() {
 	fi
 
 	# get absolute paths
-	local gcp_dir1=$(lb_abspath "$1")
+	local directory1=$(lb_abspath "$1")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
-	local gcp_dir2=$(lb_abspath "$2")
+	local directory2=$(lb_abspath "$2")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
 	# compare characters of paths one by one
-	declare -i gcp_i=0
+	local path
+	local -i i=0
+
 	while true ; do
-
 		# if a character changes in the 2 paths,
-		if [ "${gcp_dir1:0:$gcp_i}" != "${gcp_dir2:0:$gcp_i}" ] ; then
+		if [ "${directory1:0:$i}" != "${directory2:0:$i}" ] ; then
 
-			local gcp_path=${gcp_dir1:0:$gcp_i}
+			path=${directory1:0:$i}
 
 			# if it's a directory, return it
-			if [ -d "$gcp_path" ] ; then
+			if [ -d "$path" ] ; then
 
-				if [ "${gcp_path:${#gcp_path}-1}" == "/" ] ; then
+				if [ "${path:${#path}-1}" == "/" ] ; then
 					# return path without the last /
-					echo "${gcp_path:0:${#gcp_path}-1}"
+					echo "${path:0:${#path}-1}"
 				else
-					echo "$gcp_path"
+					echo "$path"
 				fi
 			else
 				# if not, return parent directory
-				dirname "$gcp_path"
+				dirname "$path"
 			fi
 
 			# quit function
 			return 0
 		fi
-		gcp_i+=1
+		i+=1
 	done
 }
 
@@ -154,15 +155,15 @@ get_relative_path() {
 # Return: files|ssh|t2b
 get_protocol() {
 
-	local gptc_protocol=$(echo $1 | cut -d: -f1)
+	local protocol=$(echo $1 | cut -d: -f1)
 
 	# get protocol
-	case $gptc_protocol in
+	case $protocol in
 		ssh|t2b)
 			# double check protocol
-			echo $* | grep -q -E "^$gptc_protocol://"
+			echo $* | grep -q -E "^$protocol://"
 			if [ $? == 0 ] ; then
-				echo $gptc_protocol
+				echo $protocol
 				return 0
 			fi
 			;;
@@ -195,18 +196,18 @@ url2ssh() {
 test_hardlinks() {
 
 	# supported filesystems
-	local thl_hardlinks_fs=(ext2 ext3 ext4 btrfs aufs \
-	hfs hfsplus apfs \
-	ntfs)
+	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
+		hfs hfsplus apfs \
+		ntfs)
 
 	# get destination filesystem
-	local thl_fstype=$(lb_df_fstype "$*")
-	if [ -z "$thl_fstype" ] ; then
+	local fstype=$(lb_df_fstype "$*")
+	if [ -z "$fstype" ] ; then
 		return 1
 	fi
 
 	# if destination filesystem does not support hard links, return error
-	if ! lb_array_contains "$thl_fstype" "${thl_hardlinks_fs[@]}" ; then
+	if ! lb_array_contains "$fstype" "${supported_fstypes[@]}" ; then
 		return 2
 	fi
 }
@@ -220,24 +221,23 @@ test_hardlinks() {
 folders_size() {
 
 	# get number of subfolders
-	local fs_nbdir=$(find "$*" -type d 2> /dev/null | wc -l)
+	local nb_directories=$(find "$*" -type d 2> /dev/null | wc -l)
+
+	# set default size to 4096 bytes (ext*, FAT32)
+	local directory_size=4096
 
 	# get size of folders regarding FS type (in bytes)
 	case $(lb_df_fstype "$*") in
 		hfs|hfsplus)
-			fs_dirsize=68
+			directory_size=68
 			;;
 		exfat)
-			fs_dirsize=131072
-			;;
-		*)
-			# set default to 4096 (ext*, FAT32)
-			fs_dirsize=4096
+			directory_size=131072
 			;;
 	esac
 
 	# return nb folders * size (result in bytes)
-	echo $(($fs_nbdir * $fs_dirsize))
+	echo $(($nb_directories * $directory_size))
 }
 
 
@@ -253,26 +253,26 @@ test_space_available() {
 		return 0
 	fi
 
-	tsa_size=$1
+	local backup_size=$1
 
 	# get space available (destination path is the next argument)
 	shift
-	tsa_space_left=$(lb_df_space_left "$*")
+	local space_available=$(lb_df_space_left "$*")
 
 	# if there was an unknown error, continue
-	if ! lb_is_integer $tsa_space_left ; then
+	if ! lb_is_integer $space_available ; then
 		lb_display --log "Cannot get available space. Trying to backup although."
 		return 0
 	fi
 
 	# transform space size from KB to bytes
-	tsa_space_left=$(($tsa_space_left * 1024))
+	space_available=$(($space_available * 1024))
 
-	lb_debug --log "Space available on disk (in bytes): $tsa_space_left"
+	lb_debug --log "Space available on disk (in bytes): $space_available"
 
 	# if space is not enough, error
-	if [ $tsa_space_left -lt $tsa_size ] ; then
-		lb_debug --log "Not enough space on device! Needed (in bytes): $tsa_size/$tsa_space_left"
+	if [ $space_available -lt $backup_size ] ; then
+		lb_debug --log "Not enough space on device! Needed (in bytes): $backup_size/$space_available"
 		return 1
 	fi
 }
