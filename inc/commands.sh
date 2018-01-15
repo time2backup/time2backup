@@ -100,7 +100,7 @@ t2b_backup() {
 	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
 
 	# get last backup file
-	last_backup_file="$config_directory/.lastbackup"
+	last_backup_file=$config_directory/.lastbackup
 
 	# if file does not exist, create it
 	touch "$last_backup_file"
@@ -206,7 +206,7 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	existing_lock=$(ls "$backup_destination/.lock_"* 2> /dev/null)
+	existing_lock=$(ls "$destination/.lock_"* 2> /dev/null)
 	if [ -n "$existing_lock" ] ; then
 
 		# force mode: delete old lock
@@ -234,7 +234,7 @@ t2b_backup() {
 	trap cancel_exit SIGHUP SIGINT SIGTERM
 
 	# set log file path
-	logfile="$logs_directory/time2backup_$backup_date.log"
+	logfile=$logs_directory/time2backup_$backup_date.log
 
 	# create log file
 	if ! create_logfile "$logfile" ; then
@@ -244,7 +244,7 @@ t2b_backup() {
 	lb_display --log "Backup started on $current_date\n"
 
 	# set new backup directory
-	dest="$backup_destination/$backup_date"
+	dest=$destination/$backup_date
 
 	notify "$tr_notify_prepare_backup"
 	lb_display --log "Prepare backup destination..."
@@ -252,7 +252,7 @@ t2b_backup() {
 	# if mirror mode and there is an old backup, move last backup to current directory
 	last_backup=$(get_backups | tail -1)
 	if $mirror_mode && [ -n "$last_backup" ] ; then
-		mv "$backup_destination/$last_backup" "$dest"
+		mv "$destination/$last_backup" "$dest"
 	else
 		# create destination
 		mkdir "$dest"
@@ -268,8 +268,8 @@ t2b_backup() {
 	prepare_rsync backup
 
 	# create the info file
-	infofile="$dest/backup.info"
-	echo -e "[destination]\npath = $backup_destination\nhard_links = $hard_links" > "$infofile"
+	infofile=$dest/backup.info
+	echo -e "[destination]\npath = $destination\nhard_links = $hard_links" > "$infofile"
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
@@ -350,7 +350,7 @@ t2b_backup() {
 						done
 
 						# then complete by \{user}
-						homedir="$homedir/$homeuser"
+						homedir=$homedir/$homeuser
 
 						lb_debug "Windows homedir: $homedir"
 
@@ -399,7 +399,7 @@ t2b_backup() {
 
 		# set final destination with is a representation of system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
-		finaldest="$dest/$path_dest"
+		finaldest=$dest/$path_dest
 
 		# create parent destination folder
 		mkdir -p "$(dirname "$finaldest")"
@@ -426,7 +426,7 @@ t2b_backup() {
 				fi
 
 				# load last backup info
-				last_backup_info="$backup_destination/$last_clean_backup/backup.info"
+				last_backup_info=$destination/$last_clean_backup/backup.info
 
 				if [ -f "$last_backup_info" ] ; then
 					estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
@@ -461,11 +461,11 @@ t2b_backup() {
 
 				if $mv_dest ; then
 					# move old backup as current backup
-					mv "$backup_destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
+					mv "$destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
 					prepare_dest=$?
 
 					# clean old directory if empty
-					clean_empty_directories "$(dirname "$backup_destination/$last_clean_backup/$path_dest")"
+					clean_empty_directories "$(dirname "$destination/$last_clean_backup/$path_dest")"
 
 					# change last clean backup for hard links
 					if $hard_links ; then
@@ -528,7 +528,7 @@ t2b_backup() {
 				# if destination supports hard links, use incremental with hard links system
 				if $hard_links ; then
 					# revision folder
-					linkdest=$(get_relative_path "$finaldest" "$backup_destination")
+					linkdest=$(get_relative_path "$finaldest" "$destination")
 					if [ -e "$linkdest" ] ; then
 						cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
 
@@ -538,7 +538,7 @@ t2b_backup() {
 					# backups with a "trash" folder that contains older revisions
 					# be careful that trash must be set to parent directory
 					# or it will create something like dest/src/src
-					trash="$backup_destination/$last_clean_backup/$path_dest"
+					trash=$destination/$last_clean_backup/$path_dest
 
 					# create trash
 					mkdir -p "$trash"
@@ -557,10 +557,10 @@ t2b_backup() {
 		# of course, we exclude the backup destination itself if it is included
 		# into the backup source
 		# e.g. to backup /media directory, we must exclude /user/device/path/to/backups
-		if [[ "$backup_destination" == "$abs_src"* ]] ; then
+		if [[ "$destination" == "$abs_src"* ]] ; then
 
 			# get common path of the backup directory and source
-			common_path=$(get_common_path "$backup_destination" "$abs_src")
+			common_path=$(get_common_path "$destination" "$abs_src")
 
 			if [ $? != 0 ] ; then
 				lb_error "Cannot exclude directory backup from $src!"
@@ -575,7 +575,7 @@ t2b_backup() {
 			fi
 
 			# get relative exclude directory
-			exclude_backup_dir=${backup_destination#$common_path}
+			exclude_backup_dir=${destination#$common_path}
 
 			if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
 				exclude_backup_dir="/$exclude_backup_dir"
@@ -727,9 +727,9 @@ t2b_backup() {
 			# create a new link
 			# in a sub-context to avoid confusion and do not care of errors
 			if [ "$lb_current_os" == Windows ] ; then
-				dummy=$(cd "$backup_destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest "$backup_date")
+				dummy=$(cd "$destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest "$backup_date")
 			else
-				dummy=$(cd "$backup_destination" 2> /dev/null && rm -f latest && ln -s "$backup_date" latest 2> /dev/null)
+				dummy=$(cd "$destination" 2> /dev/null && rm -f latest && ln -s "$backup_date" latest 2> /dev/null)
 			fi
 			;;
 	esac
@@ -923,7 +923,7 @@ t2b_restore() {
 				;;
 			2)
 				# restore a moved file
-				starting_path=$backup_destination
+				starting_path=$destination
 				restore_moved=true
 				;;
 			3)
@@ -932,7 +932,7 @@ t2b_restore() {
 				;;
 			4)
 				# restore a moved directory
-				starting_path=$backup_destination
+				starting_path=$destination
 				directory_mode=true
 				restore_moved=true
 				;;
@@ -959,7 +959,7 @@ t2b_restore() {
 			esac
 
 			# get path to restore
-			file="$lbg_choose_directory/"
+			file=$lbg_choose_directory/
 
 		else
 			# choose a file
@@ -986,13 +986,13 @@ t2b_restore() {
 		if $restore_moved ; then
 
 			# test if path to restore is stored in the backup directory
-			if [[ "$file" != "$backup_destination"* ]] ; then
+			if [[ "$file" != "$destination"* ]] ; then
 				lbg_error "$tr_path_is_not_backup"
 				return 1
 			fi
 
 			# remove destination path prefix
-			file=${file#$backup_destination}
+			file=${file#$destination}
 			# remove first slash
 			if [ "${file:0:1}" == "/" ] ; then
 				file=${file:1}
@@ -1124,7 +1124,7 @@ t2b_restore() {
 	fi
 
 	# set backup source for restore command
-	src="$backup_destination/$backup_date/$backup_file_path"
+	src=$destination/$backup_date/$backup_file_path
 
 	# if source is a directory
 	if [ -d "$src" ] ; then
@@ -1150,7 +1150,7 @@ t2b_restore() {
 
 	# warn user if incomplete backup of directory
 	if $directory_mode ; then
-		infofile="$backup_destination/$backup_date/backup.info"
+		infofile=$destination/$backup_date/backup.info
 		if [ -f "$infofile" ] ; then
 			# search sections
 			for section in $(grep -Eo "^\[.*\]" "$infofile" 2> /dev/null | grep -v destination | tr -d '[]') ; do
@@ -1178,10 +1178,10 @@ t2b_restore() {
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
 	# e.g. to restore /media directory, we must exclude /user/device/path/to/backups
-	if [[ "$backup_destination" == "$dest"* ]] ; then
+	if [[ "$destination" == "$dest"* ]] ; then
 
 		# get common path of the backup directory and source
-		common_path=$(get_common_path "$backup_destination" "$dest")
+		common_path=$(get_common_path "$destination" "$dest")
 
 		if [ $? != 0 ] ; then
 			lb_debug "Cannot exclude directory backup from $dest!"
@@ -1190,7 +1190,7 @@ t2b_restore() {
 		fi
 
 		# get relative exclude directory
-		exclude_backup_dir=${backup_destination#$common_path}
+		exclude_backup_dir=${destination#$common_path}
 
 		if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
 			exclude_backup_dir="/$exclude_backup_dir"
@@ -1366,7 +1366,7 @@ t2b_history() {
 				continue
 			fi
 
-			backup_file="$backup_destination/$b/$abs_file"
+			backup_file=$destination/$b/$abs_file
 
 			echo
 
@@ -1460,7 +1460,7 @@ t2b_explore() {
 	# if path is not specified, open the backup destination folder
 	if [ -z "$path" ] ; then
 		echo "Exploring backups..."
-		lbg_open_directory "$backup_destination"
+		lbg_open_directory "$destination"
 
 		if [ $? == 0 ] ; then
 			return 0
@@ -1561,7 +1561,7 @@ t2b_explore() {
 
 	for b in ${backup_date[@]} ; do
 		echo "Exploring backup $b..."
-		lbg_open_directory "$backup_destination/$b/$backup_path"
+		lbg_open_directory "$destination/$b/$backup_path"
 	done
 
 	if [ $? != 0 ] ; then
@@ -1843,7 +1843,7 @@ t2b_mv() {
 		fi
 
 		# warn user if destination already exists
-		if [ -e "$backup_destination/$file_history/$abs_dest" ] ; then
+		if [ -e "$destination/$file_history/$abs_dest" ] ; then
 			lb_warning "Destination already exists! This action may erase files."
 		fi
 
@@ -1857,7 +1857,7 @@ t2b_mv() {
 		echo "Moving file(s)..."
 	fi
 
-	mv "$backup_destination/$file_history/$abs_src" "$backup_destination/$file_history/$abs_dest"
+	mv "$destination/$file_history/$abs_src" "$destination/$file_history/$abs_dest"
 	local mv_res=$?
 
 	if ! $quiet_mode ; then
@@ -1950,7 +1950,7 @@ t2b_clean() {
 		fi
 
 		# delete file(s)
-		rm -rf "$backup_destination/$b/$abs_file"
+		rm -rf "$destination/$b/$abs_file"
 		if [ $? != 0 ] ; then
 			clean_result=6
 		fi
@@ -2156,7 +2156,7 @@ t2b_install() {
 	# create a desktop file (Linux)
 	if [ "$lb_current_os" == Linux ] ; then
 
-		desktop_file="$script_directory/time2backup.desktop"
+		desktop_file=$script_directory/time2backup.desktop
 
 		cat > "$desktop_file" <<EOF
 [Desktop Entry]

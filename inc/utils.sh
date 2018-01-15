@@ -99,21 +99,21 @@ get_backup_fulldate() {
 get_backup_history() {
 
 	# default options and variables
-	local gbh_all_versions=false
-	local gbh_last_version=false
-	local gbh_nonempty=false
+	local all_versions=false
+	local last_version=false
+	local not_empty=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-a)
-				gbh_all_versions=true
+				all_versions=true
 				;;
 			-l)
-				gbh_last_version=true
+				last_version=true
 				;;
 			-n)
-				gbh_nonempty=true
+				not_empty=true
 				;;
 			*)
 				break
@@ -134,8 +134,8 @@ get_backup_history() {
 	fi
 
 	# get all backups
-	local gbh_backups=($(get_backups))
-	if [ ${#gbh_backups[@]} == 0 ] ; then
+	local all_backups=($(get_backups))
+	if [ ${#all_backups[@]} == 0 ] ; then
 		# no backups found
 		return 2
 	fi
@@ -153,17 +153,16 @@ get_backup_history() {
 	fi
 
 	# prepare for loop
-	local gbh_last_inode=""
-	local gbh_last_symlink_target=""
-	declare -i gbh_versions=0
+	local inode last_inode symlink_target last_symlink_target
+	local -i i nb_versions=0
 
 	# try to find backup from latest to oldest
-	for ((gbh_i=${#gbh_backups[@]}-1 ; gbh_i>=0 ; gbh_i--)) ; do
+	for ((i=${#all_backups[@]}-1 ; i>=0 ; i--)) ; do
 
-		gbh_date=${gbh_backups[$gbh_i]}
+		gbh_date=${all_backups[$i]}
 
 		# check if file/directory exists
-		gbh_backup_file="$backup_destination/$gbh_date/$gbh_backup_path"
+		gbh_backup_file=$destination/$gbh_date/$gbh_backup_path
 
 		# if file/directory does not exists, continue
 		if ! [ -e "$gbh_backup_file" ] ; then
@@ -177,7 +176,7 @@ get_backup_history() {
 		fi
 
 		# if get only non empty directories
-		if $gbh_nonempty ; then
+		if $not_empty ; then
 			if [ -d "$gbh_backup_file" ] ; then
 				if lb_dir_is_empty "$gbh_backup_file" ; then
 					continue
@@ -186,15 +185,15 @@ get_backup_history() {
 		fi
 
 		# if get only last version, print and exit
-		if $gbh_last_version ; then
+		if $last_version ; then
 			echo $gbh_date
 			return 0
 		fi
 
 		# if get all versions, do not compare files and continue
-		if $gbh_all_versions ; then
+		if $all_versions ; then
 			echo $gbh_date
-			gbh_versions+=1
+			nb_versions+=1
 			continue
 		fi
 
@@ -203,10 +202,10 @@ get_backup_history() {
 		if [ -d "$gbh_backup_file" ] ; then
 			# if it's not a symlink,
 			if ! [ -L "$gbh_backup_file" ] ; then
-				# TODO: DETECT DIRECTORY CHANGES
+				# TODO: DETECT DIRECTORY CHANGES with diff command
 				# for now, just add it to list
 				echo $gbh_date
-				gbh_versions+=1
+				nb_versions+=1
 				continue
 			fi
 		fi
@@ -216,14 +215,14 @@ get_backup_history() {
 		if [ -L "$gbh_backup_file" ] ; then
 			# detect if symlink target has changed
 			# TODO: move this part to directory section and test target file inodes
-			gbh_symlink_target=$(readlink "$gbh_backup_file")
+			symlink_target=$(readlink "$gbh_backup_file")
 
-			if [ "$gbh_symlink_target" != "$gbh_last_symlink_target" ] ; then
+			if [ "$symlink_target" != "$last_symlink_target" ] ; then
 				echo $gbh_date
-				gbh_versions+=1
+				nb_versions+=1
 
 				# save target to compare to the next one
-				gbh_last_symlink_target=$gbh_symlink_target
+				last_symlink_target=$symlink_target
 			fi
 
 			continue
@@ -233,21 +232,21 @@ get_backup_history() {
 
 		# compare inodes to detect different versions
 		if [ "$lb_current_os" == macOS ] ; then
-			gbh_inode=$(stat -f %i "$gbh_backup_file")
+			inode=$(stat -f %i "$gbh_backup_file")
 		else
-			gbh_inode=$(stat --format %i "$gbh_backup_file")
+			inode=$(stat --format %i "$gbh_backup_file")
 		fi
 
-		if [ "$gbh_inode" != "$gbh_last_inode" ] ; then
+		if [ "$inode" != "$last_inode" ] ; then
 			echo $gbh_date
-			gbh_versions+=1
+			nb_versions+=1
 
 			# save last inode to compare to next
-			gbh_last_inode=$gbh_inode
+			last_inode=$inode
 		fi
 	done
 
-	if [ $gbh_versions == 0 ] ; then
+	if [ $nb_versions == 0 ] ; then
 		return 2
 	fi
 }
@@ -451,7 +450,7 @@ load_config() {
 	# test config values
 
 	# test boolean values
-	test_boolean=(destination_subdirectories test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
+	test_boolean=(test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
 	for v in ${test_boolean[@]} ; do
 		if ! lb_is_boolean ${!v} ; then
 			lb_error "$v must be a boolean!"
@@ -477,12 +476,9 @@ load_config() {
 
 	# init some variables
 
-	# set backup destination
-	if $destination_subdirectories ; then
-		# add subdirectories
-		backup_destination="$destination/backups/$lb_current_hostname/"
-	else
-		backup_destination="$destination/"
+	# remove file:// prefix if any
+	if [ "${destination:0:7}" == "file://" ] ; then
+		destination=${destination:7}
 	fi
 
 	# if keep limit to 0, we are in a mirror mode
@@ -707,7 +703,7 @@ get_backup_path() {
 # Usage: get_backups
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 get_backups() {
-	ls "$backup_destination" 2> /dev/null | grep -E "^$backup_date_format$"
+	ls "$destination" 2> /dev/null | grep -E "^$backup_date_format$"
 }
 
 
@@ -723,10 +719,10 @@ delete_backup() {
 		return 1
 	fi
 
-	lb_debug --log "Removing $backup_destination/$1..."
+	lb_debug --log "Removing $destination/$1..."
 
 	# delete backup path
-	rm -rf "$backup_destination/$1" 2> "$logfile"
+	rm -rf "$destination/$1" 2> "$logfile"
 
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
@@ -949,7 +945,7 @@ prepare_destination() {
 
 			# define the default logs path to the local config directory
 			if [ -z "$logs_directory" ] ; then
-				logs_directory="$config_directory/logs"
+				logs_directory=$config_directory/logs
 			fi
 
 			# quit ok
@@ -958,14 +954,17 @@ prepare_destination() {
 		*)
 			# define the default logs path
 			if [ -z "$logs_directory" ] ; then
-				logs_directory="$backup_destination/logs"
+				logs_directory=$destination/logs
 			fi
 			;;
 	esac
 
-	# remove file:// prefix
-	if [ "${destination:0:7}" == "file://" ] ; then
-		destination=${destination:7}
+	# subdirectories removed since 1.3.0
+	new_destination=$destination/backups/$lb_current_hostname
+	if [ -d "$new_destination" ] ; then
+		lb_debug "Migration destination path to: $new_destination"
+		destination=$new_destination
+		lb_set_config "$config_file" destination "\"$new_destination\""
 	fi
 
 	# test backup destination directory
@@ -1002,7 +1001,7 @@ prepare_destination() {
 	fi
 
 	# create destination if not exists
-	mkdir -p "$backup_destination" &> /dev/null
+	mkdir -p "$destination" &> /dev/null
 	if [ $? != 0 ] ; then
 		# if mkdir failed, exit
 		if $recurrent_backup ; then
@@ -1016,17 +1015,16 @@ prepare_destination() {
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	if ! [ -w "$backup_destination" ] ; then
-		# do not return error if samba share: cannot determine rights in some cases
-		if [ "$(lb_df_fstype "$backup_destination")" != smbfs ] ; then
-			if $recurrent_backup ; then
-				# don't popup in recurrent mode
-				lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-			else
-				lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
-			fi
-			return 2
+	# create the info file if not exists (don't care of errors)
+	touch "$destination/.time2backup" &> /dev/null
+	if [ $? != 0 ] ; then
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		else
+			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		fi
+		return 2
 	fi
 
 	# check if destination supports hard links
@@ -1038,10 +1036,6 @@ prepare_destination() {
 			fi
 		fi
 	fi
-
-	# create the info file if not exists (don't care of errors)
-	touch "$destination/.time2backup" &> /dev/null
-	return 0
 }
 
 
@@ -1133,7 +1127,7 @@ test_backup() {
 test_free_space() {
 
 	# get all backups list
-	all_backups=($(get_backups))
+	local all_backups=($(get_backups))
 	nb_backups=${#all_backups[@]}
 
 	# test free space until it's ready
@@ -1374,7 +1368,7 @@ current_lock() {
 	fi
 
 	# get lock file
-	local current_lock_file=$(ls "$backup_destination/.lock_"* 2> /dev/null)
+	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
 
 	# if no lock, return 1
 	if [ -z "$current_lock_file" ] ; then
@@ -1400,7 +1394,7 @@ create_lock() {
 
 	lb_debug "Create lock..."
 
-	touch "$backup_destination/.lock_$backup_date"
+	touch "$destination/.lock_$backup_date"
 }
 
 
@@ -1413,7 +1407,7 @@ release_lock() {
 
 	lb_debug "Deleting lock..."
 
-	rm -f "$backup_destination/.lock_$backup_date" &> /dev/null
+	rm -f "$destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
 		lbg_critical --log "$tr_error_unlock"
 		return 1
@@ -1743,7 +1737,7 @@ send_email_report() {
 	fi
 
 	# prepare email content
-	email_subject="$email_subject_prefix"
+	email_subject=$email_subject_prefix
 
 	if [ -n "$email_subject_prefix" ] ; then
 		email_subject+=" "
@@ -1880,11 +1874,6 @@ config_wizard() {
 
 		# if destination changed (or first run)
 		if [ "$chosen_directory" != "$destination" ] ; then
-
-			# fix case where user sets an old path and go into /backups/
-			if [ -e "$chosen_directory/../.time2backup" ] ; then
-				chosen_directory=$(dirname "$chosen_directory")
-			fi
 
 			# update destination config
 			lb_set_config "$config_file" destination "\"$chosen_directory\""
