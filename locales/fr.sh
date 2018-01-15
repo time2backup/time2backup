@@ -37,7 +37,6 @@ tr_explore_backups="Explorer les sauvegardes"
 tr_configure_time2backup="Configurer time2backup"
 
 # Config mode
-tr_ask_first_config="Voulez-vous configurer time2backup maintenant ?"
 tr_choose_config_file="Choisissez le fichier à éditer :"
 tr_global_config="Configuration générale (anglais)"
 tr_sources_config="Éléments à sauvegarder"

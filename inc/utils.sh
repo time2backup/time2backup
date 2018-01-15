@@ -324,8 +324,12 @@ upgrade_config() {
 	fi
 
 	if ! $quiet_mode ; then
-		echo
-		lb_print "$tr_upgrade_config"
+		case $command in
+			""|backup|restore)
+				echo
+				lb_print "$tr_upgrade_config"
+				;;
+		esac
 		lb_debug "Upgrading config v$old_config_version -> v$version"
 	fi
 
@@ -404,7 +408,11 @@ upgrade_config() {
 load_config() {
 
 	if ! $quiet_mode ; then
-		echo -e "\n$tr_loading_config\n"
+		case $command in
+			""|backup|restore)
+				echo -e "\n$tr_loading_config\n"
+				;;
+		esac
 	fi
 
 	# test if sources file exists

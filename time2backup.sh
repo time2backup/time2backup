@@ -237,7 +237,7 @@ fi
 # validate commands
 case $command in
 	""|backup|restore|history|explore|status|stop|mv|clean|config)
-		# search for quiet modes options
+		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in
 				-q|--quiet)
@@ -302,7 +302,12 @@ config_excludes="$config_directory/excludes.conf"
 config_includes="$config_directory/includes.conf"
 
 if ! $quiet_mode ; then
-	echo "time2backup $version"
+	case $command in
+		""|backup|restore)
+			echo "time2backup $version"
+			;;
+	esac
+
 	lb_debug "Using config file: $config_file"
 fi
 
@@ -324,10 +329,6 @@ if [ -f "$config_file" ] ; then
 
 	# load config; ignore errors
 	load_config &> /dev/null
-
-else
-	# config file does not exists
-	new_config=true
 fi
 
 # security recheck: set default rsync path if not defined
@@ -347,15 +348,8 @@ if ! create_config ; then
 	exit 3
 fi
 
-# if configuration is not set (destination empty),
-if $new_config || [ -z "$destination" ] ; then
-
-	# ask to configure
-	if ! lbg_yesno "$tr_ask_first_config" ; then
-		exit
-	fi
-
-	# run config wizard
+# if configuration is not set (destination empty), run first config wizard
+if [ -z "$destination" ] ; then
 	config_wizard
 	exit $?
 fi
