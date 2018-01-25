@@ -47,13 +47,15 @@ get_common_path() {
 		return 1
 	fi
 
+	local directory1 directory2
+
 	# get absolute paths
-	local directory1=$(lb_abspath "$1")
+	directory1=$(lb_abspath "$1")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
-	local directory2=$(lb_abspath "$2")
+	directory2=$(lb_abspath "$2")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
@@ -107,25 +109,27 @@ get_relative_path() {
 		return 1
 	fi
 
+	local src dest common_path
+
 	# get absolute paths
-	local grp_src=$(lb_abspath "$1")
+	src=$(lb_abspath "$1")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
-	local grp_dest=$(lb_abspath "$2")
+	dest=$(lb_abspath "$2")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
 	# get common path
-	local grp_common_path=$(get_common_path "$grp_src" "$grp_dest")
+	common_path=$(get_common_path "$src" "$dest")
 	if [ $? != 0 ] ; then
 		return 2
 	fi
 
 	# go into the first path
-	cd "$grp_src" 2> /dev/null
+	cd "$src" 2> /dev/null
 	if [ $? != 0 ] ; then
 		return 3
 	fi
@@ -133,7 +137,7 @@ get_relative_path() {
 	local grp_relative_path="./"
 
 	# loop to find common path
-	while [ "$(pwd)" != "$grp_common_path" ] ; do
+	while [ "$(pwd)" != "$common_path" ] ; do
 
 		# go to upper directory
 		cd .. 2> /dev/null
