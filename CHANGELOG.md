@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0 (2018-01-27)
+- Backup resumes if the last one has failed or was canceled
+- New `backup.info` file created for each backup to log durations and command status
+- New option and config to show rsync files progress (disabled by default)
+- New feature: restore remote files/directories
+- New logfile if restore command failed
+- Explore command is now available from the choose operation dialog
+- Browse the global backup destination if no path specified in the explore command
+- Warn user if trying to restore a partially backuped directory
+- New quiet option to hide rsync output for backup and restore commands
+- New procedure to restore a backup from another PC
+- Print backup estimated time
+- Print PID on status command
+- New option to force backup when a lock is stuck
+- Ask confirmation before stop command & add force option
+- Added bash completion support
+- Removed the install process at the first run
+- Removed the subdirectories system and add migration code for older installs
+- Improved cleanup for failed backups that didn't work in some cases
+- Minor changes and improvements
+- Upgrade to libbash.sh 1.8.0
+
 ## 1.2.2 (2017-11-17)
 - Fix bug 'Cannot find homepath' on Windows install
 - Fix bug that can crash uninstall command
