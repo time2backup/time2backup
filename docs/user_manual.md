@@ -25,7 +25,7 @@ Linux Mint, Debian, openSuse, Mageia, macOS, ...
 
 <a name="install"></a>
 ## How to install time2backup
-1. [Download time2backup here](https://time2backup.github.io)
+1. [Download time2backup here](https://time2backup.org)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
@@ -61,7 +61,7 @@ Then you will get your file(s) exactly at backup state.
 
 <a name="upgrade"></a>
 ## Upgrading time2backup
-To upgrade time2backup, download the last version on the [official website](https://time2backup.github.io),
+To upgrade time2backup, download the last version on the [official website](https://time2backup.org),
 and uncompress the archive into the same folder.
 If your system is asking, choose to overwrite files.
 

@@ -96,4 +96,4 @@ time2backup is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for 
 ## Credits
 Author: Jean Prunneaux  http://jean.prunneaux.com
 
-Website: https://time2backup.github.io
+Website: https://time2backup.org
