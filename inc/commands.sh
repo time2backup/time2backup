@@ -209,8 +209,11 @@ t2b_backup() {
 	existing_lock=$(ls "$destination/.lock_"* 2> /dev/null)
 	if [ -n "$existing_lock" ] ; then
 
+		lb_warning "Backup lock found: $(basename "$existing_lock")"
+
 		# force mode: delete old lock
 		if $force_lock ; then
+			lb_info "Force mode: deleting lock"
 			rm -f "$existing_lock"
 		else
 			false
@@ -219,9 +222,8 @@ t2b_backup() {
 		# if no force mode or failed to delete lock
 		if [ $? != 0 ] ; then
 			# print error message
-			if $recurrent_backup ; then
-				lb_display_error "$tr_backup_already_running"
-			else
+			lb_display_error "$tr_backup_already_running"
+			if ! $recurrent_backup && ! $console_mode ; then
 				lbg_error "$tr_backup_already_running"
 			fi
 			clean_exit 8
