@@ -16,7 +16,7 @@ tr_directory="dossier"
 tr_not_sure_say_yes="Si vous n'êtes pas sûr(e), choisissez 'Oui'."
 tr_not_sure_say_no="Si vous n'êtes pas sûr(e), choisissez 'Non'."
 tr_please_retry="Veuillez réessayer."
-tr_see_logfile_for_details="Voir le fichier de log pour plus de détails."
+tr_see_logfile_for_details="Consultez le fichier de log pour plus de détails."
 
 # Main program
 tr_error_no_rsync_1="rsync n'est pas installé. time2backup ne fonctionnera pas."

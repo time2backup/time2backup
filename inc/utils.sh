@@ -1744,7 +1744,9 @@ send_email_report() {
 	fi
 
 	email_subject+="$tr_email_report_subject "
-	email_content="$tr_email_report_greetings\n\n"
+	email_content="$tr_email_report_greetings
+
+"
 
 	if [ $lb_exitcode == 0 ] ; then
 		email_subject+=$(printf "$tr_email_report_subject_success" $lb_current_hostname)
@@ -1754,16 +1756,23 @@ send_email_report() {
 		email_content+=$(printf "$tr_email_report_failed" $lb_current_hostname $lb_exitcode)
 	fi
 
-	email_content+="\n\n$(printf "$tr_email_report_details" "$current_date")"
-	email_content+="\n$(report_duration)\n\n"
+	email_content+="
+
+$(printf "$tr_email_report_details" "$current_date")
+$(report_duration)
+
+"
 
 	# error report
 	if [ $lb_exitcode != 0 ] ; then
-		email_content+="$report_details\n\n"
+		email_content+="$report_details
+"
 	fi
 
-	email_content+="$tr_see_logfile_for_details\n\n"
-	email_content+="$tr_email_report_regards\ntime2backup"
+	email_content+="$tr_see_logfile_for_details
+
+$tr_email_report_regards
+time2backup"
 
 	lb_debug --log "Sending email report..."
 
