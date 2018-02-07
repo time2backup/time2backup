@@ -700,16 +700,24 @@ t2b_backup() {
 
 	lb_display --log "\n********************************************\n"
 
-	# final cleanup
-	clean_empty_directories "$dest"
-
-	if [ -d "$dest" ] ; then
-		rotate_backups
-	else
-		# if nothing was backuped, consider it as a critical error
-		# and do not rotate backups
-		errors+=("nothing was backuped!")
+	# if destination disappered (e.g. network folder disconnected),
+	# return a critical error
+	if ! [ -d "$dest" ] ; then
+		errors+=("Destination folder vanished! Disk or network may have been disconnected.")
 		lb_exitcode=14
+	else
+		# final cleanup
+		clean_empty_directories "$dest"
+
+		# if destination was not empty, rotate backups
+		if [ -d "$dest" ] ; then
+			rotate_backups
+		else
+			# if nothing was backuped, consider it as a critical error
+			# and do not rotate backups
+			errors+=("Nothing was backuped.")
+			lb_exitcode=14
+		fi
 	fi
 
 	# if backup succeeded (all OK or even if warnings)

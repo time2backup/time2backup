@@ -1407,6 +1407,8 @@ release_lock() {
 
 	lb_debug "Deleting lock..."
 
+	# test if destination still exists, then delete lock
+	[ -d "$destination" ] && \
 	rm -f "$destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
 		lbg_critical --log "$tr_error_unlock"
@@ -1597,16 +1599,19 @@ clean_exit() {
 
 	lb_debug --log "Clean exit"
 
-	# try to clean final destination directory
-	clean_empty_directories "$finaldest"
+	# if backup date folder still exists,
+	if [ -d "$dest" ] ; then
+		# try to clean final destination directory
+		clean_empty_directories "$finaldest"
 
-	# if there is nothing more than the backup.info, delete it
-	if [ "$(ls -A "$dest" 2> /dev/null)" == "backup.info" ] ; then
-		rm -f "$dest/backup.info" 2> /dev/null
+		# if there is nothing more than the backup.info, delete it
+		if [ "$(ls -A "$dest" 2> /dev/null)" == backup.info ] ; then
+			rm -f "$dest/backup.info" 2> /dev/null
+		fi
+
+		# cleanup backup directory date if empty
+		clean_empty_directories "$dest"
 	fi
-
-	# cleanup backup directory date if empty
-	clean_empty_directories "$dest"
 
 	# delete backup lock
 	release_lock
