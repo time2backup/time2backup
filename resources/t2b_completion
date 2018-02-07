@@ -9,7 +9,7 @@
 
 # complete global options
 _t2b_complete_global_options() {
-	COMPREPLY+=($(compgen -W '-C --console -l --log-level -v --verbose-level -d --destination -c --config -D --debug -V --version -h --help' -- "${COMP_WORDS[$COMP_CWORD]}"))
+	COMPREPLY+=($(compgen -W '-C --console -l --log-level -v --verbose-level -d --destination -c --config -D --debug -V --version -h --help' -- "${COMP_WORDS[COMP_CWORD]}"))
 }
 
 # complete commands

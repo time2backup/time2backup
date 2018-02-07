@@ -159,7 +159,7 @@ get_backup_history() {
 	# try to find backup from latest to oldest
 	for ((i=${#all_backups[@]}-1 ; i>=0 ; i--)) ; do
 
-		gbh_date=${all_backups[$i]}
+		gbh_date=${all_backups[i]}
 
 		# check if file/directory exists
 		gbh_backup_file=$destination/$gbh_date/$gbh_backup_path
@@ -374,8 +374,8 @@ upgrade_config() {
 	fi
 
 	for ((c=0; c<${#lb_read_config[@]}; c++)) ; do
-		config_param=$(echo ${lb_read_config[$c]} | cut -d= -f1 | tr -d '[[:space:]]')
-		config_line=$(echo "${lb_read_config[$c]}" | sed 's/\\/\\\\/g; s/\//\\\//g')
+		config_param=$(echo ${lb_read_config[c]} | cut -d= -f1 | tr -d '[[:space:]]')
+		config_line=$(echo "${lb_read_config[c]}" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
 		if [ "$lb_current_os" == Windows ] ; then
 			config_line+="\r"
@@ -771,7 +771,7 @@ rotate_backups() {
 
 	# remove backups from older to newer
 	for ((rb_i=0; rb_i<${#rb_clean[@]}; rb_i++)) ; do
-		if ! delete_backup ${rb_clean[$rb_i]} ; then
+		if ! delete_backup ${rb_clean[rb_i]} ; then
 			lb_display_error "$tr_error_clean_backups"
 		fi
 	done

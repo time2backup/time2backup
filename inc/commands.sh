@@ -278,7 +278,7 @@ t2b_backup() {
 	# do not use for ... in ... syntax
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
-		src=${sources[$s]}
+		src=${sources[s]}
 		estimated_time=""
 
 		lb_display --log "\n********************************************\n"
@@ -765,7 +765,7 @@ t2b_backup() {
 			report_details+="Success:
 "
 			for ((i=0; i<${#success[@]}; i++)) ; do
-				report_details+="   - ${success[$i]}
+				report_details+="   - ${success[i]}
 "
 			done
 		fi
@@ -774,7 +774,7 @@ t2b_backup() {
 			report_details+="Warnings:
 "
 			for ((i=0; i<${#warnings[@]}; i++)) ; do
-				report_details+="   - ${warnings[$i]}
+				report_details+="   - ${warnings[i]}
 "
 			done
 
@@ -802,7 +802,7 @@ t2b_backup() {
 			report_details+="Errors:
 "
 			for ((i=0; i<${#errors[@]}; i++)) ; do
-				report_details+="   - ${errors[$i]}
+				report_details+="   - ${errors[i]}
 "
 			done
 
@@ -1102,7 +1102,7 @@ t2b_restore() {
 			history_dates=(${file_history[@]})
 
 			for ((i=0; i<${#file_history[@]}; i++)) ; do
-				history_dates[$i]=$(get_backup_fulldate "${file_history[$i]}")
+				history_dates[$i]=$(get_backup_fulldate "${file_history[i]}")
 			done
 
 			# choose backup date
@@ -1538,7 +1538,7 @@ t2b_explore() {
 				history_dates=(${path_history[@]})
 
 				for ((i=0; i<${#path_history[@]}; i++)) ; do
-					history_dates[$i]=$(get_backup_fulldate "${path_history[$i]}")
+					history_dates[$i]=$(get_backup_fulldate "${path_history[i]}")
 				done
 
 				# choose backup date
