@@ -1710,7 +1710,6 @@ cancel_exit() {
 # Exit codes:
 #   0: email sent, not enabled or no error
 #   1: email recipient not set
-#   2: failed to send email
 send_email_report() {
 
 	case $email_report in
@@ -1782,11 +1781,7 @@ time2backup"
 	lb_debug --log "Sending email report..."
 
 	# send email without managing errors and without blocking script
-	lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content"
-	if [ $? != 0 ] ; then
-		lb_debug --log "...Failed!"
-		return 2
-	fi
+	lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &
 }
 
 
