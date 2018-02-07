@@ -34,14 +34,14 @@ script_directory=$(dirname "$current_script")
 # load libbash
 source "$script_directory/libbash/libbash.sh" --gui &> /dev/null
 if [ $? != 0 ] ; then
-	echo >&2 "[ERROR] cannot load libbash.sh. Please initialize submodules."
+	echo >&2 "time2backup: [ERROR] cannot load libbash.sh"
 	exit 1
 fi
 
 # load default english messages
 source "$script_directory/locales/en.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "ERROR: cannot load messages!"
+	lb_error "time2backup: [ERROR] cannot load messages!"
 	exit 1
 fi
 
@@ -59,35 +59,35 @@ lb_current_script_name=time2backup
 # load init config
 source "$script_directory/inc/init.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load init file!"
+	lb_error "time2backup: [ERROR] cannot load init!"
 	exit 1
 fi
 
 # load global functions
 source "$script_directory/inc/functions.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load functions file!"
+	lb_error "time2backup: [ERROR] cannot load functions!"
 	exit 1
 fi
 
 # load utils functions
 source "$script_directory/inc/utils.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load utils file!"
+	lb_error "time2backup: [ERROR] cannot load utils!"
 	exit 1
 fi
 
 # load commands
 source "$script_directory/inc/commands.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load commands file!"
+	lb_error "time2backup: [ERROR] cannot load commands!"
 	exit 1
 fi
 
 # load help
 source "$script_directory/inc/help.sh" > /dev/null
 if [ $? != 0 ] ; then
-	lb_error "Error: cannot load help!"
+	lb_error "time2backup: [ERROR] cannot load help!"
 	exit 1
 fi
 
@@ -97,12 +97,10 @@ fi
 ##################
 
 # load the default config if exists
-default_config="$script_directory/config/default.conf"
-if [ -f "$default_config" ] ; then
+if [ -f "$script_directory/config/default.conf" ] ; then
 	# load the default config
-	source "$default_config" 2> /dev/null
-	if [ $? != 0 ] ; then
-		echo "ERROR: cannot load default config file!"
+	if ! lb_import_config "$script_directory/config/default.conf" ; then
+		echo "time2backup: [ERROR] cannot load default config!"
 		exit 3
 	fi
 fi
