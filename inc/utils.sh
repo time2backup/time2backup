@@ -1826,8 +1826,15 @@ haltpc() {
 # Usage: choose_operation
 choose_operation() {
 
+	# prepare options
+	local choices=("$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
+
+	if ! $console_mode ; then
+		choices+=("$tr_explore_backups")
+	fi
+
 	# display choice
-	if ! lbg_choose_option -d 1 -l "$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_explore_backups" "$tr_configure_time2backup" ; then
+	if ! lbg_choose_option -d 1 -l "${choices[@]}" ; then
 		exit
 	fi
 
@@ -1840,10 +1847,10 @@ choose_operation() {
 			command=restore
 			;;
 		3)
-			command=explore
+			command=config
 			;;
 		4)
-			command=config
+			command=explore
 			;;
 		*)
 			# bad choice

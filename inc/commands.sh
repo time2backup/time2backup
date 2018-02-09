@@ -1455,6 +1455,11 @@ t2b_explore() {
 
 	path=$*
 
+	if $console_mode ; then
+		echo "This command is not available in console mode."
+		return 255
+	fi
+
 	if $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
