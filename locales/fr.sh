@@ -35,6 +35,7 @@ tr_backup_files="Sauvegarder les fichiers"
 tr_restore_file="Restaurer un fichier"
 tr_explore_backups="Explorer les sauvegardes"
 tr_configure_time2backup="Configurer time2backup"
+tr_quit="Quitter"
 
 # Config mode
 tr_choose_config_file="Choisissez le fichier à éditer :"

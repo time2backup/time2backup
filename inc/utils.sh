@@ -1828,32 +1828,29 @@ choose_operation() {
 
 	# prepare options
 	local choices=("$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
+	local commands=("" backup restore config)
 
 	if ! $console_mode ; then
 		choices+=("$tr_explore_backups")
+		commands+=(explore)
 	fi
+
+	choices+=("$tr_quit")
+	commands+=(exit)
 
 	# display choice
 	if ! lbg_choose_option -d 1 -l "${choices[@]}" ; then
 		exit
 	fi
 
-	# run command
-	case $lbg_choose_option in
-		1)
-			command=backup
+	command=${commands[lbg_choose_option]}
+
+	case $command in
+		exit)
+			exit
 			;;
-		2)
-			command=restore
-			;;
-		3)
-			command=config
-			;;
-		4)
-			command=explore
-			;;
-		*)
-			# bad choice
+		"")
+			# error or no choice
 			print_help global
 			exit 1
 			;;
