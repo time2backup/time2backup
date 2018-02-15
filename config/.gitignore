@@ -1,5 +1,6 @@
 .lastbackup
 default.conf
+includes.conf
 excludes.conf
 sources.conf
 time2backup.conf

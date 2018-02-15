@@ -690,19 +690,19 @@ t2b_backup() {
 			clean_empty_directories "$trash"
 		fi
 
-		# clean empty backup if nothing inside
-		clean_empty_directories "$finaldest"
-
 		# save duration in minutes (rounded upper)
 		echo "duration = $((($(date +%s) - $src_timestamp) / 60 + 1))" >> "$infofile"
 
+		# clean empty backup if nothing inside
+		clean_empty_directories "$finaldest"
+		
 	done # end of backup sources
 
 	lb_display --log "\n********************************************\n"
 
 	# if destination disappered (e.g. network folder disconnected),
 	# return a critical error
-	if ! [ -d "$dest" ] ; then
+	if ! [ -d "$destination" ] ; then
 		errors+=("Destination folder vanished! Disk or network may have been disconnected.")
 		lb_exitcode=14
 	else
