@@ -562,6 +562,7 @@ t2b_backup() {
 		if [[ "$destination" == "$abs_src"* ]] ; then
 
 			# get common path of the backup directory and source
+			# e.g. /media
 			common_path=$(get_common_path "$destination" "$abs_src")
 
 			if [ $? != 0 ] ; then
@@ -577,13 +578,15 @@ t2b_backup() {
 			fi
 
 			# get relative exclude directory
+			# e.g. /user/device/path/to/backups
 			exclude_backup_dir=${destination#$common_path}
 
 			if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
 				exclude_backup_dir="/$exclude_backup_dir"
 			fi
 
-			cmd+=(--exclude "$(dirname "$exclude_backup_dir")")
+			# exclude backup directory
+			cmd+=(--exclude "$exclude_backup_dir")
 		fi
 
 		# search in source if exclude conf file is set
@@ -1212,7 +1215,7 @@ t2b_restore() {
 			exclude_backup_dir="/$exclude_backup_dir"
 		fi
 
-		rsync_cmd+=(--exclude "$(dirname "$exclude_backup_dir")")
+		rsync_cmd+=(--exclude "$exclude_backup_dir")
 	fi
 
 	# search in source if exclude conf file is set

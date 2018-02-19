@@ -72,15 +72,20 @@ get_common_path() {
 
 			# if it's a directory, return it
 			if [ -d "$path" ] ; then
-
-				if [ "${path:${#path}-1}" == "/" ] ; then
-					# return path without the last /
-					echo "${path:0:${#path}-1}"
+				# special case of /
+				if [ "$path" == "/" ] ; then
+					echo /
 				else
-					echo "$path"
+					# other directory
+					if [ "${path:${#path}-1}" == "/" ] ; then
+						# return path without the last /
+						echo "${path:0:${#path}-1}"
+					else
+						echo "$path"
+					fi
 				fi
 			else
-				# if not, return parent directory
+				# if it's not a directory, return parent directory
 				dirname "$path"
 			fi
 
