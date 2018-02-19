@@ -1613,8 +1613,8 @@ clean_exit() {
 		clean_empty_directories "$dest"
 	fi
 
-	# delete backup lock, only if destination was mounted (error code > 7)
-	if [ $lb_exitcode -gt 7 ] ; then
+	# delete backup lock, only if destination was mounted (success or error code > 7)
+	if [ $lb_exitcode == 0 ] || [ $lb_exitcode -gt 7 ] ; then
 		release_lock
 	fi
 
