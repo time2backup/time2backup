@@ -52,7 +52,7 @@ print_help() {
 			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
 			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
 			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs)"
-			echo "  --force-lock     Force to backup if a lock is stuck (use with caution)"
+			echo "  --force-unlock   Force to backup if a lock is stuck (use with caution)"
 			echo "  -h, --help       Print help"
 			;;
 		restore)

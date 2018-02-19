@@ -29,7 +29,7 @@ t2b_backup() {
 	# default values and options
 	recurrent_backup=false
 	source_ssh=false
-	force_lock=false
+	force_unlock=false
 	local quiet_mode=false
 
 	# get options
@@ -48,8 +48,8 @@ t2b_backup() {
 			-r|--recurrent)
 				recurrent_backup=true
 				;;
-			--force-lock)
-				force_lock=true
+			--force-lock|--force-unlock)
+				force_unlock=true
 				;;
 			-q|--quiet)
 				quiet_mode=true
@@ -212,7 +212,7 @@ t2b_backup() {
 		lb_warning "Backup lock found: $(basename "$existing_lock")"
 
 		# force mode: delete old lock
-		if $force_lock ; then
+		if $force_unlock ; then
 			lb_info "Force mode: deleting lock"
 			rm -f "$existing_lock"
 		else
@@ -695,7 +695,7 @@ t2b_backup() {
 
 		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
-		
+
 	done # end of backup sources
 
 	lb_display --log "\n********************************************\n"
