@@ -1613,8 +1613,10 @@ clean_exit() {
 		clean_empty_directories "$dest"
 	fi
 
-	# delete backup lock
-	release_lock
+	# delete backup lock, only if destination was mounted (error code > 7)
+	if [ $lb_exitcode -gt 7 ] ; then
+		release_lock
+	fi
 
 	# clear all traps to avoid infinite loop if following commands takes some time
 	trap - 1 2 3 15
@@ -1623,7 +1625,8 @@ clean_exit() {
 	# unmount destination
 	if $unmount ; then
 		if ! unmount_destination ; then
-			lbg_error --log "$tr_error_unmount"
+			lb_display_critical --log "$tr_error_unmount"
+			lbg_critical "$tr_error_unmount"
 
 			if [ $lb_exitcode == 0 ] ; then
 				lb_exitcode=18
