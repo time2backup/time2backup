@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.1 (2018-02-19)
+- Fix bug when excluding destination folder to avoid recursive backups
+- Fix line return bug for emails
+- Fix "nothing was backuped" error if destination disappeard before end
+- New quit option in choose operation dialog
+- Add lock details in console
+- Hide explore command in console mode
+- Add backup date in info file
+- Change `--force-lock` option to `--force-unlock` (keep compatibility)
+- Don't hold script when sending email reports
+
 ## 1.3.0 (2018-01-27)
 - Backup resumes if the last one has failed or was canceled
 - New `backup.info` file created for each backup to log durations and command status
