@@ -139,7 +139,7 @@ get_relative_path() {
 		return 3
 	fi
 
-	local grp_relative_path="./"
+	local relative_path="./"
 
 	# loop to find common path
 	while [ "$(pwd)" != "$common_path" ] ; do
@@ -151,11 +151,11 @@ get_relative_path() {
 		fi
 
 		# append double dots to relative path
-		grp_relative_path+="../"
+		relative_path+="../"
 	done
 
 	# print relative path
-	echo "$grp_relative_path/"
+	echo "$relative_path/"
 }
 
 

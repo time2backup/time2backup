@@ -559,34 +559,21 @@ t2b_backup() {
 		# of course, we exclude the backup destination itself if it is included
 		# into the backup source
 		# e.g. to backup /media directory, we must exclude /user/device/path/to/backups
-		if [[ "$destination" == "$abs_src"* ]] ; then
-
-			# get common path of the backup directory and source
-			# e.g. /media
-			common_path=$(get_common_path "$destination" "$abs_src")
-
-			if [ $? != 0 ] ; then
-				lb_error "Cannot exclude directory backup from $src!"
-				errors+=("$src (exclude error)")
-				lb_exitcode=11
-
-				# cleanup
-				clean_empty_directories "$finaldest"
-
-				# continue to next source
-				continue
+		exclude_backup_dir=$(auto_exclude "$abs_src")
+		if [ $? == 0 ] ; then
+			# if there is something to exclude, do it
+			if [ -n "$exclude_backup_dir" ] ; then
+				cmd+=(--exclude "$exclude_backup_dir")
 			fi
+		else
+			errors+=("$src (exclude error)")
+			lb_exitcode=11
 
-			# get relative exclude directory
-			# e.g. /user/device/path/to/backups
-			exclude_backup_dir=${destination#$common_path}
+			# cleanup
+			clean_empty_directories "$finaldest"
 
-			if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
-				exclude_backup_dir="/$exclude_backup_dir"
-			fi
-
-			# exclude backup directory
-			cmd+=(--exclude "$exclude_backup_dir")
+			# continue to next source
+			continue
 		fi
 
 		# search in source if exclude conf file is set
@@ -1197,25 +1184,15 @@ t2b_restore() {
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
 	# e.g. to restore /media directory, we must exclude /user/device/path/to/backups
-	if [[ "$destination" == "$dest"* ]] ; then
-
-		# get common path of the backup directory and source
-		common_path=$(get_common_path "$destination" "$dest")
-
-		if [ $? != 0 ] ; then
-			lb_debug "Cannot exclude directory backup from $dest!"
-			lbg_error "$tr_restore_unknown_error"
-			return 8
+	exclude_backup_dir=$(auto_exclude "$dest")
+	if [ $? == 0 ] ; then
+		# if there is something to exclude, do it
+		if [ -n "$exclude_backup_dir" ] ; then
+			rsync_cmd+=(--exclude "$exclude_backup_dir")
 		fi
-
-		# get relative exclude directory
-		exclude_backup_dir=${destination#$common_path}
-
-		if [ "${exclude_backup_dir:0:1}" != "/" ] ; then
-			exclude_backup_dir="/$exclude_backup_dir"
-		fi
-
-		rsync_cmd+=(--exclude "$exclude_backup_dir")
+	else
+		lbg_error "$tr_restore_unknown_error"
+		return 8
 	fi
 
 	# search in source if exclude conf file is set

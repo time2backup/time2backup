@@ -34,8 +34,8 @@
 #      create_lock
 #      release_lock
 #      prepare_rsync
-#      is_installed
 #      prepare_remote
+#      auto_exclude
 #      notify
 #   Backup steps
 #      run_before
@@ -1513,6 +1513,40 @@ prepare_remote() {
 		# if empty, defines ssh
 		cmd+=(-e ssh)
 	fi
+}
+
+
+# Auto exclude the backpu directory if it is inside destination
+# Usage: auto_exclude PATH
+# Exit codes:
+#  0: path excluded (or no result)
+#  1: failed
+auto_exclude() {
+
+	if [[ "$destination" != "$1"* ]] ; then
+		return 0
+	fi
+
+	# get common path of the backup directory and source
+	# e.g. /media
+	local common_path
+	common_path=$(get_common_path "$destination" "$1")
+
+	if [ $? != 0 ] ; then
+		lb_error "Cannot exclude directory backup from $1!"
+		return 1
+	fi
+
+	# get relative exclude directory
+	# e.g. /user/device/path/to/backups
+	local exclude_path=${destination#$common_path}
+
+	if [ "${exclude_path:0:1}" != "/" ] ; then
+		exclude_path="/$exclude_path"
+	fi
+
+	# return path to exclude
+	echo "$exclude_path"
 }
 
 
