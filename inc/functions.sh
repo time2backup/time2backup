@@ -170,7 +170,7 @@ get_protocol() {
 	case $protocol in
 		ssh|t2b)
 			# double check protocol
-			echo $* | grep -q -E "^$protocol://"
+			echo "$*" | grep -q -E "^$protocol://"
 			if [ $? == 0 ] ; then
 				echo $protocol
 				return 0

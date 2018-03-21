@@ -451,7 +451,7 @@ load_config() {
 
 	# test boolean values
 	test_boolean=(test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
-	for v in ${test_boolean[@]} ; do
+	for v in "${test_boolean[@]}" ; do
 		if ! lb_is_boolean ${!v} ; then
 			lb_error "$v must be a boolean!"
 			return 2
@@ -460,7 +460,7 @@ load_config() {
 
 	# test integer values
 	test_integer=(keep_limit clean_keep)
-	for v in ${test_integer[@]} ; do
+	for v in "${test_integer[@]}" ; do
 		if ! lb_is_integer ${!v} ; then
 			lb_error "$v must be an integer!"
 			return 2
@@ -1082,7 +1082,7 @@ test_backup() {
 	# option dry-run makes a simulation for rsync
 	# then we get the last line with the total amount of bytes to be copied
 	# which is in format 999,999,999 so then we delete the commas
-	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[@]}..."
+	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[*]}..."
 
 	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
 
@@ -1317,7 +1317,7 @@ open_config() {
 	all_editors+=("${editors[@]}")
 
 	# select a console editor
-	for e in ${all_editors[@]} ; do
+	for e in "${all_editors[@]}" ; do
 		# test if editor exists
 		if lb_command_exists "$e" ; then
 			editor=$e

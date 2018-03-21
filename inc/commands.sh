@@ -646,7 +646,7 @@ t2b_backup() {
 		fi # end of free space tests
 
 		lb_display --log "\nRunning backup..."
-		lb_debug --log "Executing: ${cmd[@]}\n"
+		lb_debug --log "Executing: ${cmd[*]}\n"
 
 		# real backup: execute rsync command, print result into terminal and logfile
 		"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -725,7 +725,7 @@ t2b_backup() {
 			lb_debug --log "Create latest link..."
 
 			# create a new link
-			# in a sub-context to avoid confusion and do not care of errors
+			# in a sub-context to avoid confusion and do not care of output
 			if [ "$lb_current_os" == Windows ] ; then
 				dummy=$(cd "$destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest "$backup_date")
 			else
@@ -762,8 +762,8 @@ t2b_backup() {
 		if [ ${#success[@]} -gt 0 ] ; then
 			report_details+="Success:
 "
-			for ((i=0; i<${#success[@]}; i++)) ; do
-				report_details+="   - ${success[i]}
+			for i in "${success[@]}" ; do
+				report_details+="   - $i
 "
 			done
 		fi
@@ -771,8 +771,8 @@ t2b_backup() {
 		if [ ${#warnings[@]} -gt 0 ] ; then
 			report_details+="Warnings:
 "
-			for ((i=0; i<${#warnings[@]}; i++)) ; do
-				report_details+="   - ${warnings[i]}
+			for i in "${warnings[@]}" ; do
+				report_details+="   - $i
 "
 			done
 
@@ -799,8 +799,8 @@ t2b_backup() {
 		if [ ${#errors[@]} -gt 0 ] ; then
 			report_details+="Errors:
 "
-			for ((i=0; i<${#errors[@]}; i++)) ; do
-				report_details+="   - ${errors[i]}
+			for i in "${errors[@]}" ; do
+				report_details+="   - $i
 "
 			done
 
@@ -1209,7 +1209,7 @@ t2b_restore() {
 
 			notify "$tr_notify_prepare_restore"
 			echo "Preparing restore..."
-			lb_debug ${cmd[@]}
+			lb_debug "${cmd[*]}"
 
 			# test rsync to check newer files
 			"${cmd[@]}" | grep -q "^deleting "
@@ -1252,7 +1252,7 @@ t2b_restore() {
 	fi
 
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
-	lb_debug --log "Executing: ${cmd[@]}\n"
+	lb_debug --log "Executing: ${cmd[*]}\n"
 
 	# execute rsync command, print result into terminal and errors in logfile
 	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -1351,7 +1351,7 @@ t2b_history() {
 	fi
 
 	# print backup versions
-	for b in ${file_history[@]} ; do
+	for b in "${file_history[@]}" ; do
 		# quiet mode: just print the version
 		if $quiet_mode ; then
 			echo "$b"
@@ -1560,7 +1560,7 @@ t2b_explore() {
 		backup_path=$(dirname "$backup_path")
 	fi
 
-	for b in ${backup_date[@]} ; do
+	for b in "${backup_date[@]}" ; do
 		echo "Exploring backup $b..."
 		lbg_open_directory "$destination/$b/$backup_path"
 	done
@@ -1618,7 +1618,7 @@ t2b_status() {
 	# search for a t2b PID
 	local t2b_pids=($(ps -ef | grep time2backup | awk '{print $2}'))
 
-	for pid in ${t2b_pids[@]} ; do
+	for pid in "${t2b_pids[@]}" ; do
 		# if current script, continue
 		if [ $pid == $$ ] ; then
 			continue
@@ -1712,7 +1712,7 @@ t2b_stop() {
 	# search for a current rsync command and get parent PIDs
 	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
 
-	for pid in ${rsync_ppids[@]} ; do
+	for pid in "${rsync_ppids[@]}" ; do
 		# get parent PID
 		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
 		if [ -z "$parent_pid" ] ; then
@@ -1939,7 +1939,7 @@ t2b_clean() {
 	fi
 
 	# print backup versions
-	for b in ${file_history[@]} ; do
+	for b in "${file_history[@]}" ; do
 		# get path of file
 		abs_file=$(get_backup_path "$file")
 		if [ -z "$abs_file" ] ; then
