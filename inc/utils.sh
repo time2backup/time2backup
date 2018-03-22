@@ -141,7 +141,8 @@ get_backup_history() {
 	fi
 
 	# get backup path
-	local gbh_backup_path=$(get_backup_path "$*")
+	local gbh_backup_path
+	gbh_backup_path=$(get_backup_path "$*")
 	if [ -z "$gbh_backup_path" ] ; then
 		return 3
 	fi
@@ -153,7 +154,7 @@ get_backup_history() {
 	fi
 
 	# prepare for loop
-	local inode last_inode symlink_target last_symlink_target
+	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file
 	local -i i nb_versions=0
 
 	# try to find backup from latest to oldest
@@ -373,9 +374,10 @@ upgrade_config() {
 		return 2
 	fi
 
-	for ((c=0; c<${#lb_read_config[@]}; c++)) ; do
-		config_param=$(echo ${lb_read_config[c]} | cut -d= -f1 | tr -d '[[:space:]]')
-		config_line=$(echo "${lb_read_config[c]}" | sed 's/\\/\\\\/g; s/\//\\\//g')
+	local line
+	for line in "${lb_read_config[@]}" ; do
+		config_param=$(echo $line | cut -d= -f1 | tr -d '[[:space:]]')
+		config_line=$(echo "$line" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
 		if [ "$lb_current_os" == Windows ] ; then
 			config_line+="\r"
@@ -751,32 +753,33 @@ rotate_backups() {
 	fi
 
 	# always keep nb + 1 (do not delete current backup)
-	local rb_keep=$(($keep_limit + 1))
+	local nb_keep=$(($keep_limit + 1))
 
 	# get backups & number
-	local rb_backups=($(get_backups))
-	local rb_nb=${#rb_backups[@]}
+	local all_backups=($(get_backups))
+	local nb_backups=${#all_backups[@]}
 
 	# if limit not reached, do nothing
-	if [ $rb_nb -le $rb_keep ] ; then
+	if [ $nb_backups -le $nb_keep ] ; then
 		return 0
 	fi
 
 	lb_display --log "Cleaning old backups..."
-	lb_debug --log "Clean to keep $rb_keep backups on $rb_nb"
+	lb_debug --log "Clean to keep $nb_keep backups on $nb_backups"
 
 	notify "$tr_notify_rotate_backup"
 
-	local rb_clean=(${rb_backups[@]:0:$(($rb_nb - $rb_keep))})
+	# get old backups until max - nb to keep
+	local c to_clean=(${all_backups[@]:0:$(($nb_backups - $nb_keep))})
 
 	# remove backups from older to newer
-	for ((rb_i=0; rb_i<${#rb_clean[@]}; rb_i++)) ; do
-		if ! delete_backup ${rb_clean[rb_i]} ; then
+	for c in "${to_clean[@]}" ; do
+		if ! delete_backup "$c" ; then
 			lb_display_error "$tr_error_clean_backups"
 		fi
 	done
 
-	lb_display --log "" # line jump
+	lb_display --log # line jump
 
 	# don't care of other errors
 	return 0
@@ -1368,7 +1371,8 @@ current_lock() {
 	fi
 
 	# get lock file
-	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
+	local current_lock_file
+	current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
 
 	# if no lock, return 1
 	if [ -z "$current_lock_file" ] ; then
@@ -1484,7 +1488,7 @@ prepare_remote() {
 	# get destination path
 	t2bs_prefix="t2b://$t2bs_host"
 	#TODO
-	t2bs_path=${gbp_file#$t2bs_prefix}
+	t2bs_path=${t2bs_file#$t2bs_prefix}
 
 	# return complete path
 	echo "/t2b/$t2bs_hostname/$t2bs_path"
@@ -1727,7 +1731,7 @@ cancel_exit() {
 	# display notification and exit
 	case $command in
 		backup)
-			notify "$(printf "$tr_backup_cancelled_at" $(date +%H:%M:%S))\n$(report_duration)"
+			notify "$(printf "$tr_backup_cancelled_at" "$(date +%H:%M:%S)")\n$(report_duration)"
 			clean_exit 17
 			;;
 		restore)
@@ -1937,9 +1941,9 @@ config_wizard() {
 			# detect changed hostname
 			if $destination_subdirectories && [ -d "$destination/backups" ] ; then
 				existing_hostname=($(ls "$destination/backups"))
-				if [ ${#existing_hostname[@]} == 1 ] && [ "$existing_hostname" != "$lb_current_hostname" ] ; then
-					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" $existing_hostname)" ; then
-						mv "$destination/backups/$existing_hostname" "$destination/backups/$lb_current_hostname"
+				if [ ${#existing_hostname[@]} == 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
+					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" ${existing_hostname[0]})" ; then
+						mv "$destination/backups/${existing_hostname[0]}" "$destination/backups/$lb_current_hostname"
 					fi
 				fi
 			fi

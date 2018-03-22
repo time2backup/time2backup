@@ -1,10 +1,10 @@
 #
-# time2backup commands
+#  time2backup commands
 #
-# This file is part of time2backup (https://time2backup.org)
+#  This file is part of time2backup (https://time2backup.org)
 #
-# MIT License
-# Copyright (c) 2017-2018 Jean Prunneaux
+#  MIT License
+#  Copyright (c) 2017-2018 Jean Prunneaux
 #
 
 # Index of functions
@@ -1740,7 +1740,7 @@ t2b_stop() {
 	fi
 
 	# wait 30 sec max until time2backup is really stopped
-	for ((i=0; i<30; i++)) ; do
+	for i in $(seq 1 30) ; do
 		if t2b_status &> /dev/null ; then
 			if ! $quiet_mode ; then
 				echo "time2backup was successfully cancelled"
