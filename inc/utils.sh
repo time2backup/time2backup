@@ -1346,6 +1346,11 @@ release_lock() {
 
 	lb_debug "Deleting lock..."
 
+	# if destination exists, but no lock, return 0
+	if [ -d "$destination" ] ; then
+		current_lock &> /dev/null || return 0
+	fi
+
 	# test if destination still exists, then delete lock
 	[ -d "$destination" ] && \
 	rm -f "$destination/.lock_$backup_date" &> /dev/null
@@ -1502,6 +1507,8 @@ notify() {
 run_before() {
 	if [ ${#exec_before[@]} -gt 0 ] ; then
 
+		local result
+
 		# if disabled, inform user and exit
 		if $disable_custom_commands ; then
 			lb_display_error "Custom commands are disabled."
@@ -1511,7 +1518,12 @@ run_before() {
 			"${exec_before[@]}"
 		fi
 
-		if [ $? != 0 ] ; then
+		result=$?
+
+		if [ $result != 0 ] ; then
+			report_details+="
+Before script failed (exit code: $result)
+"
 			lb_exitcode=5
 
 			# option exit if error
@@ -1529,6 +1541,8 @@ run_before() {
 run_after() {
 	if [ ${#exec_after[@]} -gt 0 ] ; then
 
+		local result
+
 		# if disabled, inform user and exit
 		if $disable_custom_commands ; then
 			lb_display_error "Custom commands are disabled."
@@ -1538,11 +1552,14 @@ run_after() {
 			"${exec_after[@]}"
 		fi
 
-		if [ $? != 0 ] ; then
+		result=$?
+
+		if [ $result != 0 ] ; then
+			report_details+="
+After script failed (exit code: $result)
+"
 			# if error, do not overwrite rsync exit code
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=16
-			fi
+			[ $lb_exitcode == 0 ] && lb_exitcode=16
 
 			# option exit if error
 			if $exec_after_block ; then
@@ -1581,10 +1598,8 @@ clean_exit() {
 		clean_empty_directories "$dest"
 	fi
 
-	# delete backup lock, only if destination was mounted (success or error code > 7)
-	if [ $lb_exitcode == 0 ] || [ $lb_exitcode -gt 7 ] ; then
-		release_lock
-	fi
+	# delete backup lock
+	release_lock
 
 	# clear all traps to avoid infinite loop if following commands takes some time
 	trap - 1 2 3 15
