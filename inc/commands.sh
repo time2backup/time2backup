@@ -238,10 +238,8 @@ t2b_backup() {
 	# set log file path
 	logfile=$logs_directory/time2backup_$backup_date.log
 
-	# create log file
-	if ! create_logfile "$logfile" ; then
-		clean_exit 9
-	fi
+	# create log file and exit if error
+	create_logfile "$logfile" || clean_exit 9
 
 	lb_display --log "Backup started on $current_date\n"
 
@@ -434,9 +432,7 @@ t2b_backup() {
 					estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
 
 					# if bad result, reset it
-					if ! lb_is_integer $estimated_time ; then
-						estimated_time=""
-					fi
+					lb_is_integer $estimated_time || estimated_time=""
 
 					# check status of the last backup
 					if $hard_links ; then
@@ -449,9 +445,8 @@ t2b_backup() {
 							# search again for the last clean backup before that
 							for b in $(get_backup_history -n "$src" | head -2) ; do
 								# ignore the current last backup
-								if [ "$b" == "$last_clean_backup" ] ; then
-									continue
-								fi
+								[ "$b" == "$last_clean_backup" ] && continue
+
 								last_clean_backup_linkdest=$b
 								break
 							done
@@ -493,9 +488,7 @@ t2b_backup() {
 
 			# prepare report and save exit code
 			errors+=("$src (write error)")
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=7
-			fi
+			[ $lb_exitcode == 0 ] && lb_exitcode=7
 
 			# clean final destination directory
 			clean_empty_directories "$finaldest"
@@ -618,9 +611,7 @@ t2b_backup() {
 
 				# prepare report and save exit code
 				errors+=("$src (rsync test error)")
-				if [ $lb_exitcode == 0 ] ; then
-					lb_exitcode=12
-				fi
+				[ $lb_exitcode == 0 ] && lb_exitcode=12
 
 				clean_empty_directories "$finaldest"
 
@@ -634,9 +625,7 @@ t2b_backup() {
 
 				# prepare report and save exit code
 				errors+=("$src (not enough space left)")
-				if [ $lb_exitcode == 0 ] ; then
-					lb_exitcode=13
-				fi
+				[ $lb_exitcode == 0 ] && lb_exitcode=13
 
 				clean_empty_directories "$finaldest"
 
@@ -884,9 +873,7 @@ t2b_restore() {
 	done
 
 	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
+	prepare_destination || return 4
 
 	# get all backups
 	backups=($(get_backups))
@@ -1068,9 +1055,7 @@ t2b_restore() {
 	backup_file_path=$(get_backup_path "$file")
 
 	# if error, exit
-	if [ -z "$backup_file_path" ] ; then
-		return 1
-	fi
+	[ -z "$backup_file_path" ] && return 1
 
 	# get all versions of the file/directory
 	file_history=($(get_backup_history "$file"))
@@ -1329,9 +1314,7 @@ t2b_history() {
 	fi
 
 	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
+	prepare_destination || return 4
 
 	# get file
 	if [ "$lb_current_os" == Windows ] ; then
@@ -1358,9 +1341,7 @@ t2b_history() {
 		else
 			# complete result: print details
 			abs_file=$(get_backup_path "$file")
-			if [ -z "$abs_file" ] ; then
-				continue
-			fi
+			[ -z "$abs_file" ] && continue
 
 			backup_file=$destination/$b/$abs_file
 
@@ -1454,9 +1435,7 @@ t2b_explore() {
 	fi
 
 	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
+	prepare_destination || return 4
 
 	# if path is not specified, open the backup destination folder
 	if [ -z "$path" ] ; then
@@ -1620,9 +1599,7 @@ t2b_status() {
 
 	for pid in "${t2b_pids[@]}" ; do
 		# if current script, continue
-		if [ $pid == $$ ] ; then
-			continue
-		fi
+		[ $pid == $$ ] && continue
 
 		if ! $quiet_mode ; then
 			echo "backup is running with PID $pid"
@@ -1715,18 +1692,13 @@ t2b_stop() {
 	for pid in "${rsync_ppids[@]}" ; do
 		# get parent PID
 		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
-		if [ -z "$parent_pid" ] ; then
-			continue
-		fi
+		[ -z "$parent_pid" ] && continue
 
 		# check if parent process is an instance of time2backup
 		ps -f $parent_pid 2> /dev/null | grep -q time2backup
 		if [ $? == 0 ] ; then
 			# send to t2b THEN rsync subprocess the kill signal
-			kill $parent_pid $pid
-			if [ $? == 0 ] ; then
-				pid_killed=true
-			fi
+			kill $parent_pid $pid && pid_killed=true
 			break
 		fi
 	done
@@ -1801,9 +1773,7 @@ t2b_mv() {
 	fi
 
 	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
+	prepare_destination || return 4
 
 	if [ "$lb_current_os" == Windows ] ; then
 		# get UNIX format for Windows paths
@@ -1915,9 +1885,7 @@ t2b_clean() {
 	fi
 
 	# test backup destination
-	if ! prepare_destination ; then
-		return 4
-	fi
+	prepare_destination || return 4
 
 	file=$*
 
@@ -1933,28 +1901,21 @@ t2b_clean() {
 	# confirmation
 	if ! $force_mode ; then
 		echo "${#file_history[@]} backups were found for this file."
-		if ! lb_yesno "Do you really want to delete them?" ; then
-			return 0
-		fi
+		lb_yesno "Do you really want to delete them?" || return 0
 	fi
 
 	# print backup versions
 	for b in "${file_history[@]}" ; do
 		# get path of file
 		abs_file=$(get_backup_path "$file")
-		if [ -z "$abs_file" ] ; then
-			continue
-		fi
+		[ -z "$abs_file" ] && continue
 
 		if ! $quiet_mode ; then
 			echo "Deleting backup $b..."
 		fi
 
 		# delete file(s)
-		rm -rf "$destination/$b/$abs_file"
-		if [ $? != 0 ] ; then
-			clean_result=6
-		fi
+		rm -rf "$destination/$b/$abs_file" || clean_result=6
 	done
 
 	return $clean_result
@@ -2063,16 +2024,12 @@ t2b_config() {
 
 		show)
 			# if not set, file config is general config
-			if [ -z "$file" ] ; then
-				file=$config_file
-			fi
+			[ -z "$file" ] && file=$config_file
 
 			# get sources is a special case to print list without comments
 			# read sources.conf file line by line
 			while read -r line ; do
-				if ! lb_is_comment $line ; then
-					echo "$line"
-				fi
+				lb_is_comment $line || echo "$line"
 			done < "$file"
 
 			if [ $? != 0 ] ; then
@@ -2102,14 +2059,10 @@ t2b_config() {
 			case $? in
 				0)
 					# config ok: reload it
-					if ! load_config ; then
-						return 3
-					fi
+					load_config || return 3
 
 					# apply config
-					if ! apply_config ; then
-						return 4
-					fi
+					apply_config || return 4
 					;;
 				3)
 					# errors in config
@@ -2205,9 +2158,7 @@ EOF
 			echo "You may have to run install command in sudo, or add an alias in your bashrc file."
 
 			# this exit code is less important
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=4
-			fi
+			[ $lb_exitcode == 0 ] && lb_exitcode=4
 		fi
 	fi
 
@@ -2218,9 +2169,7 @@ EOF
 		echo "Cannot install bash completion script. It's not critical, but you can retry in sudo."
 
 		# this exit code is less important
-		if [ $lb_exitcode == 0 ] ; then
-			lb_exitcode=5
-		fi
+		[ $lb_exitcode == 0 ] && lb_exitcode=5
 	fi
 
 	# make completion working in the current session (does not need to create a new one)
@@ -2266,9 +2215,7 @@ t2b_uninstall() {
 
 	# confirm action
 	if ! $force_mode ; then
-		if ! lb_yesno "Uninstall time2backup?" ; then
-			return 0
-		fi
+		lb_yesno "Uninstall time2backup?" || return 0
 	fi
 
 	echo "Uninstall time2backup..."

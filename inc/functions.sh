@@ -43,22 +43,16 @@ check_backup_date() {
 get_common_path() {
 
 	# usage error
-	if [ $# -lt 2 ] ; then
-		return 1
-	fi
+	[ $# -lt 2 ] && return 1
 
 	local directory1 directory2
 
 	# get absolute paths
 	directory1=$(lb_abspath "$1")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
+	[ $? != 0 ] && return 2
 
 	directory2=$(lb_abspath "$2")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
+	[ $? != 0 ] && return 2
 
 	# compare characters of paths one by one
 	local path
@@ -110,34 +104,23 @@ get_common_path() {
 get_relative_path() {
 
 	# usage error
-	if [ $# -lt 2 ] ; then
-		return 1
-	fi
+	[ $# -lt 2 ] && return 1
 
 	local src dest common_path
 
 	# get absolute paths
 	src=$(lb_abspath "$1")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
+	[ $? != 0 ] && return 2
 
 	dest=$(lb_abspath "$2")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
+	[ $? != 0 ] && return 2
 
 	# get common path
 	common_path=$(get_common_path "$src" "$dest")
-	if [ $? != 0 ] ; then
-		return 2
-	fi
+	[ $? != 0 ] && return 2
 
 	# go into the first path
-	cd "$src" 2> /dev/null
-	if [ $? != 0 ] ; then
-		return 3
-	fi
+	cd "$src" 2> /dev/null || return 3
 
 	local relative_path="./"
 
@@ -145,10 +128,7 @@ get_relative_path() {
 	while [ "$(pwd)" != "$common_path" ] ; do
 
 		# go to upper directory
-		cd .. 2> /dev/null
-		if [ $? != 0 ] ; then
-			return 3
-		fi
+		cd .. 2> /dev/null || return 3
 
 		# append double dots to relative path
 		relative_path+="../"
@@ -205,20 +185,16 @@ url2ssh() {
 test_hardlinks() {
 
 	# supported filesystems
-	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
+	local fstype supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
 		hfs hfsplus apfs \
 		ntfs)
 
 	# get destination filesystem
-	local fstype=$(lb_df_fstype "$*")
-	if [ -z "$fstype" ] ; then
-		return 1
-	fi
+	fstype=$(lb_df_fstype "$*")
+	[ -z "$fstype" ] && return 1
 
 	# if destination filesystem does not support hard links, return error
-	if ! lb_array_contains "$fstype" "${supported_fstypes[@]}" ; then
-		return 2
-	fi
+	lb_array_contains "$fstype" "${supported_fstypes[@]}" || return 2
 }
 
 
@@ -258,15 +234,13 @@ folders_size() {
 test_space_available() {
 
 	# if 0, always OK
-	if [ $1 == 0 ] ; then
-		return 0
-	fi
+	[ "$1" == 0 ] && return 0
 
-	local backup_size=$1
+	local space_available backup_size=$1
+	shift
 
 	# get space available (destination path is the next argument)
-	shift
-	local space_available=$(lb_df_space_left "$*")
+	space_available=$(lb_df_space_left "$*")
 
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
@@ -296,9 +270,7 @@ test_space_available() {
 rsync_result() {
 
 	# usage error
-	if ! lb_is_integer $1 ; then
-		return 1
-	fi
+	lb_is_integer $1 || return 1
 
 	# manage results
 	case $1 in
@@ -321,13 +293,10 @@ rsync_result() {
 #   1: Usage error / Unknown error
 file_for_windows() {
 
-	if [ "$lb_current_os" != Windows ] ; then
-		return 0
-	fi
+	[ "$lb_current_os" != Windows ] && return 0
 
-	if ! [ -f "$1" ] ; then
-		return 1
-	fi
+	# test if a file
+	[ -f "$*" ] || return 1
 
-	sed -i 's/$/\r/g' "$1"
+	sed -i 's/$/\r/g' "$*"
 }

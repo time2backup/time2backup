@@ -64,9 +64,7 @@
 get_backup_fulldate() {
 
 	# test backup format (YYYY-MM-DD-HHMMSS)
-	if ! check_backup_date $1 ; then
-		return 1
-	fi
+	check_backup_date "$1" || return 1
 
 	# get date details
 	byear=${1:0:4}
@@ -98,10 +96,8 @@ get_backup_fulldate() {
 #   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
 
-	# default options and variables
-	local all_versions=false
-	local last_version=false
-	local not_empty=false
+	# default options
+	local all_versions=false last_version=false not_empty=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -123,9 +119,7 @@ get_backup_history() {
 	done
 
 	# usage error
-	if [ $# == 0 ] ; then
-		return 1
-	fi
+	[ $# == 0 ] && return 1
 
 	# if remote destination, always latest
 	if $remote_destination ; then
@@ -134,18 +128,16 @@ get_backup_history() {
 	fi
 
 	# get all backups
-	local all_backups=($(get_backups))
-	if [ ${#all_backups[@]} == 0 ] ; then
-		# no backups found
-		return 2
-	fi
+	local all_backups
+	all_backups=($(get_backups))
+
+	# no backups found
+	[ ${#all_backups[@]} == 0 ] && return 2
 
 	# get backup path
 	local gbh_backup_path
 	gbh_backup_path=$(get_backup_path "$*")
-	if [ -z "$gbh_backup_path" ] ; then
-		return 3
-	fi
+	[ -z "$gbh_backup_path" ] && return 3
 
 	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
 	if [ "${gbh_backup_path:${#gbh_backup_path}-1}" == "/" ] ; then
@@ -166,22 +158,17 @@ get_backup_history() {
 		gbh_backup_file=$destination/$gbh_date/$gbh_backup_path
 
 		# if file/directory does not exists, continue
-		if ! [ -e "$gbh_backup_file" ] ; then
-			continue
-		fi
+		[ -e "$gbh_backup_file" ] || continue
 
 		# check if a backup is currently running
-		if [ "$(current_lock)" == "$gbh_date" ] ; then
-			# ignore current backup (if running, it could contain errors)
-			continue
-		fi
+
+		# ignore current backup (if running, it could contain errors)
+		[ "$(current_lock)" == "$gbh_date" ] && continue
 
 		# if get only non empty directories
 		if $not_empty ; then
 			if [ -d "$gbh_backup_file" ] ; then
-				if lb_dir_is_empty "$gbh_backup_file" ; then
-					continue
-				fi
+				lb_dir_is_empty "$gbh_backup_file" && continue
 			fi
 		fi
 
@@ -271,9 +258,9 @@ create_config() {
 	fi
 
 	# copy config samples from current directory
+	# Note: DO NOT transform this file to Windows format!
 	if ! [ -f "$config_excludes" ] ; then
 		cp -f "$script_directory/config/excludes.example.conf" "$config_excludes"
-		# DO NOT transform this file to Windows format!
 	fi
 
 	if ! [ -f "$config_sources" ] ; then
@@ -319,9 +306,7 @@ upgrade_config() {
 	fi
 
 	# if current version, OK
-	if [ "$old_config_version" == "$version" ] ; then
-		return 0
-	fi
+	[ "$old_config_version" == "$version" ] && return 0
 
 	if ! $quiet_mode ; then
 		case $command in
@@ -484,9 +469,7 @@ load_config() {
 	fi
 
 	# if keep limit to 0, we are in a mirror mode
-	if [ $keep_limit == 0 ] ; then
-		mirror_mode=true
-	fi
+	[ $keep_limit == 0 ] && mirror_mode=true
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
@@ -516,9 +499,7 @@ load_config() {
 mount_destination() {
 
 	# if UUID not set, return error
-	if [ -z "$backup_disk_uuid" ] ; then
-		return 5
-	fi
+	[ -z "$backup_disk_uuid" ] && return 5
 
 	lb_display --log "Trying to mount backup disk..."
 
@@ -717,9 +698,8 @@ get_backups() {
 #   2: rm error
 delete_backup() {
 
-	if [ -z "$1" ] ; then
-		return 1
-	fi
+	# usage error
+	[ -z "$1" ] && return 1
 
 	lb_debug --log "Removing $destination/$1..."
 
@@ -748,9 +728,7 @@ delete_backup() {
 rotate_backups() {
 
 	# if unlimited, do not rotate
-	if [ $keep_limit -lt 0 ] ; then
-		return 0
-	fi
+	[ $keep_limit -lt 0 ] && return 0
 
 	# always keep nb + 1 (do not delete current backup)
 	local nb_keep=$(($keep_limit + 1))
@@ -760,9 +738,7 @@ rotate_backups() {
 	local nb_backups=${#all_backups[@]}
 
 	# if limit not reached, do nothing
-	if [ $nb_backups -le $nb_keep ] ; then
-		return 0
-	fi
+	[ $nb_backups -le $nb_keep ] && return 0
 
 	lb_display --log "Cleaning old backups..."
 	lb_debug --log "Clean to keep $nb_keep backups on $nb_backups"
@@ -774,12 +750,11 @@ rotate_backups() {
 
 	# remove backups from older to newer
 	for c in "${to_clean[@]}" ; do
-		if ! delete_backup "$c" ; then
-			lb_display_error "$tr_error_clean_backups"
-		fi
+		delete_backup "$c" || lb_display_error "$tr_error_clean_backups"
 	done
 
-	lb_display --log # line jump
+	# line jump
+	lb_display --log
 
 	# don't care of other errors
 	return 0
@@ -845,9 +820,7 @@ crontab_config() {
 		echo "$crontab" | grep -q "no crontab for "
 		if [ $? == 0 ] ; then
 			# if empty and disable mode: nothing to do
-			if ! $crontab_enable ; then
-				return 0
-			fi
+			$crontab_enable || return 0
 
 			# reset crontab
 			crontab=""
@@ -914,9 +887,7 @@ crontab_config() {
 apply_config() {
 
 	# if disabled, do not continue
-	if ! $enable_recurrent ; then
-		return 0
-	fi
+	$enable_recurrent || return 0
 
 	if $recurrent ; then
 		echo "Enable recurrent backups..."
@@ -983,9 +954,7 @@ prepare_destination() {
 			# and if automount set,
 			if $mount ; then
 				# try to mount disk
-				if mount_destination ; then
-					destok=true
-				fi
+				mount_destination && destok=true
 			fi
 		fi
 	fi
@@ -1130,21 +1099,17 @@ test_backup() {
 test_free_space() {
 
 	# get all backups list
-	local all_backups=($(get_backups))
+	local i all_backups=($(get_backups))
 	nb_backups=${#all_backups[@]}
 
 	# test free space until it's ready
 	for ((i=0; i<=$nb_backups; i++)) ; do
 
 		# if space ok, quit loop to continue backup
-		if test_space_available $total_size "$destination" ; then
-			return 0
-		fi
+		test_space_available $total_size "$destination" && return 0
 
 		# if no clean old backups option in config, continue to be stopped after
-		if ! $clean_old_backups ; then
-			return 1
-		fi
+		$clean_old_backups || return 1
 
 		# display clean notification
 		# (just display the first notification, not for every clean)
@@ -1157,22 +1122,16 @@ test_free_space() {
 		all_backups=($(get_backups))
 
 		# do not remove the last backup, nor the current
-		if [ ${#all_backups[@]} -le 2 ] ; then
-			return 1
-		fi
+		[ ${#all_backups[@]} -le 2 ] && return 1
 
 		# always keep the current backup and respect the clean limit
 		# (continue to be stopped after)
 		if [ $clean_keep -gt 0 ] ; then
-			if [ ${#all_backups[@]} -le $clean_keep ] ; then
-				return 1
-			fi
+			[ ${#all_backups[@]} -le $clean_keep ] && return 1
 		fi
 
 		# do not delete the last clean backup that will be used for hard links
-		if [ "${all_backups[0]}" == "$lastcleanbackup" ] ; then
-			continue
-		fi
+		[ "${all_backups[0]}" == "$lastcleanbackup" ] && continue
 
 		# clean oldest backup to free space
 		delete_backup ${all_backups[0]}
@@ -1200,20 +1159,14 @@ clean_empty_directories() {
 		if ! [ -e "$d" ] ; then
 			d=$(dirname "$d")
 			# avoid useless loop
-			if ! [ -e "$d" ] ; then
-				return 1
-			fi
+			[ -e "$d" ] || return 1
 		fi
 
 		# if is not a directory, this is an usage error
-		if ! [ -d "$d" ] ; then
-			return 1
-		fi
+		[ -d "$d" ] || return 1
 
 		# security check: do not delete destination path
-		if [ "$(dirname "$d")" == "$(dirname "$destination")" ] ; then
-			return 0
-		fi
+		[ "$(dirname "$d")" == "$(dirname "$destination")" ] && return 0
 
 		# if only a backup info file, delete it
 		if [ "$d" == "$dest" ] ; then
@@ -1224,18 +1177,12 @@ clean_empty_directories() {
 		fi
 
 		# if directory is not empty, quit loop
-		if ! lb_dir_is_empty "$d" ; then
-			return 0
-		fi
+		lb_dir_is_empty "$d" || return 0
 
 		lb_debug --log "Deleting empty directory: $d"
 
-		# delete directory
-		rmdir "$d" &> /dev/null
-		if [ $? != 0 ] ; then
-			# if command failed, quit
-			return 0
-		fi
+		# delete directory (quit if error)
+		rmdir "$d" &> /dev/null || return 0
 
 		# go to parent directory and continue loop
 		d=$(dirname "$d")
@@ -1263,9 +1210,7 @@ open_config() {
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-e)
-				if [ -z "$2" ] ; then
-					return 1
-				fi
+				[ -z "$2" ] && return 1
 				editors=("$2")
 				custom_editor=true
 				shift
@@ -1277,19 +1222,15 @@ open_config() {
 		shift # load next argument
 	done
 
-	# test arguments
-	if [ -z "$1" ] ; then
-		return 1
-	fi
+	# usage error
+	[ -z "$1" ] && return 1
 
 	edit_file=$*
 
 	# test file
 	if [ -e "$edit_file" ] ; then
 		# if exists but is not a file, return error
-		if ! [ -f "$edit_file" ] ; then
-			return 1
-		fi
+		[ -f "$edit_file" ] || return 1
 	else
 		# create empty file if it does not exists (should be includes.conf)
 		echo > "$edit_file"
@@ -1366,18 +1307,14 @@ open_config() {
 current_lock() {
 
 	# do not check lock if remote destination
-	if $remote_destination ; then
-		return 1
-	fi
+	$remote_destination && return 1
 
 	# get lock file
 	local current_lock_file
 	current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
 
 	# if no lock, return 1
-	if [ -z "$current_lock_file" ] ; then
-		return 1
-	fi
+	[ -z "$current_lock_file" ] && return 1
 
 	# return date of lock
 	basename "$current_lock_file" | sed 's/^.lock_//'
@@ -1392,9 +1329,7 @@ current_lock() {
 create_lock() {
 
 	# do not create lock if remote destination
-	if $remote_destination ; then
-		return 0
-	fi
+	$remote_destination && return 0
 
 	lb_debug "Create lock..."
 
@@ -1520,16 +1455,15 @@ prepare_remote() {
 }
 
 
-# Auto exclude the backpu directory if it is inside destination
+# Auto exclude the backup directory if it is inside destination
 # Usage: auto_exclude PATH
 # Exit codes:
 #  0: path excluded (or no result)
 #  1: failed
 auto_exclude() {
 
-	if [[ "$destination" != "$1"* ]] ; then
-		return 0
-	fi
+	# if destination not inside, quit
+	[[ "$destination" != "$1"* ]] && return 0
 
 	# get common path of the backup directory and source
 	# e.g. /media
@@ -1557,11 +1491,9 @@ auto_exclude() {
 # Display a notification if enabled
 # Usage: notify TEXT
 notify() {
-	if ! $notifications ; then
-		return 0
+	if $notifications ; then
+		lbg_notify "$*" &
 	fi
-
-	lbg_notify "$*" &
 }
 
 
@@ -1631,9 +1563,7 @@ run_after() {
 clean_exit() {
 
 	# set exit code if specified
-	if [ -n "$1" ] ; then
-		lb_exitcode=$1
-	fi
+	[ -n "$1" ] && lb_exitcode=$1
 
 	lb_debug --log "Clean exit"
 
@@ -1666,9 +1596,7 @@ clean_exit() {
 			lb_display_critical --log "$tr_error_unmount"
 			lbg_critical "$tr_error_unmount"
 
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=18
-			fi
+			[ $lb_exitcode == 0 ] && lb_exitcode=18
 		fi
 	fi
 
@@ -1682,9 +1610,7 @@ clean_exit() {
 			delete_logs=false
 			;;
 		on_error)
-			if [ $lb_exitcode != 0 ] ; then
-				delete_logs=false
-			fi
+			[ $lb_exitcode != 0 ] && delete_logs=false
 			;;
 	esac
 
@@ -1709,9 +1635,7 @@ clean_exit() {
 	# if shutdown after backup, execute it
 	if $shutdown ; then
 		if ! haltpc ; then
-			if [ $lb_exitcode == 0 ] ; then
-				lb_exitcode=19
-			fi
+			[ $lb_exitcode == 0 ] && lb_exitcode=19
 		fi
 	fi
 
@@ -1759,9 +1683,7 @@ send_email_report() {
 			;;
 		on_error)
 			# if there was no error, do not send email
-			if [ $lb_exitcode == 0 ] ; then
-				return 0
-			fi
+			[ $lb_exitcode == 0 ] && return 0
 			;;
 		*)
 			# email report not enabled
@@ -1841,6 +1763,7 @@ haltpc() {
 	fi
 
 	# countdown before halt
+	local i
 	echo -e "\nYour computer will halt in 10 seconds. Press Ctrl-C to cancel."
 	for ((i=10; i>=0; i--)) ; do
 		echo -n "$i "
@@ -1880,9 +1803,7 @@ choose_operation() {
 	commands+=(exit)
 
 	# display choice
-	if ! lbg_choose_option -d 1 -l "${choices[@]}" ; then
-		exit
-	fi
+	lbg_choose_option -d 1 -l "${choices[@]}" || exit
 
 	command=${commands[lbg_choose_option]}
 
@@ -2028,9 +1949,7 @@ config_wizard() {
 		if [ $res_edit == 0 ] ; then
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
-				if ! $console_mode ; then
-					lbg_info "$tr_finished_edit"
-				fi
+				$console_mode || lbg_info "$tr_finished_edit"
 			fi
 		else
 			lb_error "Error in editing sources config file (result code: $res_edit)"
@@ -2126,9 +2045,7 @@ config_wizard() {
 		if [ $? == 0 ] ; then
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
-				if ! $console_mode ; then
-					lbg_info "$tr_finished_edit"
-				fi
+				$console_mode || lbg_info "$tr_finished_edit"
 			fi
 		fi
 	fi

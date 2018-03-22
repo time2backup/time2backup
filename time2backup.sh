@@ -181,9 +181,7 @@ command=$1
 shift
 
 # if user not set, get current user
-if [ -z "$user" ] ; then
-	user=$lb_current_user
-fi
+[ -z "$user" ] && user=$lb_current_user
 
 # set console mode
 if $console_mode ; then
@@ -353,9 +351,7 @@ if [ -z "$destination" ] ; then
 fi
 
 # display choose operation dialog if not set
-if [ -z "$command" ] ; then
-	choose_operation
-fi
+[ -z "$command" ] && choose_operation
 
 # commands that needs to load config
 if [ $command != config ] ; then
