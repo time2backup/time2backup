@@ -269,7 +269,15 @@ t2b_backup() {
 
 	# create the info file
 	infofile=$dest/backup.info
-	echo -e "[destination]\npath = $destination\ndate = $backup_date\nhard_links = $hard_links" > "$infofile"
+	echo "[time2backup]
+version = $version
+os = $lb_current_os
+recurrent = $recurrent_backup
+
+[destination]
+path = $destination
+date = $backup_date
+hard_links = $hard_links" > "$infofile"
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
