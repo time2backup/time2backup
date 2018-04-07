@@ -1355,7 +1355,10 @@ release_lock() {
 	[ -d "$destination" ] && \
 	rm -f "$destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
-		lbg_critical --log "$tr_error_unlock"
+		lb_critical --log "$tr_error_unlock"
+		if ! $recurrent_backup ; then
+			lbg_error "$tr_error_unlock"
+		fi
 		return 1
 	fi
 }
