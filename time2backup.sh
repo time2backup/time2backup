@@ -1,24 +1,21 @@
 #!/bin/bash
+#
+#  time2backup
+#  It's time to backup your files!
+#
+#  Website: https://time2backup.org
+#  MIT License
+#  Copyright (c) 2017-2018 Jean Prunneaux
+#
+#  Version 1.4.0 (2018-04-07)
+#
 
-########################################################
-#                                                      #
-#  time2backup                                         #
-#  It's time to backup your files!                     #
-#                                                      #
-#  Website: https://time2backup.org                    #
-#  MIT License                                         #
-#  Copyright (c) 2017-2018 Jean Prunneaux              #
-#                                                      #
-#  Version 1.3.1 (2018-02-19)                          #
-#                                                      #
-########################################################
-
-version=1.3.1
+version=1.4.0-beta.1
 
 
-####################
-#  INITIALIZATION  #
-####################
+#
+#  Initialization
+#
 
 # get real path of the script
 if [ "$(uname)" == Darwin ] ; then
@@ -52,9 +49,9 @@ source "$script_directory/locales/$lb_lang.sh" &> /dev/null
 lb_current_script_name=time2backup
 
 
-###############
-#  FUNCTIONS  #
-###############
+#
+#  Functions
+#
 
 # load init config
 source "$script_directory/inc/init.sh" > /dev/null
@@ -63,17 +60,10 @@ if [ $? != 0 ] ; then
 	exit 1
 fi
 
-# load global functions
+# load functions
 source "$script_directory/inc/functions.sh" > /dev/null
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load functions!"
-	exit 1
-fi
-
-# load utils functions
-source "$script_directory/inc/utils.sh" > /dev/null
-if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load utils!"
 	exit 1
 fi
 
@@ -92,9 +82,9 @@ if [ $? != 0 ] ; then
 fi
 
 
-##################
-#  MAIN PROGRAM  #
-##################
+#
+#  Main program
+#
 
 # load the default config if exists
 if [ -f "$script_directory/config/default.conf" ] ; then
