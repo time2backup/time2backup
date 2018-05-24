@@ -1090,17 +1090,11 @@ crontab_config() {
 	esac
 
 	# prepare backup task in quiet mode
-	crontask="* * * * *	\"$current_script\" -q "
-
-	if $custom_config ; then
-		crontask+="-c \"$config_directory\" "
-	fi
-
-	crontask+="backup --recurrent"
+	crontask="* * * * *	\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
-	if [ "$lb_current_user" == root ] ; then
+	if [ "$lb_current_user" == root ] && [ "$user" != root ] ; then
 		crontab_opts="-u $user"
 	fi
 
