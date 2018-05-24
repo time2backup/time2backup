@@ -1535,7 +1535,7 @@ open_config() {
 			if [ "$(lbg_get_gui)" != console ] ; then
 				case $lb_current_os in
 					macOS)
-						all_editors+=(open)
+						all_editors+=(open -t)
 						;;
 					Windows)
 						all_editors+=(notepad)
