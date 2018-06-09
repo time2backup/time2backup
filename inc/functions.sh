@@ -341,7 +341,7 @@ file_for_windows() {
 	# test if a file
 	[ -f "$*" ] || return 1
 
-	sed -i 's/$/\r/g' "$*"
+	lb_edit 's/$/\r/g' "$*"
 }
 
 
@@ -615,7 +615,7 @@ upgrade_config() {
 	# (nothing for now)
 	#case $old_config_version in
 	#	1.0.*)
-	#		sed -i~ "s/^old_param=/new_param=/" "$config_file"
+	#		lb_edit "s/^old_param=/new_param=/" "$config_file"
 	#		;;
 	#esac
 	#
@@ -661,7 +661,7 @@ upgrade_config() {
 
 		lb_debug "Upgrade $config_line..."
 
-		sed -i~ "s/^#*$config_param[[:space:]]*=.*/$config_line/" "$config_file"
+		lb_edit "s/^#*$config_param[[:space:]]*=.*/$config_line/" "$config_file"
 		if [ $? != 0 ] ; then
 			lb_display_error "$tr_error_upgrade_config"
 			return 2
