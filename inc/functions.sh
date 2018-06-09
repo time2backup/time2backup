@@ -91,11 +91,8 @@ get_common_path() {
 	local directory1 directory2
 
 	# get absolute paths
-	directory1=$(lb_abspath "$1")
-	[ $? != 0 ] && return 2
-
-	directory2=$(lb_abspath "$2")
-	[ $? != 0 ] && return 2
+	directory1=$(lb_abspath "$1") || return 2
+	directory2=$(lb_abspath "$2") || return 2
 
 	# compare characters of paths one by one
 	local path
@@ -152,15 +149,11 @@ get_relative_path() {
 	local src dest common_path
 
 	# get absolute paths
-	src=$(lb_abspath "$1")
-	[ $? != 0 ] && return 2
-
-	dest=$(lb_abspath "$2")
-	[ $? != 0 ] && return 2
+	src=$(lb_abspath "$1") || return 2
+	dest=$(lb_abspath "$2") || return 2
 
 	# get common path
-	common_path=$(get_common_path "$src" "$dest")
-	[ $? != 0 ] && return 2
+	common_path=$(get_common_path "$src" "$dest") || return 2
 
 	# go into the first path
 	cd "$src" 2> /dev/null || return 3
@@ -1075,15 +1068,14 @@ report_duration() {
 #   4: cannot write into the temporary crontab file
 crontab_config() {
 
-	local crontab crontab_opts crontab_enable=false
+	local crontab crontab_opts crontab_enable=false line
 
 	if [ "$1" == enable ] ; then
 		crontab_enable=true
 	fi
 
 	# prepare backup task in quiet mode
-	local crontask_cmd="\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
-	local crontask="* * * * *	$crontask_cmd"
+	local crontask="\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
@@ -1107,7 +1099,7 @@ crontab_config() {
 			# inform user to add cron job manually
 			if $crontab_enable ; then
 				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
-				lb_display --log "$crontask"
+				lb_display --log "* * * * *	$crontask"
 				return 2
 			else
 				# we don't care
@@ -1116,29 +1108,28 @@ crontab_config() {
 		fi
 	fi
 
-	# test if task exists
-	if echo "$crontab" | grep -q "$crontask" ; then
+	# test if task exists (get line number)
+	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
+	if [ -n "$line" ] ; then
 		if $crontab_enable ; then
 			# do nothing
 			return 0
 		else
-			# delete if option disabled
-
-			# avoid bugs in sed commands
-			crontask=$(echo "$crontask" | sed 's/\//\\\//g')
-
-			# delete line(s)
-			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; /$crontask/d")
-			if [ $? != 0 ] ; then
-				return 4
-			fi
+			# disable: delete crontab entry lines
+			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; ${line}d") || return 4
 		fi
 
 	else
-		# if cron task does not exists, add it
+		# if cron task does not exists,
+		# if old entry exists, rename it
+		line=$(echo "$crontab" | grep -n "\* \* \* \* \*\s*\"$current_script\" -q backup --recurrent" | cut -d: -f2)
+		if [ -n "$line" ] ; then
+			crontab=$(echo "$crontab" | sed "${line}s/.*/\* \* \* \* \*	$crontask/")
+		fi
+
 		if $crontab_enable ; then
 			# append command to crontab
-			crontab+=$(echo -e "\n# time2backup recurrent backups\n$crontask")
+			crontab+=$(echo -e "\n# time2backup recurrent backups\n* * * * *\t$crontask")
 		else
 			# do nothing
 			return 0
