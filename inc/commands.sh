@@ -38,6 +38,10 @@ t2b_backup() {
 			-p|--progress)
 				files_progress=true
 				;;
+			-c|--comment)
+				backup_comment=$2
+				shift
+				;;
 			-u|--unmount)
 				force_unmount=true
 				unmount=true
@@ -272,7 +276,9 @@ t2b_backup() {
 	echo "[time2backup]
 version = $version
 os = $lb_current_os
+hostname = $lb_current_hostname
 recurrent = $recurrent_backup
+comment = $backup_comment
 
 [destination]
 path = $destination
@@ -640,6 +646,7 @@ hard_links = $hard_links" > "$infofile"
 
 			# print estimated time in console
 			lb_info "$info_estimated_time"
+			echo
 
 			notification_started_backup+="\n$info_estimated_time"
 		fi
