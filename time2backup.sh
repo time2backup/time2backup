@@ -129,7 +129,7 @@ while [ $# -gt 0 ] ; do
 		-d|--destination)
 			if [ -z "$2" ] ; then
 				print_help global
-				return 1
+				exit 1
 			fi
 			force_destination=$2
 			shift
@@ -141,7 +141,6 @@ while [ $# -gt 0 ] ; do
 				exit 1
 			fi
 			config_directory=$2
-			custom_config=true
 			shift
 			;;
 		-D|--debug)

@@ -14,7 +14,6 @@
 
 debug_mode=false
 new_config=false
-custom_config=false
 sources=()
 mounted=false
 rsync_cmd=()

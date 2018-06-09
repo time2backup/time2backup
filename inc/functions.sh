@@ -1075,22 +1075,15 @@ report_duration() {
 #   4: cannot write into the temporary crontab file
 crontab_config() {
 
-	local crontab_opts=""
+	local crontab crontab_opts crontab_enable=false
 
-	case $1 in
-		enable)
-			crontab_enable=true
-			;;
-		disable)
-			crontab_enable=false
-			;;
-		*)
-			return 1
-			;;
-	esac
+	if [ "$1" == enable ] ; then
+		crontab_enable=true
+	fi
 
 	# prepare backup task in quiet mode
-	crontask="* * * * *	\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
+	local crontask_cmd="\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
+	local crontask="* * * * *	$crontask_cmd"
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
@@ -1102,8 +1095,7 @@ crontab_config() {
 	crontab=$(crontab $crontab_opts -l 2>&1)
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
-		echo "$crontab" | grep -q "no crontab for "
-		if [ $? == 0 ] ; then
+		if echo "$crontab" | grep -q "no crontab for " ; then
 			# if empty and disable mode: nothing to do
 			$crontab_enable || return 0
 
@@ -1124,11 +1116,8 @@ crontab_config() {
 		fi
 	fi
 
-	# test if line exists
-	echo "$crontab" | grep -q "$crontask"
-
-	# cron task already exists
-	if [ $? == 0 ] ; then
+	# test if task exists
+	if echo "$crontab" | grep -q "$crontask" ; then
 		if $crontab_enable ; then
 			# do nothing
 			return 0
@@ -1157,8 +1146,7 @@ crontab_config() {
 	fi
 
 	# install new crontab
-	echo "$crontab" | crontab $crontab_opts -
-	if [ $? != 0 ] ; then
+	if ! echo "$crontab" | crontab $crontab_opts - ; then
 		return 3
 	fi
 }
@@ -1236,9 +1224,8 @@ prepare_destination() {
 
 		# if backup disk mountpoint is defined,
 		if [ -n "$backup_disk_mountpoint" ] ; then
-			# and if automount set,
+			# and if automount set, try to mount disk
 			if $mount ; then
-				# try to mount disk
 				mount_destination && destok=true
 			fi
 		fi
