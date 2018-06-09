@@ -48,6 +48,7 @@
 #     auto_exclude
 #     notify
 #   Backup steps
+#     estimate_time
 #     run_before
 #     run_after
 #   Exit functions
@@ -1771,6 +1772,31 @@ notify() {
 #
 #  Backup steps
 #
+
+# Return backup estimated duration
+# Usage: estimate_time
+estimate_time() {
+	# get last backup duration
+	local last_duration=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
+	lb_is_integer $last_duration || return 1
+
+	# if no size specified, use the last duration time
+	if ! lb_is_integer $total_size ; then
+		echo $last_duration
+		return 0
+	fi
+
+	# get last backup size
+	local last_size=$(lb_get_config -s $src_checksum "$last_backup_info" size)
+
+	# if failed to get last size, use the last duration
+	if ! lb_is_integer $last_size ; then
+		echo $last_duration
+		return 0
+	fi
+
+	echo $(($last_duration * $total_size / $last_size))
+}
 
 
 # Run before backup

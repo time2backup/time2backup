@@ -285,6 +285,7 @@ hard_links = $hard_links" > "$infofile"
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
 		src=${sources[s]}
+		total_size=""
 		estimated_time=""
 
 		lb_display --log "\n********************************************\n"
@@ -437,11 +438,6 @@ hard_links = $hard_links" > "$infofile"
 				last_backup_info=$destination/$last_clean_backup/backup.info
 
 				if [ -f "$last_backup_info" ] ; then
-					estimated_time=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
-
-					# if bad result, reset it
-					lb_is_integer $estimated_time || estimated_time=""
-
 					# check status of the last backup
 					if $hard_links ; then
 						# if last backup failed or was cancelled
@@ -504,23 +500,6 @@ hard_links = $hard_links" > "$infofile"
 			# continue to next source
 			continue
 		fi
-
-		# display start notification
-		notification_started_backup=$tr_backup_in_progress
-		if [ ${#sources[@]} -gt 1 ] ; then
-			notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
-		fi
-
-		# display estimated time
-		if [ -n "$estimated_time" ] ; then
-			info_estimated_time=$(printf "$tr_estimated_time" $estimated_time)
-
-			lb_info "$info_estimated_time"
-
-			notification_started_backup+="\n$info_estimated_time"
-		fi
-
-		notify "$notification_started_backup"
 
 		# define rsync command
 		cmd=("${rsync_cmd[@]}")
@@ -645,6 +624,29 @@ hard_links = $hard_links" > "$infofile"
 		lb_display --log "\nRunning backup..."
 		lb_debug --log "Executing: ${cmd[*]}\n"
 
+		# display start notification
+		notification_started_backup=$tr_backup_in_progress
+		if [ ${#sources[@]} -gt 1 ] ; then
+			notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
+		fi
+
+		# get estimated time
+		estimated_time=$(estimate_time)
+		if [ -n "$estimated_time" ] ; then
+			# convert into minutes
+			estimated_time=$(($estimated_time / 60 + 1))
+
+			info_estimated_time=$(printf "$tr_estimated_time" $estimated_time)
+
+			# print estimated time in console
+			lb_info "$info_estimated_time"
+
+			notification_started_backup+="\n$info_estimated_time"
+		fi
+
+		# display started backup notification
+		notify "$notification_started_backup"
+
 		# real backup: execute rsync command, print result into terminal and logfile
 		"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
 
@@ -677,8 +679,8 @@ hard_links = $hard_links" > "$infofile"
 			clean_empty_directories "$trash"
 		fi
 
-		# save duration in minutes (rounded upper)
-		echo "duration = $((($(date +%s) - $src_timestamp) / 60 + 1))" >> "$infofile"
+		# save duration
+		echo "duration = $(( $(date +%s) - $src_timestamp ))" >> "$infofile"
 
 		# clean empty backup if nothing inside
 		clean_empty_directories "$finaldest"
