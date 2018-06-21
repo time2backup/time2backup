@@ -570,8 +570,10 @@ create_config() {
 
 	# if user is different, try to give him ownership on config files
 	if [ $user != $lb_current_user ] ; then
-		chown -R $user:$user "$config_directory" &> /dev/null
+		chown -R $user "$config_directory" &> /dev/null
 	fi
+
+	return 0
 }
 
 
