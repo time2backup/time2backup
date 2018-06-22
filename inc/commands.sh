@@ -201,11 +201,11 @@ t2b_backup() {
 			if ! $recurrent_backup ; then
 				lbg_error "$tr_backup_unreachable\n$tr_verify_media"
 			fi
-			clean_exit 6
+			return 6
 			;;
 		2)
 			# destination not writable
-			clean_exit 7
+			return 7
 			;;
 	esac
 
