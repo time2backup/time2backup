@@ -865,6 +865,10 @@ t2b_restore() {
 				choose_date=false
 				shift
 				;;
+			-l|--latest)
+				backup_date=latest
+				choose_date=false
+				;;
 			--delete-new)
 				delete_newer_files=true
 				;;
