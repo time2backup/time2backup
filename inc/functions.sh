@@ -52,6 +52,7 @@
 #     estimate_time
 #     run_before
 #     run_after
+#     create_latest_link
 #   Exit functions
 #     clean_exit
 #     cancel_exit
@@ -115,29 +116,30 @@ get_common_path() {
 
 	while true ; do
 		# if a character changes in the 2 paths,
-		if [ "${directory1:0:$i}" != "${directory2:0:$i}" ] ; then
-
-			path=${directory1:0:$i}
-
-			# if it's a directory, return it
-			if [ -d "$path" ] ; then
-				# special case of /
-				if [ "$path" == "/" ] ; then
-					echo /
-				else
-					# other directory
-					# return path without the last /
-					path=$(remove_end_slash "$path")
-				fi
-			else
-				# if it's not a directory, return parent directory
-				dirname "$path"
-			fi
-
-			# quit function
-			return 0
+		if [ "${directory1:0:i}" == "${directory2:0:i}" ] ; then
+			i+=1
+			continue
 		fi
-		i+=1
+
+		path=${directory1:0:i}
+
+		# if it's a directory, return it
+		if [ -d "$path" ] ; then
+			# special case of /
+			if [ "$path" == "/" ] ; then
+				echo /
+			else
+				# other directory
+				# return path without the last /
+				path=$(remove_end_slash "$path")
+			fi
+		else
+			# if it's not a directory, return parent directory
+			dirname "$path"
+		fi
+
+		# quit function
+		return 0
 	done
 }
 
@@ -197,8 +199,7 @@ get_protocol() {
 	case $protocol in
 		ssh|t2b)
 			# double check protocol
-			echo "$*" | grep -q -E "^$protocol://"
-			if [ $? == 0 ] ; then
+			if echo "$*" | grep -q -E "^$protocol://" ; then
 				echo $protocol
 				return 0
 			fi
@@ -283,11 +284,7 @@ test_space_available() {
 	# if 0, always OK
 	[ "$1" == 0 ] && return 0
 
-	local space_available backup_size=$1
-	shift
-
-	# get space available (destination path is the next argument)
-	space_available=$(lb_df_space_left "$*")
+	local backup_size=$1 space_available=$(lb_df_space_left "$2")
 
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
@@ -459,10 +456,8 @@ get_backup_history() {
 		[ "$(current_lock)" == "$gbh_date" ] && continue
 
 		# if get only non empty directories
-		if $not_empty ; then
-			if [ -d "$gbh_backup_file" ] ; then
-				lb_dir_is_empty "$gbh_backup_file" && continue
-			fi
+		if $not_empty && [ -d "$gbh_backup_file" ] ; then
+			lb_dir_is_empty "$gbh_backup_file" && continue
 		fi
 
 		# if get only last version, print and exit
@@ -1081,9 +1076,7 @@ crontab_config() {
 
 	local crontab crontab_opts crontab_enable=false line
 
-	if [ "$1" == enable ] ; then
-		crontab_enable=true
-	fi
+	[ "$1" == enable ] && crontab_enable=true
 
 	# prepare backup task in quiet mode
 	local crontask="\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
@@ -1224,12 +1217,10 @@ prepare_destination() {
 	else
 		lb_debug "Destination NOT mounted."
 
-		# if backup disk mountpoint is defined,
-		if [ -n "$backup_disk_mountpoint" ] ; then
-			# and if automount set, try to mount disk
-			if $mount ; then
-				mount_destination && destok=true
-			fi
+		# if automount set and backup disk mountpoint is defined,
+		# try to mount disk
+		if $mount && [ -n "$backup_disk_mountpoint" ] ; then
+			mount_destination && destok=true
 		fi
 	fi
 
@@ -1443,11 +1434,9 @@ clean_empty_directories() {
 		[ "$(dirname "$d")" == "$(dirname "$destination")" ] && return 0
 
 		# if only a backup info file, delete it
-		if [ "$d" == "$dest" ] ; then
-			if [ "$(ls "$d")" == backup.info ] ; then
-				lb_debug "Deleting backup.info file: $d/backup.info"
-				rm -f "$d/backup.info" 2> /dev/null
-			fi
+		if [ "$d" == "$dest" ] && [ "$(ls "$d")" == backup.info ] ; then
+			lb_debug "Deleting backup.info file: $d/backup.info"
+			rm -f "$d/backup.info" 2> /dev/null
 		fi
 
 		# if directory is not empty, quit loop
@@ -1510,9 +1499,8 @@ open_config() {
 		echo > "$edit_file"
 	fi
 
-	# if no custom editor,
+	# if no custom editor, open file with graphical editor
 	if ! $custom_editor ; then
-		# open file with graphical editor
 		if ! $console_mode ; then
 			# check if we are using something else than a console
 			if [ "$(lbg_get_gui)" != console ] ; then
@@ -1812,33 +1800,29 @@ estimate_time() {
 # Run before backup
 # Usage: run_before
 run_before() {
-	if [ ${#exec_before[@]} -gt 0 ] ; then
+	local result
 
-		local result
+	# if disabled, inform user and exit
+	if $disable_custom_commands ; then
+		lb_display_error "Custom commands are disabled."
+		false # bad command to go into the if $? != 0
+	else
+		# run command/script
+		"${exec_before[@]}"
+	fi
 
-		# if disabled, inform user and exit
-		if $disable_custom_commands ; then
-			lb_display_error "Custom commands are disabled."
-			false # bad command to go into the if $? != 0
-		else
-			# run command/script
-			"${exec_before[@]}"
-		fi
+	result=$?
+	[ $result == 0 ] && return 0
 
-		result=$?
-
-		if [ $result != 0 ] ; then
-			report_details+="
+	report_details+="
 Before script failed (exit code: $result)
 "
-			lb_exitcode=5
+	lb_exitcode=5
 
-			# option exit if error
-			if $exec_before_block ; then
-				lb_debug --log "Before script exited with error."
-				clean_exit
-			fi
-		fi
+	# option exit if error
+	if $exec_before_block ; then
+		lb_debug --log "Before script exited with error."
+		clean_exit
 	fi
 }
 
@@ -1846,35 +1830,49 @@ Before script failed (exit code: $result)
 # Run after backup
 # Usage: run_after
 run_after() {
-	if [ ${#exec_after[@]} -gt 0 ] ; then
+	local result
 
-		local result
+	# if disabled, inform user and exit
+	if $disable_custom_commands ; then
+		lb_display_error "Custom commands are disabled."
+		false # bad command to go into the if $? != 0
+	else
+		# run command/script
+		"${exec_after[@]}"
+	fi
 
-		# if disabled, inform user and exit
-		if $disable_custom_commands ; then
-			lb_display_error "Custom commands are disabled."
-			false # bad command to go into the if $? != 0
-		else
-			# run command/script
-			"${exec_after[@]}"
-		fi
+	result=$?
+	[ $result == 0 ] && return 0
 
-		result=$?
-
-		if [ $result != 0 ] ; then
-			report_details+="
+	report_details+="
 After script failed (exit code: $result)
 "
-			# if error, do not overwrite rsync exit code
-			[ $lb_exitcode == 0 ] && lb_exitcode=16
+	# if error, do not overwrite rsync exit code
+	[ $lb_exitcode == 0 ] && lb_exitcode=16
 
-			# option exit if error
-			if $exec_after_block ; then
-				lb_debug --log "After script exited with error."
-				clean_exit
-			fi
-		fi
+	# option exit if error
+	if $exec_after_block ; then
+		lb_debug --log "After script exited with error."
+		clean_exit
 	fi
+}
+
+
+# Create latest link
+# Usage: create_latest_link
+# Dependencies: $destination, $backup_date
+create_latest_link() {
+	lb_debug --log "Create latest link..."
+
+	# create a new link
+	# in a sub-context to avoid confusion and do not care of output
+	if [ "$lb_current_os" == Windows ] ; then
+		dummy=$(cd "$destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest $backup_date)
+	else
+		dummy=$(cd "$destination" 2> /dev/null && ln -s -n -f $backup_date latest 2> /dev/null)
+	fi
+
+	return 0
 }
 
 
@@ -2096,8 +2094,7 @@ haltpc() {
 	echo
 
 	# run shutdown command
-	"${shutdown_cmd[@]}"
-	if [ $? != 0 ] ; then
+	if ! "${shutdown_cmd[@]}" ; then
 		lb_display_error --log "Error with shutdown command. PC is still up."
 		return 2
 	fi
@@ -2364,11 +2361,9 @@ config_wizard() {
 	if lbg_yesno "$tr_ask_edit_config" ; then
 
 		open_config "$config_file"
-		if [ $? == 0 ] ; then
-			if [ "$lb_current_os" != Windows ] ; then
-				# display window to wait until user has finished
-				$console_mode || lbg_info "$tr_finished_edit"
-			fi
+		if [ $? == 0 ] && [ "$lb_current_os" != Windows ] ; then
+			# display window to wait until user has finished
+			$console_mode || lbg_info "$tr_finished_edit"
 		fi
 	fi
 

@@ -79,7 +79,7 @@ t2b_backup() {
 		shift
 	done
 
-	# if not specified, get sources from config file
+	# if sources not specified, get them from config file
 	if [ ${#sources[@]} == 0 ] ; then
 
 		if ! lb_read_config "$config_sources" ; then
@@ -191,7 +191,7 @@ t2b_backup() {
 	fi # recurrent backups
 
 	# execute before backup command/script
-	run_before
+	[ ${#exec_before[@]} -gt 0 ] && run_before
 
 	# prepare destination (mount and verify writable)
 	prepare_destination
@@ -256,7 +256,7 @@ t2b_backup() {
 	# if mirror mode and there is an old backup, move last backup to current directory
 	last_backup=$(get_backups | tail -1)
 	if $mirror_mode && [ -n "$last_backup" ] ; then
-		mv "$destination/$last_backup" "$dest"
+		mv "$destination/$last_backup" "$dest" && create_latest_link
 	else
 		# create destination
 		mkdir "$dest"
@@ -319,8 +319,8 @@ hard_links = $hard_links" > "$infofile"
 				# test if we don't have double remotes
 				# (rsync does not support ssh to ssh copy)
 				if $remote_destination ; then
-					lb_display_error --log "You cannot backup a distant path to a distant path."
-					errors+=("$src (cannot backup a distant path on a distant destination)")
+					lb_display_error --log "You cannot backup a remote path to a remote destination."
+					errors+=("$src (cannot backup a remote path on a remote destination)")
 					lb_exitcode=3
 					continue
 				fi
@@ -431,7 +431,7 @@ hard_links = $hard_links" > "$infofile"
 				lb_debug --log "Last backup used for link/trash: $last_clean_backup"
 			fi
 
-			if [ -n "$last_clean_backup" ] && ! $remote_destination ; then
+			if [ -n "$last_clean_backup" ] ; then
 
 				# default behaviour: mkdir or mv destination
 				if $hard_links ; then
@@ -727,16 +727,7 @@ hard_links = $hard_links" > "$infofile"
 				lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
 			fi
 
-			# create a latest link to the last backup directory
-			lb_debug --log "Create latest link..."
-
-			# create a new link
-			# in a sub-context to avoid confusion and do not care of output
-			if [ "$lb_current_os" == Windows ] ; then
-				dummy=$(cd "$destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest "$backup_date")
-			else
-				dummy=$(cd "$destination" 2> /dev/null && rm -f latest && ln -s "$backup_date" latest 2> /dev/null)
-			fi
+			create_latest_link
 			;;
 	esac
 
@@ -834,7 +825,7 @@ Errors:
 	fi
 
 	# execute custom after backup script
-	run_after
+	[ ${#exec_after[@]} -gt 0 ] && run_after
 
 	clean_exit
 }
@@ -912,7 +903,7 @@ t2b_restore() {
 
 		# choose type of file to restore (file/directory)
 		lbg_choose_option -d 1 -l "$tr_choose_restore" "$tr_restore_existing_file" "$tr_restore_moved_file" "$tr_restore_existing_directory" "$tr_restore_moved_directory"
-		
+
 		case $? in
 			0)
 				# continue
@@ -1097,38 +1088,35 @@ t2b_restore() {
 		fi
 	fi
 
-	# if only one backup, no need to choose one
-	if [ ${#file_history[@]} -gt 1 ] ; then
+	# if interactive mode and more than 1 backup,
+	# prompt user to choose a backup date
+	if $choose_date && [ ${#file_history[@]} -gt 1 ] ; then
 
-		# if interactive mode, prompt user to choose a backup date
-		if $choose_date ; then
+		# change dates to a user-friendly format
+		history_dates=(${file_history[@]})
 
-			# change dates to a user-friendly format
-			history_dates=(${file_history[@]})
+		for ((i=0; i<${#file_history[@]}; i++)) ; do
+			history_dates[i]=$(get_backup_fulldate "${file_history[i]}")
+		done
 
-			for ((i=0; i<${#file_history[@]}; i++)) ; do
-				history_dates[i]=$(get_backup_fulldate "${file_history[i]}")
-			done
+		# choose backup date
+		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
+		case $? in
+			0)
+				# continue
+				;;
+			2)
+				# cancelled
+				return 0
+				;;
+			*)
+				# error
+				return 1
+				;;
+		esac
 
-			# choose backup date
-			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
-			case $? in
-				0)
-					# continue
-					;;
-				2)
-					# cancelled
-					return 0
-					;;
-				*)
-					# error
-					return 1
-					;;
-			esac
-
-			# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-			backup_date=${file_history[lbg_choose_option-1]}
-		fi
+		# get chosen backup (= chosen ID - 1 because array ID starts from 0)
+		backup_date=${file_history[lbg_choose_option-1]}
 	fi
 
 	# if latest backup wanted, get most recent date
@@ -1340,6 +1328,11 @@ t2b_history() {
 	if [ $# == 0 ] ; then
 		print_help
 		return 1
+	fi
+
+	if $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
 	fi
 
 	# test backup destination
@@ -1623,11 +1616,11 @@ t2b_status() {
 		return 0
 	fi
 
-	# search for a t2b PID
-	local t2b_pids=($(ps -ef | grep time2backup | awk '{print $2}'))
+	# search for time2backup PID
+	local pid pids=($(ps -ef | grep time2backup | awk '{print $2}'))
 
-	for pid in "${t2b_pids[@]}" ; do
-		# if current script, continue
+	for pid in "${pids[@]}" ; do
+		# if current script, ignore it
 		[ $pid == $$ ] && continue
 
 		if ! $quiet_mode ; then
@@ -1636,7 +1629,7 @@ t2b_status() {
 		return 5
 	done
 
-	# if no t2b process found,
+	# if no time2backup process found,
 	if ! $quiet_mode ; then
 		echo "backup lock is here, but there is no rsync command currently running"
 	fi
@@ -1716,9 +1709,9 @@ t2b_stop() {
 	fi
 
 	# search for a current rsync command and get parent PIDs
-	rsync_ppids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
+	rsync_pids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
 
-	for pid in "${rsync_ppids[@]}" ; do
+	for pid in "${rsync_pids[@]}" ; do
 		# get parent PID
 		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
 		[ -z "$parent_pid" ] && continue
@@ -1726,7 +1719,7 @@ t2b_stop() {
 		# check if parent process is an instance of time2backup
 		ps -f $parent_pid 2> /dev/null | grep -q time2backup
 		if [ $? == 0 ] ; then
-			# send to t2b THEN rsync subprocess the kill signal
+			# send the kill signal to time2backup THEN rsync subprocess
 			kill $parent_pid $pid && pid_killed=true
 			break
 		fi
@@ -1857,13 +1850,14 @@ t2b_mv() {
 		echo "Moving file(s)..."
 	fi
 
+	local result
 	mv "$destination/$file_history/$abs_src" "$destination/$file_history/$abs_dest"
-	local mv_res=$?
+	result=$?
 
 	if ! $quiet_mode ; then
-		lb_result
+		lb_result $result
 	fi
-	if [ $mv_res != 0 ] ; then
+	if [ $result != 0 ] ; then
 		return 7
 	fi
 }
@@ -2168,7 +2162,7 @@ EOF
 		fi
 	fi
 
-	create_link=true
+	local create_link=true
 
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
