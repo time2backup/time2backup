@@ -589,7 +589,7 @@ hard_links = $hard_links" > "$infofile"
 
 		# if it is a directory, add '/' at the end of the path
 		if [ -d "$abs_src" ] ; then
-			abs_src+="/"
+			abs_src=$(remove_end_slash "$abs_src")/
 		fi
 
 		# add source and destination
@@ -910,15 +910,9 @@ t2b_restore() {
 	# if no file specified, go to interactive mode
 	if [ $# == 0 ] ; then
 
-		restore_opts=("$tr_restore_existing_file" "$tr_restore_moved_file")
-
-		# if hard links supported, add directory restore features
-		if $hard_links ; then
-			restore_opts+=("$tr_restore_existing_directory" "$tr_restore_moved_directory")
-		fi
-
 		# choose type of file to restore (file/directory)
-		lbg_choose_option -d 1 -l "$tr_choose_restore" "${restore_opts[@]}"
+		lbg_choose_option -d 1 -l "$tr_choose_restore" "$tr_restore_existing_file" "$tr_restore_moved_file" "$tr_restore_existing_directory" "$tr_restore_moved_directory"
+		
 		case $? in
 			0)
 				# continue
@@ -976,7 +970,7 @@ t2b_restore() {
 			esac
 
 			# get path to restore
-			file=$lbg_choose_directory/
+			file=$(remove_end_slash "$lbg_choose_directory")/
 
 		else
 			# choose a file
@@ -1026,7 +1020,7 @@ t2b_restore() {
 
 			# if it is a directory, add '/' at the end of the path
 			if [ -d "$file" ] ; then
-				file+="/"
+				file=$(remove_end_slash "$file")/
 			fi
 
 			# remove backup date path prefix
@@ -1054,8 +1048,10 @@ t2b_restore() {
 		# get UNIX format for Windows paths
 		if [ "$(get_protocol "$file")" == files ] && [ "$lb_current_os" == Windows ] ; then
 			file=$(cygpath "$file")
+
+			# add a slash at the end of path (without duplicate it)
 			if $directory_mode ; then
-				file+="/"
+				file=$(remove_end_slash "$file")/
 			fi
 		fi
 	fi
@@ -1068,9 +1064,7 @@ t2b_restore() {
 
 	# if it is a directory, add '/' at the end of the path
 	if [ -d "$file" ] ; then
-		if [ "${file:${#file}-1}" != "/" ] ; then
-			file+="/"
-		fi
+		file=$(remove_end_slash "$file")/
 	fi
 
 	lb_debug "Path to restore: $file"
@@ -1089,6 +1083,10 @@ t2b_restore() {
 		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
+
+	# no hard links: do not permit restore an old version
+	# (get the last entry)
+	file_history=(${file_history[0]})
 
 	# search for dates
 	if [ "$backup_date" != latest ] ; then
@@ -1109,7 +1107,7 @@ t2b_restore() {
 			history_dates=(${file_history[@]})
 
 			for ((i=0; i<${#file_history[@]}; i++)) ; do
-				history_dates[$i]=$(get_backup_fulldate "${file_history[i]}")
+				history_dates[i]=$(get_backup_fulldate "${file_history[i]}")
 			done
 
 			# choose backup date
@@ -1129,7 +1127,7 @@ t2b_restore() {
 			esac
 
 			# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-			backup_date=${file_history[$lbg_choose_option-1]}
+			backup_date=${file_history[lbg_choose_option-1]}
 		fi
 	fi
 
@@ -1165,21 +1163,28 @@ t2b_restore() {
 
 	# warn user if incomplete backup of directory
 	if $directory_mode ; then
-		infofile=$destination/$backup_date/backup.info
+		local infofile_path infofile=$destination/$backup_date/backup.info
+
 		if [ -f "$infofile" ] ; then
 			# search sections
 			for section in $(grep -Eo "^\[.*\]" "$infofile" 2> /dev/null | grep -v destination | tr -d '[]') ; do
+
+				# get path of the backup
+				infofile_path=$(lb_get_config -s $section "$infofile" path)
+				[ -z "$infofile_path" ] && continue
+
 				# if current path
-				if [[ "$dest" == "$(lb_get_config -s $section "$infofile" path)"* ]] ; then
-					# and rsync result was not good
-					if [ "$(lb_get_config -s $section "$infofile" rsync_result)" != 0 ] ; then
-						# warn user
-						if ! lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" ; then
-							return 0
-						fi
+				[[ "$dest" != "$(lb_abspath "$infofile_path")"* ]] && continue
+
+				# and rsync result was not good
+				if [ "$(lb_get_config -s $section "$infofile" rsync_result)" != 0 ] ; then
+					# warn user
+					lb_warning "$tr_warn_restore_partial"
+					if ! lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" ; then
+						return 0
 					fi
-					break
 				fi
+				break
 			done
 		fi
 	fi
@@ -1534,7 +1539,7 @@ t2b_explore() {
 				history_dates=(${path_history[@]})
 
 				for ((i=0; i<${#path_history[@]}; i++)) ; do
-					history_dates[$i]=$(get_backup_fulldate "${path_history[i]}")
+					history_dates[i]=$(get_backup_fulldate "${path_history[i]}")
 				done
 
 				# choose backup date
@@ -1554,7 +1559,7 @@ t2b_explore() {
 				esac
 
 				# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-				backup_date=${path_history[$lbg_choose_option-1]}
+				backup_date=${path_history[lbg_choose_option-1]}
 			fi
 		fi
 	fi

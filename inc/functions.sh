@@ -10,6 +10,7 @@
 # Index of functions
 #
 #   Global functions
+#     remove_end_slash
 #     check_backup_date
 #     get_common_path
 #     get_relative_path
@@ -65,6 +66,19 @@
 #  Global functions
 #
 
+# Remove the last / of a path
+# Usage: remove_end_slash PATH
+# Return: new path
+remove_end_slash() {
+	local path=$*
+	if [ "${path:${#path}-1}" == "/" ] ; then
+		echo "${path:0:${#path}-1}"
+	else
+		echo "$path"
+	fi
+}
+
+
 # Check syntax of a backup date
 # Usage: check_backup_date DATE
 # Exit codes:
@@ -112,12 +126,8 @@ get_common_path() {
 					echo /
 				else
 					# other directory
-					if [ "${path:${#path}-1}" == "/" ] ; then
-						# return path without the last /
-						echo "${path:0:${#path}-1}"
-					else
-						echo "$path"
-					fi
+					# return path without the last /
+					path=$(remove_end_slash "$path")
 				fi
 			else
 				# if it's not a directory, return parent directory
@@ -425,10 +435,8 @@ get_backup_history() {
 	[ -z "$gbh_backup_path" ] && return 3
 
 	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
-	if [ "${gbh_backup_path:${#gbh_backup_path}-1}" == "/" ] ; then
-		# return path without the last /
-		gbh_backup_path=${gbh_backup_path:0:${#gbh_backup_path}-1}
-	fi
+	# so we return path without the last /
+	gbh_backup_path=$(remove_end_slash "$gbh_backup_path")
 
 	# prepare for loop
 	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file
