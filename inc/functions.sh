@@ -131,7 +131,7 @@ get_common_path() {
 			else
 				# other directory
 				# return path without the last /
-				path=$(remove_end_slash "$path")
+				remove_end_slash "$path"
 			fi
 		else
 			# if it's not a directory, return parent directory
