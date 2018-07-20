@@ -69,6 +69,7 @@
 
 # Remove the last / of a path
 # Usage: remove_end_slash PATH
+# Dependencies: none
 # Return: new path
 remove_end_slash() {
 	local path=$*
@@ -82,6 +83,7 @@ remove_end_slash() {
 
 # Check syntax of a backup date
 # Usage: check_backup_date DATE
+# Dependencies: $backup_date_format
 # Exit codes:
 #   0: OK
 #   1: non OK
@@ -94,6 +96,7 @@ check_backup_date() {
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
 # will return /home/user/my/
 # Usage: get_common_path PATH_1 PATH_2
+# Dependencies: none
 # Return: absolute path of the common directory
 # Exit codes:
 #   0: OK
@@ -148,6 +151,7 @@ get_common_path() {
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
 # Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
+# Dependencies: none
 # Return: relative path
 # Exit codes:
 #   0: OK
@@ -214,6 +218,7 @@ get_protocol() {
 # Transform URLs to SSH path
 # e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
 # Usage: url2ssh URL
+# Dependencies: none
 # Return: path
 url2ssh() {
 
@@ -248,6 +253,8 @@ test_hardlinks() {
 
 # Calculate space to be taken by folders
 # Usage: folders_size PATH
+# Dependencies: none
+# Return: size in bytes
 # Exit codes:
 #   0: OK
 #   1: Usage error (path does not exists)
@@ -269,16 +276,17 @@ folders_size() {
 			;;
 	esac
 
-	# return nb folders * size (result in bytes)
+	# return nb folders * size (in bytes)
 	echo $(($nb_directories * $directory_size))
 }
 
 
 # Test space available on disk
 # Usage: test_space_available BACKUP_SIZE_IN_BYTES PATH
+# Dependencies: none
 # Exit codes:
-#   0: there is space enough to backup
-#   1: not space enough
+#   0: space ok for backup
+#   1: not enough space
 test_space_available() {
 
 	# if 0, always OK
@@ -307,6 +315,7 @@ test_space_available() {
 
 # Manage rsync exit codes
 # Usage: rsync_result EXIT_CODE
+# Dependencies: none
 # Exit codes:
 #   0: rsync was OK
 #   1: usage error
@@ -332,6 +341,7 @@ rsync_result() {
 
 # Transform a config file in Windows format
 # Usage: file_for_windows PATH
+# Dependencies: $lb_current_os
 # Exit codes:
 #   0: OK
 #   1: Usage error / Unknown error
@@ -348,6 +358,7 @@ file_for_windows() {
 
 # Get readable backup date
 # Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
+# Dependencies: $lb_current_os, $tr_readable_date
 # Return: backup datetime (format YYYY-MM-DD HH:MM:SS)
 # e.g. 2016-12-31-233059 -> 2016-12-31 23:30:59
 # Exit codes:
@@ -381,6 +392,8 @@ get_backup_fulldate() {
 #   -a  get all versions (including same)
 #   -l  get only last version
 #   -n  get non-empty directories
+# Dependencies: $remote_destination, $destination
+# Return: dates (YYYY-MM-DD-HHMMSS format)
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -530,6 +543,7 @@ get_backup_history() {
 
 # Create configuration files in user config
 # Usage: create_config
+# Dependencies: $lb_current_script_directory, $config_directory, $config_file, $config_excludes, $config_sources, $lb_current_user
 # Exit codes:
 #   0: OK
 #   1: could not create config directory
@@ -677,6 +691,7 @@ upgrade_config() {
 
 # Load configuration file
 # Usage: load_config
+# Dependencies: $lb_current_os, $config_sources, $config_file, $command, $quiet_mode, $tr_loading_config, $tr_error_read_config
 # Exit codes:
 #   0: OK
 #   1: cannot open config
@@ -778,6 +793,7 @@ load_config() {
 
 # Mount destination
 # Usage: mount_destination
+# Dependencies: $lb_current_os, $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint
 # Exit codes:
 #   0: mount OK
 #   1: mount error
@@ -860,6 +876,7 @@ mount_destination() {
 
 # Unmount destination
 # Usage: unmount_destination
+# Dependencies: $destination, $remote_destination
 # Exit codes:
 #   0: OK
 #   1: cannot get destination mountpoint
@@ -974,7 +991,11 @@ get_backup_path() {
 
 # Get all backup dates
 # Usage: get_backups
+# Dependencies: $destination, $backup_date_format
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
+# Exit codes:
+#   0: OK
+#   1: nothing found
 get_backups() {
 	ls "$destination" 2> /dev/null | grep -E "^$backup_date_format$"
 }
@@ -982,6 +1003,7 @@ get_backups() {
 
 # Delete a backup
 # Usage: delete_backup DATE_REFERENCE
+# Dependencies: $destination, $logfile, $logs_directory
 # Exit codes:
 #   0: delete OK
 #   1: usage error
@@ -1012,6 +1034,7 @@ delete_backup() {
 
 # Clean old backups
 # Usage: rotate_backups
+# Dependencies: $keep_limit, $tr_notify_rotate_backup, $tr_error_clean_backups
 # Exit codes:
 #   0: rotate OK
 #   1: rm error
@@ -1066,6 +1089,7 @@ report_duration() {
 
 # Enable/disable cron jobs
 # Usage: crontab_config enable|disable
+# Dependencies: $lb_current_script, $lb_current_user, $config_directory, $user
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -1149,6 +1173,7 @@ crontab_config() {
 
 # Install configuration (recurrent tasks, ...)
 # Usage: apply_config
+# Dependencies: $enable_recurrent, $recurrent
 # Exit codes:
 #   0: OK
 #   other: failed (exit code forwarded from crontab_config)
@@ -1301,6 +1326,7 @@ create_logfile() {
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup
+# Dependencies: $logfile, $infofile, $cmd, $total_size, $mirror_mode
 # Return: size of the backup (in bytes)
 # Exit codes:
 #   0: OK
@@ -1457,6 +1483,7 @@ clean_empty_directories() {
 # Usage: open_config [OPTIONS] CONFIG_FILE
 # Options:
 #   -e COMMAND  use a custom text editor
+# Dependencies: $lb_current_os, $console_mode
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -1562,6 +1589,7 @@ open_config() {
 
 # Return date of the current lock (if exists)
 # Usage: current_lock
+# Dependencies: $remote_destination, $destination
 # Return: date of lock, empty if no lock
 # Exit code:
 #   0: lock exists
@@ -1585,6 +1613,7 @@ current_lock() {
 
 # Create lock
 # Usage: create_lock
+# Dependencies: $remote_destination, $destination, $backup_date
 # Exit code:
 #   0: lock ok
 #   1: unknown error
@@ -1628,6 +1657,7 @@ release_lock() {
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
 # Usage: prepare_rsync backup|restore
+# Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
 
 	# basic command
@@ -1727,6 +1757,7 @@ prepare_remote() {
 
 # Auto exclude the backup directory if it is inside destination
 # Usage: auto_exclude PATH
+# Dependencies: $destination
 # Exit codes:
 #  0: path excluded (or no result)
 #  1: failed
@@ -1760,6 +1791,7 @@ auto_exclude() {
 
 # Display a notification if enabled
 # Usage: notify TEXT
+# Dependencies: $notifications
 notify() {
 	if $notifications ; then
 		lbg_notify "$*" &
@@ -1773,6 +1805,8 @@ notify() {
 
 # Return backup estimated duration
 # Usage: estimate_time
+# Dependencies: $src_checksum, $last_backup_info, $total_size
+# Return: estimated time (in seconds)
 estimate_time() {
 	# get last backup duration
 	local last_duration=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
@@ -1799,6 +1833,7 @@ estimate_time() {
 
 # Run before backup
 # Usage: run_before
+# Dependencies: $disable_custom_commands, $exec_before, $exec_before_block
 run_before() {
 	local result
 
@@ -1829,6 +1864,7 @@ Before script failed (exit code: $result)
 
 # Run after backup
 # Usage: run_after
+# Dependencies: $disable_custom_commands, $exec_after, $exec_after_block
 run_after() {
 	local result
 
@@ -1860,7 +1896,7 @@ After script failed (exit code: $result)
 
 # Create latest link
 # Usage: create_latest_link
-# Dependencies: $destination, $backup_date
+# Dependencies: $lb_current_os, $destination, $backup_date
 create_latest_link() {
 	lb_debug --log "Create latest link..."
 
@@ -1882,6 +1918,7 @@ create_latest_link() {
 
 # Clean things before exit
 # Usage: clean_exit [EXIT_CODE]
+# Dependencies: $lb_exitcode, $dest, $finaldest, $unmount, $keep_logs, $logfile, $logs_directory, $shutdown, $tr_*
 clean_exit() {
 
 	# set exit code if specified
@@ -1967,6 +2004,7 @@ clean_exit() {
 
 # Exit when cancel signal is caught
 # Usage: cancel_exit
+# Dependencies: $command, $tr_*
 cancel_exit() {
 
 	echo
@@ -1992,6 +2030,7 @@ cancel_exit() {
 
 # Send email report
 # Usage: send_email_report
+# Dependencies: $lb_exitcode, $lb_current_hostname, $email_report, $email_recipient, $email_sender, $email_subject_prefix, $current_date, $report_details, $tr_*
 # Exit codes:
 #   0: email sent, not enabled or no error
 #   1: email recipient not set
@@ -2070,6 +2109,7 @@ time2backup"
 
 # Halt PC in 10 seconds
 # Usage: haltpc
+# Dependencies: $shutdown_cmd
 # Exit codes:
 #   0: OK (halted)
 #   1: shutdown command does not exists
@@ -2107,12 +2147,14 @@ haltpc() {
 
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation
+# Dependencies: $console_mode, $command, $tr_*
 choose_operation() {
 
 	# prepare options
 	local choices=("$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
 	local commands=("" backup restore config)
 
+	# explore command: only in GUI mode
 	if ! $console_mode ; then
 		choices+=("$tr_explore_backups")
 		commands+=(explore)
