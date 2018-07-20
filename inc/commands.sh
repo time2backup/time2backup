@@ -443,26 +443,25 @@ hard_links = $hard_links" > "$infofile"
 				# load last backup info
 				last_backup_info=$destination/$last_clean_backup/backup.info
 
-				if [ -f "$last_backup_info" ] ; then
-					# check status of the last backup
-					if $hard_links ; then
-						# if last backup failed or was cancelled
-						rsync_result $(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
+				# check status of the last backup
+				# (only if infofile exists and in hard links mode)
+				if $hard_links && [ -f "$last_backup_info" ] ; then
+					# if last backup failed or was cancelled
+					rsync_result $(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
 
-						if [ $? == 2 ] ; then
-							lb_debug "Resume from failed backup: $last_clean_backup"
+					if [ $? == 2 ] ; then
+						lb_debug "Resume from failed backup: $last_clean_backup"
 
-							# search again for the last clean backup before that
-							for b in $(get_backup_history -n "$src" | head -2) ; do
-								# ignore the current last backup
-								[ "$b" == "$last_clean_backup" ] && continue
+						# search again for the last clean backup before that
+						for b in $(get_backup_history -n "$src" | head -2) ; do
+							# ignore the current last backup
+							[ "$b" == "$last_clean_backup" ] && continue
 
-								last_clean_backup_linkdest=$b
-								break
-							done
+							last_clean_backup_linkdest=$b
+							break
+						done
 
-							mv_dest=true
-						fi
+						mv_dest=true
 					fi
 				fi
 
@@ -1151,29 +1150,16 @@ t2b_restore() {
 
 	# warn user if incomplete backup of directory
 	if $directory_mode ; then
-		local infofile_path infofile=$destination/$backup_date/backup.info
 
-		if [ -f "$infofile" ] ; then
-			# search sections
-			for section in $(grep -Eo "^\[.*\]" "$infofile" 2> /dev/null | grep -v destination | tr -d '[]') ; do
+		local infofile=$destination/$backup_date/backup.info
+		local infofile_section=$(find_infofile_section "$infofile" "$dest")
 
-				# get path of the backup
-				infofile_path=$(lb_get_config -s $section "$infofile" path)
-				[ -z "$infofile_path" ] && continue
-
-				# if current path
-				[[ "$dest" != "$(lb_abspath "$infofile_path")"* ]] && continue
-
-				# and rsync result was not good
-				if [ "$(lb_get_config -s $section "$infofile" rsync_result)" != 0 ] ; then
-					# warn user
-					lb_warning "$tr_warn_restore_partial"
-					if ! lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" ; then
-						return 0
-					fi
-				fi
-				break
-			done
+		# if rsync result was not good (backup failed or was incomplete)
+		if [ -n "$infofile_section" ] && [ "$(lb_get_config -s "$infofile_section" "$infofile" rsync_result)" != 0 ] ; then
+			# warn user
+			lb_warning "$tr_warn_restore_partial"
+			# and ask user to cancel
+			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
 		fi
 	fi
 
@@ -2069,7 +2055,7 @@ t2b_config() {
 		reset)
 			# reset config file
 			if lb_yesno "$tr_confirm_reset_config" ; then
-				cat "$script_directory/config/time2backup.example.conf" > "$config_file"
+				cat "$lb_current_script_directory/config/time2backup.example.conf" > "$config_file"
 			fi
 			;;
 
@@ -2133,7 +2119,7 @@ t2b_install() {
 	# create a desktop file (Linux)
 	if [ "$lb_current_os" == Linux ] ; then
 
-		desktop_file=$script_directory/time2backup.desktop
+		desktop_file=$lb_current_script_directory/time2backup.desktop
 
 		cat > "$desktop_file" <<EOF
 [Desktop Entry]
@@ -2145,7 +2131,7 @@ GenericName[fr]=Sauvegarde de fichiers
 Comment[fr]=Sauvegardez et restaurez vos données
 Type=Application
 Exec=$(lb_realpath "$lb_current_script") $*
-Icon=$(lb_realpath "$script_directory/resources/icon.png")
+Icon=$(lb_realpath "$lb_current_script_directory/resources/icon.png")
 Terminal=false
 Categories=System;Utility;Filesystem;
 EOF
@@ -2174,7 +2160,7 @@ EOF
 
 	# (re)create link
 	if $create_link ; then
-		ln -s -f "$current_script" "$cmd_alias" &> /dev/null
+		ln -s -f "$lb_current_script" "$cmd_alias" &> /dev/null
 		if [ $? != 0 ] ; then
 			echo
 			echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."
@@ -2272,7 +2258,7 @@ t2b_uninstall() {
 
 	# delete files
 	if $delete_files ; then
-		rm -rf "$script_directory"
+		rm -rf "$lb_current_script_directory"
 		if [ $? != 0 ] ; then
 			lb_error "Failed to delete time2backup directory. You may have to run in sudo."
 			lb_exitcode=6

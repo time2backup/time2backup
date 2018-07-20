@@ -16,6 +16,7 @@
 #     get_relative_path
 #     get_protocol
 #     url2ssh
+#     find_infofile_section
 #     test_hardlinks
 #     folders_size
 #     test_space_available
@@ -107,16 +108,14 @@ get_common_path() {
 	# usage error
 	[ $# -lt 2 ] && return 1
 
-	local directory1 directory2
+	local directory1 directory2 path
 
 	# get absolute paths
 	directory1=$(lb_abspath "$1") || return 2
 	directory2=$(lb_abspath "$2") || return 2
 
 	# compare characters of paths one by one
-	local path
 	local -i i=0
-
 	while true ; do
 		# if a character changes in the 2 paths,
 		if [ "${directory1:0:i}" == "${directory2:0:i}" ] ; then
@@ -188,18 +187,19 @@ get_relative_path() {
 	done
 
 	# print relative path
-	echo "$relative_path/"
+	echo $relative_path
 }
 
 
 # Get protocol for backups or destination
 # Usage: get_protocol URL
+# Dependencies: none
 # Return: files|ssh|t2b
 get_protocol() {
 
+	# get protocol
 	local protocol=$(echo $1 | cut -d: -f1)
 
-	# get protocol
 	case $protocol in
 		ssh|t2b)
 			# double check protocol
@@ -229,21 +229,56 @@ url2ssh() {
 }
 
 
+# Find section that matches a path in an infofile
+# Usage: find_infofile_section INFO_FILE PATH
+# Dependencies: none
+# Return: section name
+# Exit codes:
+#   0: section found
+#   1: section not found
+#   2: file does not exists
+find_infofile_section() {
+
+	# if file does not exists, quit
+	[ -f "$1" ] || return 2
+
+	local section path
+	# search in sections, ignoring global sections
+	for section in $(grep -Eo "^\[.*\]" "$1" 2> /dev/null | grep -Ev "(time2backup|destination)" | tr -d '[]') ; do
+
+		# get path of the backup
+		path=$(lb_get_config -s "$section" "$1" path)
+		[ -z "$path" ] && continue
+
+		# bad path: continue
+		[[ "$2" != "$(lb_abspath "$path")"* ]] && continue
+
+		# return good section
+		echo $section
+		return 0
+	done
+
+	# not found
+	return 1
+}
+
+
 # Test if backup destination support hard links
 # Usage: test_hardlinks PATH
+# Dependencies: none
 # Exit codes:
 #   0: destination supports hard links
 #   1: cannot get filesystem type
 #   2: destination does not support hard links
 test_hardlinks() {
 
-	# supported filesystems
-	local fstype supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
+	# supported filesystems on Linux, macOS and Windows
+	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
 		hfs hfsplus apfs \
 		ntfs)
 
 	# get destination filesystem
-	fstype=$(lb_df_fstype "$*")
+	local fstype=$(lb_df_fstype "$*")
 	[ -z "$fstype" ] && return 1
 
 	# if destination filesystem does not support hard links, return error
@@ -370,12 +405,8 @@ get_backup_fulldate() {
 	check_backup_date "$1" || return 1
 
 	# get date details
-	byear=${1:0:4}
-	bmonth=${1:5:2}
-	bday=${1:8:2}
-	bhour=${1:11:2}
-	bmin=${1:13:2}
-	bsec=${1:15:2}
+	local byear=${1:0:4} bmonth=${1:5:2} bday=${1:8:2} \
+	      bhour=${1:11:2} bmin=${1:13:2} bsec=${1:15:2}
 
 	# return date formatted for languages
 	if [ "$lb_current_os" == macOS ] ; then
@@ -433,15 +464,13 @@ get_backup_history() {
 	fi
 
 	# get all backups
-	local all_backups
-	all_backups=($(get_backups))
+	local all_backups=($(get_backups))
 
 	# no backups found
 	[ ${#all_backups[@]} == 0 ] && return 2
 
 	# get backup path
-	local gbh_backup_path
-	gbh_backup_path=$(get_backup_path "$*")
+	local gbh_backup_path=$(get_backup_path "$*")
 	[ -z "$gbh_backup_path" ] && return 3
 
 	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
@@ -562,11 +591,11 @@ create_config() {
 	# copy config samples from current directory
 	# Note: DO NOT transform this file to Windows format!
 	if ! [ -f "$config_excludes" ] ; then
-		cp -f "$script_directory/config/excludes.example.conf" "$config_excludes"
+		cp -f "$lb_current_script_directory/config/excludes.example.conf" "$config_excludes"
 	fi
 
 	if ! [ -f "$config_sources" ] ; then
-		cp -f "$script_directory/config/sources.example.conf" "$config_sources"
+		cp -f "$lb_current_script_directory/config/sources.example.conf" "$config_sources"
 		if [ $? == 0 ] ; then
 			file_for_windows "$config_sources"
 		else
@@ -576,7 +605,7 @@ create_config() {
 	fi
 
 	if ! [ -f "$config_file" ] ; then
-		cp -f "$script_directory/config/time2backup.example.conf" "$config_file"
+		cp -f "$lb_current_script_directory/config/time2backup.example.conf" "$config_file"
 		if [ $? == 0 ] ; then
 			file_for_windows "$config_file"
 		else
@@ -596,14 +625,15 @@ create_config() {
 
 # Upgrade configuration
 # Usage: upgrade_config CURRENT_VERSION
+# Dependencies: $lb_current_os, $lb_current_script_directory, $config_file, $version, $quiet_mode, $command, $tr_upgrade_config, $tr_error_upgrade_config
 # Exit codes:
 #   0: upgrade OK
 #   1: compatibility error
 #   2: write error
 upgrade_config() {
 
-	# get config version
-	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
+	# get current config version
+	local old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
 	if [ -z "$old_config_version" ] ; then
 		lb_display_error "Cannot get config version."
 		return 1
@@ -640,7 +670,7 @@ upgrade_config() {
 	# replace config by new one
 
 	# save old config file
-	old_config="$config_file.v$old_config_version"
+	local old_config="$config_file.v$old_config_version"
 
 	cp -p "$config_file" "$old_config"
 	if [ $? != 0 ] ; then
@@ -648,7 +678,7 @@ upgrade_config() {
 		return 2
 	fi
 
-	cat "$script_directory/config/time2backup.example.conf" > "$config_file"
+	cat "$lb_current_script_directory/config/time2backup.example.conf" > "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
@@ -663,7 +693,7 @@ upgrade_config() {
 		return 2
 	fi
 
-	local line
+	local line config_param config_line
 	for line in "${lb_read_config[@]}" ; do
 		config_param=$(echo $line | cut -d= -f1 | tr -d '[[:space:]]')
 		config_line=$(echo "$line" | sed 's/\\/\\\\/g; s/\//\\\//g')
@@ -739,10 +769,9 @@ load_config() {
 		fi
 	fi
 
-	# test config values
+	# test boolean values in config file
+	local v test_boolean=(test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
 
-	# test boolean values
-	test_boolean=(test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
 	for v in "${test_boolean[@]}" ; do
 		if ! lb_is_boolean ${!v} ; then
 			lb_error "$v must be a boolean!"
@@ -750,8 +779,9 @@ load_config() {
 		fi
 	done
 
-	# test integer values
-	test_integer=(keep_limit clean_keep)
+	# test integer values in config file
+	local test_integer=(keep_limit clean_keep)
+
 	for v in "${test_integer[@]}" ; do
 		if ! lb_is_integer ${!v} ; then
 			lb_error "$v must be an integer!"
@@ -803,6 +833,9 @@ load_config() {
 #   5: no disk UUID set in config
 #   6: cannot delete mount point
 mount_destination() {
+
+	# remote destination: do nothing
+	$remote_destination && return 0
 
 	# if UUID not set, return error
 	[ -z "$backup_disk_uuid" ] && return 5
@@ -884,9 +917,13 @@ mount_destination() {
 #   3: cannot delete mountpoint
 unmount_destination() {
 
+	# remote destination: do nothing
+	$remote_destination && return 0
+
 	lb_display --log "Unmount destination..."
 
 	# get mount point
+	local destination_mountpoint
 	destination_mountpoint=$(lb_df_mountpoint "$destination")
 	if [ $? != 0 ] ; then
 		lb_display_error "Cannot get mountpoint of $destination"
@@ -925,38 +962,38 @@ unmount_destination() {
 
 # Get path of a file backup
 # Usage: get_backup_path PATH
+# Dependencies: none
 # Return: backup path (e.g. /home/user -> /files/home/user)
 # Exit codes:
 #   0: OK
 #   1: cannot get original path (not absolute and parent directory does not exists)
 get_backup_path() {
 
-	local gbp_file=$*
+	local path=$*
 
-	# if absolute path (first character is a /)
-	if [ "${gbp_file:0:1}" == "/" ] ; then
-		# return file path
-		echo "/files$gbp_file"
+	# if absolute path (first character is a /), return file path
+	if [ "${path:0:1}" == "/" ] ; then
+		echo "/files$path"
 		return 0
 	fi
 
-	local gbp_protocol=$(get_protocol "$gbp_file")
+	local protocol=$(get_protocol "$path")
 
 	# if not absolute path, check protocols
-	case $gbp_protocol in
+	case $protocol in
 		ssh)
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
-			ssh_host=$(echo "$gbp_file" | awk -F '/' '{print $3}')
-			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
+			local ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
+			local ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
-			ssh_prefix="$gbp_protocol://$ssh_host"
-			ssh_path=${gbp_file#$ssh_prefix}
+			local ssh_prefix="$protocol://$ssh_host"
+			local ssh_path=${path#$ssh_prefix}
 
 			# return complete path
-			echo "/$gbp_protocol/$ssh_hostname/$ssh_path"
+			echo "/$protocol/$ssh_hostname/$ssh_path"
 			return 0
 			;;
 	esac
@@ -964,21 +1001,21 @@ get_backup_path() {
 	# if file or directory (relative path)
 
 	# remove file:// prefix
-	if [ "${gbp_file:0:7}" == "file://" ] ; then
-		gbp_file=${gbp_file:7}
+	if [ "${path:0:7}" == "file://" ] ; then
+		path=${path:7}
 	fi
 
 	# if not exists (file moved or deleted), try to get parent directory path
-	if [ -e "$gbp_file" ] ; then
-		echo -n "/files/$(lb_abspath "$gbp_file")"
+	if [ -e "$path" ] ; then
+		echo -n "/files/$(lb_abspath "$path")"
 
 		# if it is a directory, add '/' at the end of the path
-		if [ -d "$gbp_file" ] ; then
+		if [ -d "$path" ] ; then
 			echo /
 		fi
 	else
-		if [ -d "$(dirname "$gbp_file")" ] ; then
-			echo "/files/$(lb_abspath "$gbp_file")"
+		if [ -d "$(dirname "$path")" ] ; then
+			echo "/files/$(lb_abspath "$path")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -1076,11 +1113,12 @@ rotate_backups() {
 
 # Print report of duration from start of script to now
 # Usage: report_duration
+# Dependencies: $start_timestamp, $tr_report_duration
 # Return: complete report with elapsed time in HH:MM:SS
 report_duration() {
 
-	# calculate
-	duration=$(($(date +%s) - $start_timestamp))
+	# calculate duration
+	local duration=$(($(date +%s) - $start_timestamp))
 
 	# print report
 	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
@@ -1098,12 +1136,12 @@ report_duration() {
 #   4: cannot write into the temporary crontab file
 crontab_config() {
 
-	local crontab crontab_opts crontab_enable=false line
+	local crontab crontab_opts crontab_enable=false
 
 	[ "$1" == enable ] && crontab_enable=true
 
 	# prepare backup task in quiet mode
-	local crontask="\"$current_script\" -q -c \"$config_directory\" backup --recurrent"
+	local crontask="\"$lb_current_script\" -q -c \"$config_directory\" backup --recurrent"
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
@@ -1137,7 +1175,7 @@ crontab_config() {
 	fi
 
 	# test if task exists (get line number)
-	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
+	local line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
 	if [ -n "$line" ] ; then
 		if $crontab_enable ; then
 			# do nothing
@@ -1150,7 +1188,7 @@ crontab_config() {
 	else
 		# if cron task does not exists,
 		# if old entry exists, rename it
-		line=$(echo "$crontab" | grep -n "\* \* \* \* \*\s*\"$current_script\" -q backup --recurrent" | cut -d: -f2)
+		line=$(echo "$crontab" | grep -n "\* \* \* \* \*\s*\"$lb_current_script\" -q backup --recurrent" | cut -d: -f2)
 		if [ -n "$line" ] ; then
 			crontab=$(echo "$crontab" | sed "${line}s/.*/\* \* \* \* \*	$crontask/")
 		fi
@@ -1194,13 +1232,12 @@ apply_config() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
+# Dependencies: $lb_current_hostname, $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
 #   0: destination is ready
 #   1: destination not reachable
 #   2: destination not writable
 prepare_destination() {
-
-	local destok=false
 
 	lb_debug "Testing destination on: $destination..."
 
@@ -1211,28 +1248,26 @@ prepare_destination() {
 			test_destination=false
 
 			# define the default logs path to the local config directory
-			if [ -z "$logs_directory" ] ; then
-				logs_directory=$config_directory/logs
-			fi
+			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
 
 			# quit ok
 			return 0
 			;;
 		*)
 			# define the default logs path
-			if [ -z "$logs_directory" ] ; then
-				logs_directory=$destination/logs
-			fi
+			[ -z "$logs_directory" ] && logs_directory=$destination/logs
 			;;
 	esac
 
 	# subdirectories removed since 1.3.0
-	new_destination=$destination/backups/$lb_current_hostname
+	local new_destination=$destination/backups/$lb_current_hostname
 	if [ -d "$new_destination" ] ; then
 		lb_debug "Migration destination path to: $new_destination"
 		destination=$new_destination
 		lb_set_config "$config_file" destination "\"$new_destination\""
 	fi
+
+	local destok=false
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
@@ -1256,10 +1291,8 @@ prepare_destination() {
 	fi
 
 	# auto unmount: unmount if it was not mounted
-	if $unmount_auto ; then
-		if ! $mounted ; then
-			unmount=true
-		fi
+	if $unmount_auto && ! $mounted ; then
+		unmount=true
 	fi
 
 	# create destination if not exists
@@ -1290,19 +1323,16 @@ prepare_destination() {
 	fi
 
 	# check if destination supports hard links
-	if $hard_links ; then
-		if ! $force_hard_links ; then
-			if ! test_hardlinks "$destination" ; then
-				lb_debug --log "Destination does not support hard links. Continue in trash mode."
-				hard_links=false
-			fi
-		fi
+	if $hard_links && ! $force_hard_links && ! test_hardlinks "$destination" ; then
+		lb_debug --log "Destination does not support hard links. Continue in trash mode."
+		hard_links=false
 	fi
 }
 
 
 # Create log file
 # Usage: create_logfile PATH
+# Dependencies: none
 # Exit codes:
 #   0: OK
 #   1: failed to create log directory
@@ -1336,10 +1366,8 @@ test_backup() {
 	lb_display --log "\nTesting backup..."
 
 	# prepare rsync in test mode
-	test_cmd=(rsync --dry-run --stats)
-
-	# append rsync options without the first argument (rsync)
-	test_cmd+=("${cmd[@]:1}")
+	# (rsync options without the first argument rsync)
+	local test_cmd=(rsync --dry-run --stats "${cmd[@]:1}")
 
 	# rsync test
 	# option dry-run makes a simulation for rsync
@@ -1360,15 +1388,13 @@ test_backup() {
 	if ! $mirror_mode ; then
 
 		# get the source path from rsync command (array size - 2)
-		src_folder=${test_cmd[${#test_cmd[@]}-2]}
+		local src_folder=${test_cmd[${#test_cmd[@]}-2]}
 
 		# get size of folders
-		folders_size=$(folders_size "$src_folder")
+		local folders_size=$(folders_size "$src_folder")
 
-		# add size of folders
-		if lb_is_integer $folders_size ; then
-			total_size=$(($total_size + $folders_size))
-		fi
+		# add size of folders to total size
+		lb_is_integer $folders_size && total_size=$(($total_size + $folders_size))
 	fi
 
 	# add a security margin of 1MB for logs and future backups
@@ -1382,16 +1408,16 @@ test_backup() {
 }
 
 
-# Test free space on disk to run backups
+# Test free space on disk and remove old backups until it's ready
 # Usage: test_free_space
+# Dependencies: $destination, $total_size, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
 # Exit codes:
 #   0: ok
 #   1: not OK
 test_free_space() {
 
-	# get all backups list
 	local i all_backups=($(get_backups))
-	nb_backups=${#all_backups[@]}
+	local nb_backups=${#all_backups[@]}
 
 	# test free space until it's ready
 	for ((i=0; i<=$nb_backups; i++)) ; do
@@ -1422,7 +1448,7 @@ test_free_space() {
 		fi
 
 		# do not delete the last clean backup that will be used for hard links
-		[ "${all_backups[0]}" == "$lastcleanbackup" ] && continue
+		[ "${all_backups[0]}" == "$last_clean_backup" ] && continue
 
 		# clean oldest backup to free space
 		delete_backup ${all_backups[0]}
@@ -1435,13 +1461,14 @@ test_free_space() {
 
 # Delete empty directories recursively
 # Usage: clean_empty_directories PATH
+# Dependencies: $destination, $dest
 # Exit codes:
 #   0: cleaned
 #   1: usage error or path is not a directory
 clean_empty_directories() {
 
 	# get directory path
-	d=$*
+	local d=$*
 
 	# delete empty directories recursively
 	while true ; do
@@ -1515,7 +1542,7 @@ open_config() {
 	# usage error
 	[ -z "$1" ] && return 1
 
-	edit_file=$*
+	local edit_file=$*
 
 	# test file
 	if [ -e "$edit_file" ] ; then
@@ -1527,29 +1554,25 @@ open_config() {
 	fi
 
 	# if no custom editor, open file with graphical editor
-	if ! $custom_editor ; then
-		if ! $console_mode ; then
-			# check if we are using something else than a console
-			if [ "$(lbg_get_gui)" != console ] ; then
-				case $lb_current_os in
-					macOS)
-						all_editors+=(open -t)
-						;;
-					Windows)
-						all_editors+=(notepad)
-						;;
-					*)
-						all_editors+=(xdg-open)
-						;;
-				esac
-			fi
-		fi
+	# check if we are using something else than a console
+	if ! $custom_editor && ! $console_mode && [ "$(lbg_get_gui)" != console ] ; then
+		case $lb_current_os in
+			macOS)
+				all_editors+=(open -t)
+				;;
+			Windows)
+				all_editors+=(notepad)
+				;;
+			*)
+				all_editors+=(xdg-open)
+				;;
+		esac
 	fi
 
 	# add console editors or chosen one
 	all_editors+=("${editors[@]}")
 
-	# select a console editor
+	# select an editor
 	for e in "${all_editors[@]}" ; do
 		# test if editor exists
 		if lb_command_exists "$e" ; then
@@ -1600,10 +1623,8 @@ current_lock() {
 	$remote_destination && return 1
 
 	# get lock file
-	local current_lock_file
-	current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
+	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
 
-	# if no lock, return 1
 	[ -z "$current_lock_file" ] && return 1
 
 	# return date of lock
@@ -1630,10 +1651,14 @@ create_lock() {
 
 # Delete backup lock
 # Usage: remove_lock
+# Dependencies: $remote_destination, $destination, $backup_date, $recurrent_backup, $tr_*
 # Exit codes:
 #   0: OK
 #   1: could not delete lock
 release_lock() {
+
+	# do nothing if remote destination
+	$remote_destination && return 0
 
 	lb_debug "Deleting lock..."
 
@@ -1705,12 +1730,12 @@ prepare_rsync() {
 
 
 # Prepare the remote destination command
+# TODO (draft function to be completed)
 # Usage: prepare_remote
+# Dependencies: $rsync_cmd
 prepare_remote() {
 
-	if $server_sudo ; then
-		remote_cmd=(sudo)
-	fi
+	$server_sudo && remote_cmd=(sudo)
 
 	# extract from url t2b://user@hostname/path/for/backup :
 	# 1. destination=user@hostname
@@ -2057,22 +2082,17 @@ send_email_report() {
 	fi
 
 	# email options
-	email_opts=()
-	if [ -n "$email_sender" ] ; then
-		email_opts+=(--sender "$email_sender")
-	fi
+	local email_opts=()
+	[ -n "$email_sender" ] && email_opts+=(--sender "$email_sender")
 
 	# prepare email content
-	email_subject=$email_subject_prefix
-
-	if [ -n "$email_subject_prefix" ] ; then
-		email_subject+=" "
-	fi
-
-	email_subject+="$tr_email_report_subject "
-	email_content="$tr_email_report_greetings
+	local email_subject email_content="$tr_email_report_greetings
 
 "
+	# prepare email subject
+	[ -n "$email_subject_prefix" ] && email_subject="$email_subject_prefix "
+
+	email_subject+="$tr_email_report_subject "
 
 	if [ $lb_exitcode == 0 ] ; then
 		email_subject+=$(printf "$tr_email_report_subject_success" $lb_current_hostname)
@@ -2088,13 +2108,9 @@ $(printf "$tr_email_report_details" "$current_date")
 $(report_duration)
 
 "
-
 	# error report
-	if [ $lb_exitcode != 0 ] ; then
-		email_content+="$report_details
+	[ $lb_exitcode != 0 ] && email_content+="$report_details
 "
-	fi
-
 	email_content+="$tr_see_logfile_for_details
 
 $tr_email_report_regards
@@ -2123,14 +2139,12 @@ haltpc() {
 	fi
 
 	# countdown before halt
-	local i
 	echo -e "\nYour computer will halt in 10 seconds. Press Ctrl-C to cancel."
+	local i
 	for ((i=10; i>=0; i--)) ; do
 		echo -n "$i "
 		sleep 1
 	done
-
-	# just do a line return
 	echo
 
 	# run shutdown command
@@ -2183,13 +2197,14 @@ choose_operation() {
 
 # Configuration wizard
 # Usage: config_wizard
+# Dependencies: many, $tr_*
 # Exit codes:
 #   0: OK
 #   1: no destination chosen
 #   3: there are errors in configuration file
 config_wizard() {
 
-	local recurrent_enabled=false
+	local start_path recurrent_enabled=false
 
 	# set default destination directory
 	if [ -d "$destination" ] ; then
@@ -2206,7 +2221,7 @@ config_wizard() {
 		lb_debug "Chosen destination: $lbg_choose_directory"
 
 		# get the real path of the chosen directory
-		chosen_directory=$(lb_realpath "$lbg_choose_directory")
+		local chosen_directory=$(lb_realpath "$lbg_choose_directory")
 
 		# if destination changed (or first run)
 		if [ "$chosen_directory" != "$destination" ] ; then
@@ -2232,7 +2247,7 @@ config_wizard() {
 		fi
 
 		# set mountpoint in config file
-		mountpoint=$(lb_df_mountpoint "$chosen_directory")
+		local mountpoint=$(lb_df_mountpoint "$chosen_directory")
 		if [ -n "$mountpoint" ] ; then
 			lb_debug "Mount point: $mountpoint"
 
@@ -2251,7 +2266,7 @@ config_wizard() {
 		fi
 
 		# set mountpoint in config file
-		disk_uuid=$(lb_df_uuid "$chosen_directory")
+		local disk_uuid=$(lb_df_uuid "$chosen_directory")
 		if [ -n "$disk_uuid" ] ; then
 			lb_debug "Disk UUID: $disk_uuid"
 
@@ -2268,24 +2283,18 @@ config_wizard() {
 			lb_debug "Could not find disk UUID of destination."
 		fi
 
-		# hard links support
-		if $hard_links ; then
-			# if hard links not supported by destination,
-			if ! test_hardlinks "$destination" ; then
+		# test if destination supports hard links
+		if $hard_links && $force_hard_links && ! test_hardlinks "$destination" ; then
 
-				# if forced hard links in config
-				if $force_hard_links ; then
-					# ask user to keep or not the force mode
-					if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
+			# ask user to keep or not the force mode
+			if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
 
-						# set config
-						lb_set_config "$config_file" force_hard_links false
+				# set config
+				lb_set_config "$config_file" force_hard_links false
 
-						res_edit=$?
-						if [ $res_edit != 0 ] ; then
-							lb_display_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-						fi
-					fi
+				res_edit=$?
+				if [ $res_edit != 0 ] ; then
+					lb_display_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
 				fi
 			fi
 		fi
