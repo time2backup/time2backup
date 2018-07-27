@@ -1039,10 +1039,8 @@ t2b_restore() {
 		if [ "$(get_protocol "$file")" == files ] && [ "$lb_current_os" == Windows ] ; then
 			file=$(cygpath "$file")
 
-			# add a slash at the end of path (without duplicate it)
-			if $directory_mode ; then
-				file=$(remove_end_slash "$file")/
-			fi
+			# directory: add a slash at the end of path (without duplicate it)
+			$directory_mode && file=$(remove_end_slash "$file")/
 		fi
 	fi
 
@@ -1053,9 +1051,7 @@ t2b_restore() {
 	fi
 
 	# if it is a directory, add '/' at the end of the path
-	if [ -d "$file" ] ; then
-		file=$(remove_end_slash "$file")/
-	fi
+	[ -d "$file" ] && file=$(remove_end_slash "$file")/
 
 	lb_debug "Path to restore: $file"
 
@@ -1588,17 +1584,13 @@ t2b_status() {
 
 	# test backup destination
 	if ! prepare_destination &> /dev/null ; then
-		if ! $quiet_mode ; then
-			echo "backup destination not reachable"
-		fi
+		$quiet_mode || echo "backup destination not reachable"
 		return 4
 	fi
 
 	# if no backup lock exists, exit
 	if ! current_lock &> /dev/null ; then
-		if ! $quiet_mode ; then
-			echo "backup is not running"
-		fi
+		$quiet_mode || echo "backup is not running"
 		return 0
 	fi
 
@@ -1609,16 +1601,12 @@ t2b_status() {
 		# if current script, ignore it
 		[ $pid == $$ ] && continue
 
-		if ! $quiet_mode ; then
-			echo "backup is running with PID $pid"
-		fi
+		$quiet_mode || echo "backup is running with PID $pid"
 		return 5
 	done
 
 	# if no time2backup process found,
-	if ! $quiet_mode ; then
-		echo "backup lock is here, but there is no rsync command currently running"
-	fi
+	$quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
 	return 6
 }
 
@@ -1662,36 +1650,26 @@ t2b_stop() {
 	# if no backup is running or error, cannot stop
 	case $? in
 		0)
-			if ! $quiet_mode ; then
-				echo "backup is not running"
-			fi
+			$quiet_mode || echo "backup is not running"
 			return 0
 			;;
 		1)
-			if ! $quiet_mode ; then
-				echo "Unknown error"
-			fi
+			$quiet_mode || echo "Unknown error"
 			return 6
 			;;
 		4)
-			if ! $quiet_mode ; then
-				echo "backup destination not reachable"
-			fi
+			$quiet_mode || echo "backup destination not reachable"
 			return 4
 			;;
 		6)
-			if ! $quiet_mode ; then
-				echo "backup lock is here, but there is no rsync command currently running"
-			fi
+			$quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
 			return 7
 			;;
 	esac
 
 	# prompt confirmation
 	if ! $force_mode ; then
-		if ! lb_yesno "Are you sure you want to interrupt the current backup?" ; then
-			return 0
-		fi
+		lb_yesno "Are you sure you want to interrupt the current backup?" || return 0
 	fi
 
 	# search for a current rsync command and get parent PIDs
@@ -1713,26 +1691,20 @@ t2b_stop() {
 
 	# if no rsync process found, quit
 	if ! $pid_killed ; then
-		if ! $quiet_mode ; then
-			echo "Cannot found rsync PID"
-		fi
+		$quiet_mode || echo "Cannot found rsync PID"
 		return 7
 	fi
 
 	# wait 30 sec max until time2backup is really stopped
 	for i in $(seq 1 30) ; do
 		if t2b_status &> /dev/null ; then
-			if ! $quiet_mode ; then
-				echo "time2backup was successfully cancelled"
-			fi
+			$quiet_mode || echo "time2backup was successfully cancelled"
 			return 0
 		fi
 		sleep 1
 	done
 
-	if ! $quiet_mode ; then
-		echo "Still running! Could not stop time2backup process. You may retry in sudo."
-	fi
+	$quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
 	return 5
 }
 
@@ -1817,35 +1789,26 @@ t2b_mv() {
 
 	# confirm action
 	if ! $force_mode ; then
-		if ! $quiet_mode ; then
-			echo "You are about to move backup '$1' to '$2'."
-		fi
+		$quiet_mode || echo "You are about to move backup '$1' to '$2'."
 
 		# warn user if destination already exists
 		if [ -e "$destination/$file_history/$abs_dest" ] ; then
 			lb_warning "Destination already exists! This action may erase files."
 		fi
 
-		if ! lb_yesno "Do you want to continue?" ; then
-			return 0
-		fi
+		lb_yesno "Do you want to continue?" || return 0
 	fi
 
 	# move files
-	if ! $quiet_mode ; then
-		echo "Moving file(s)..."
-	fi
+	$quiet_mode || echo "Moving file(s)..."
 
 	local result
 	mv "$destination/$file_history/$abs_src" "$destination/$file_history/$abs_dest"
 	result=$?
 
-	if ! $quiet_mode ; then
-		lb_result $result
-	fi
-	if [ $result != 0 ] ; then
-		return 7
-	fi
+	$quiet_mode || lb_result $result
+
+	[ $result == 0 ] || return 7
 }
 
 
@@ -1919,9 +1882,7 @@ t2b_clean() {
 		abs_file=$(get_backup_path "$file")
 		[ -z "$abs_file" ] && continue
 
-		if ! $quiet_mode ; then
-			echo "Deleting backup $b..."
-		fi
+		$quiet_mode || echo "Deleting backup $b..."
 
 		# delete file(s)
 		rm -rf "$destination/$b/$abs_file" || clean_result=6

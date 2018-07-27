@@ -564,9 +564,7 @@ get_backup_history() {
 		fi
 	done
 
-	if [ $nb_versions == 0 ] ; then
-		return 2
-	fi
+	[ $nb_versions -gt 0 ] || return 2
 }
 
 
@@ -698,9 +696,8 @@ upgrade_config() {
 		config_param=$(echo $line | cut -d= -f1 | tr -d '[[:space:]]')
 		config_line=$(echo "$line" | sed 's/\\/\\\\/g; s/\//\\\//g')
 
-		if [ "$lb_current_os" == Windows ] ; then
-			config_line+="\r"
-		fi
+		# Windows end of file
+		[ "$lb_current_os" == Windows ] && config_line+="\r"
 
 		lb_debug "Upgrade $config_line..."
 
@@ -749,9 +746,7 @@ load_config() {
 	fi
 
 	# if destination is overriden, set it
-	if [ -n "$force_destination" ] ; then
-		destination=$force_destination
-	fi
+	[ -n "$force_destination" ] && destination=$force_destination
 
 	# test if destination is defined
 	if [ -z "$destination" ] ; then
@@ -799,9 +794,7 @@ load_config() {
 	# init some variables
 
 	# remove file:// prefix if any
-	if [ "${destination:0:7}" == "file://" ] ; then
-		destination=${destination:7}
-	fi
+	[ "${destination:0:7}" == "file://" ] && destination=${destination:7}
 
 	# if keep limit to 0, we are in a mirror mode
 	[ $keep_limit == 0 ] && mirror_mode=true
@@ -1001,9 +994,7 @@ get_backup_path() {
 	# if file or directory (relative path)
 
 	# remove file:// prefix
-	if [ "${path:0:7}" == "file://" ] ; then
-		path=${path:7}
-	fi
+	[ "${path:0:7}" == "file://" ] && path=${path:7}
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$path" ] ; then
@@ -1672,9 +1663,8 @@ release_lock() {
 	rm -f "$destination/.lock_$backup_date" &> /dev/null
 	if [ $? != 0 ] ; then
 		lb_display_critical --log "$tr_error_unlock"
-		if ! $recurrent_backup ; then
-			lbg_error "$tr_error_unlock"
-		fi
+		# display error if not recurrent
+		$recurrent_backup || lbg_error "$tr_error_unlock"
 		return 1
 	fi
 }
@@ -1688,33 +1678,18 @@ prepare_rsync() {
 	# basic command
 	rsync_cmd=("$rsync_path" -aH)
 
-	if ! $quiet_mode ; then
-		rsync_cmd+=(-v)
-	fi
+	$quiet_mode || rsync_cmd+=(-v)
 
-	if $files_progress ; then
-		rsync_cmd+=(--progress)
-	fi
+	$files_progress && rsync_cmd+=(--progress)
 
-	# if disable preserve ownership and access rights
-	if ! $preserve_permissions ; then
-		rsync_cmd+=(--no-o --no-g --no-p)
-	fi
+	$preserve_permissions || rsync_cmd+=(--no-o --no-g --no-p)
 
-	# get config for inclusions
-	if [ -f "$config_includes" ] ; then
-		rsync_cmd+=(--include-from "$config_includes")
-	fi
+	[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
 
-	# get config for exclusions
-	if [ -f "$config_excludes" ] ; then
-		rsync_cmd+=(--exclude-from "$config_excludes")
-	fi
+	[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
 
-	# add user defined options
-	if [ ${#rsync_options[@]} -gt 0 ] ; then
-		rsync_cmd+=("${rsync_options[@]}")
-	fi
+	# user defined options
+	[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
 
 	# command-specific options
 	if [ "$1" == backup ] ; then
@@ -1722,9 +1697,7 @@ prepare_rsync() {
 		rsync_cmd+=(--delete)
 
 		# add max size if specified
-		if [ -n "$max_size" ] ; then
-			rsync_cmd+=(--max-size "$max_size")
-		fi
+		[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
 	fi
 }
 
