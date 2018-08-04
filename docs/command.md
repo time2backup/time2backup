@@ -257,7 +257,7 @@ time2backup [GLOBAL_OPTIONS] mv [OPTIONS] PATH DESTINATION
 - 4: Backup device is not reachable
 - 5: No backup found for the path
 - 6: Cannot determine the backup path of source path or destination
-- 7: mv command error
+- 7: Error while moving files
 
 ---------------------------------------------------------------
 <a name="clean"></a>

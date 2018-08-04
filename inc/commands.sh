@@ -1769,25 +1769,25 @@ t2b_mv() {
 		dest=$2
 	fi
 
-	# get all backup versions of this file
-	file_history=$(get_backup_history -l "$src")
+	# get all backup versions of this path
+	file_history=($(get_backup_history -a "$src"))
 
 	# no backup found
-	if [ -z "$file_history" ] ; then
+	if [ ${#file_history[@]} == 0 ] ; then
 		lb_error "No backup found for '$src'!"
 		return 5
 	fi
 
-	# get path of file
-	abs_src=$(get_backup_path "$src")
-	if [ $? != 0 ] ; then
-		lb_error "Cannot determine the backup path of your source."
+	# get backup path of the source
+	path_src=$(get_backup_path "$src")
+	if [ $? != 0 ] || [ -z "$path_src" ] ; then
+		lb_error "Cannot determine the backup path of your source. Please retry with an absolute path."
 		return 6
 	fi
 
-	# get path of new file
-	abs_dest=$(get_backup_path "$dest")
-	if [ $? != 0 ] ; then
+	# get backup path of the destination
+	path_dest=$(get_backup_path "$dest")
+	if [ $? != 0 ] || [ -z "$path_dest" ] ; then
 		lb_error "Cannot determine the backup path of your destination. Please retry with an absolute path."
 		return 6
 	fi
@@ -1797,23 +1797,24 @@ t2b_mv() {
 		$quiet_mode || echo "You are about to move backup '$1' to '$2'."
 
 		# warn user if destination already exists
-		if [ -e "$destination/$file_history/$abs_dest" ] ; then
+		if [ -e "$destination/$file_history/$path_dest" ] ; then
 			lb_warning "Destination already exists! This action may erase files."
 		fi
 
 		lb_yesno "Do you want to continue?" || return 0
 	fi
 
-	# move files
-	$quiet_mode || echo "Moving file(s)..."
+	local b res result=0
+	for b in "${file_history[@]}" ; do
+		$quiet_mode || echo "Moving file(s) for backup $b..."
 
-	local result
-	mv "$destination/$file_history/$abs_src" "$destination/$file_history/$abs_dest"
-	result=$?
+		mv "$destination/$b/$path_src" "$destination/$b/$path_dest"
+		res=$?
 
-	$quiet_mode || lb_result $result
+		$quiet_mode || lb_result $res || result=7
+	done
 
-	[ $result == 0 ] || return 7
+	return $result
 }
 
 
