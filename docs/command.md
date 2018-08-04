@@ -245,9 +245,10 @@ time2backup [GLOBAL_OPTIONS] mv [OPTIONS] PATH DESTINATION
 
 ### Options
 ```
--f, --force  Force move; do not display confirmation"
--q, --quiet  Quiet mode"
--h, --help   Print help
+-l, --latest  Move only the latest backup version"
+-f, --force   Force move; do not display confirmation"
+-q, --quiet   Quiet mode"
+-h, --help    Print help
 ```
 
 ### Exit codes

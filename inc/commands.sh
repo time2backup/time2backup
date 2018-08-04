@@ -1719,12 +1719,16 @@ t2b_stop() {
 t2b_mv() {
 
 	# default option values
+	local mv_latest=false
 	local force_mode=false
 	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
+			-l|--latest)
+				mv_latest=true
+				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1812,6 +1816,9 @@ t2b_mv() {
 		res=$?
 
 		$quiet_mode || lb_result $res || result=7
+
+		# if mv only latest backup, quit
+		$mv_latest && break
 	done
 
 	return $result

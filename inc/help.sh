@@ -118,9 +118,10 @@ print_help() {
 			echo "Move last backup file path"
 			echo
 			echo "Options:"
-			echo "  -f, --force  Force move; do not display confirmation"
-			echo "  -q, --quiet  Quiet mode"
-			echo "  -h, --help   Print help"
+			echo "  -l, --latest  Move only the latest backup version"
+			echo "  -f, --force   Force move; do not display confirmation"
+			echo "  -q, --quiet   Quiet mode"
+			echo "  -h, --help    Print help"
 			;;
 		clean)
 			echo "Command usage: $command [OPTIONS] PATH"
