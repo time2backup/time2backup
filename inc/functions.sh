@@ -40,7 +40,7 @@
 #     create_logfile
 #     test_backup
 #     test_free_space
-#     clean_empty_directories
+#     clean_empty_backup
 #     open_config
 #     current_lock
 #     create_lock
@@ -1450,49 +1450,53 @@ test_free_space() {
 }
 
 
-# Delete empty directories recursively
-# Usage: clean_empty_directories PATH [BACKUP_PATH]
-# Dependencies: $destination, $dest
+# Delete empty backup directory
+# Usage: clean_empty_backup [OPTIONS] BACKUP_DATE [PATH]
+# Options:
+#   -i Delete infofile if exists
+# Dependencies: $destination
 # Exit codes:
 #   0: cleaned
 #   1: usage error or path is not a directory
-clean_empty_directories() {
+clean_empty_backup() {
 
-	local d=$*
+	local delete_infofile=false
 
-	# delete empty directories recursively
-	while true ; do
-
-		# if does not exists, go to parent directory and continue loop
-		if ! [ -e "$d" ] ; then
-			d=$(dirname "$d")
-			# avoid useless loop
-			[ -e "$d" ] || return 1
-		fi
-
-		# if is not a directory, this is an usage error
-		[ -d "$d" ] || return 1
-
-		# security check: do not delete destination path
-		[ "$(dirname "$d")" == "$(dirname "$destination")" ] && return 0
-
-		# if only a backup info file, delete it
-		if [ "$d" == "$dest" ] && [ "$(ls "$d")" == backup.info ] ; then
-			lb_debug "Deleting backup.info file: $d/backup.info"
-			rm -f "$d/backup.info" 2> /dev/null
-		fi
-
-		# if directory is not empty, quit loop
-		lb_is_dir_empty "$d" || return 0
-
-		lb_debug --log "Deleting empty directory: $d"
-
-		# delete directory (quit if error)
-		rmdir "$d" &> /dev/null || return 0
-
-		# go to parent directory and continue loop
-		d=$(dirname "$d")
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-i)
+				delete_infofile=true
+				;;
+			*)
+				break
+				;;
+		esac
+		shift
 	done
+
+	# if backup does not exists, quit
+	[ -d "$destination/$1" ] || return 0
+
+	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
+		lb_debug --log "Clean empty backup: $1/$2"
+		$(cd "$destination" && rmdir -p "$1/$2") &> /dev/null
+	fi
+
+	if $delete_infofile && \
+	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
+		lb_debug --log "Clean info file of backup $1"
+		rm -f "$destination/$1/backup.info" &> /dev/null
+	fi
+
+	# if not empty, do nothing
+	lb_is_dir_empty "$destination/$1" || return 0
+
+	lb_debug --log "Clean empty backup: $1"
+
+	# delete and prevent loosing context
+	$(cd "$destination" && rmdir "$1") &> /dev/null
+
+	return 0
 }
 
 
@@ -1923,19 +1927,7 @@ clean_exit() {
 
 	lb_debug --log "Clean exit"
 
-	# if backup date folder still exists,
-	if [ -d "$dest" ] ; then
-		# try to clean final destination directory
-		clean_empty_directories "$finaldest"
-
-		# if there is nothing more than the backup.info, delete it
-		if [ "$(ls -A "$dest" 2> /dev/null)" == backup.info ] ; then
-			rm -f "$dest/backup.info" 2> /dev/null
-		fi
-
-		# cleanup backup directory date if empty
-		clean_empty_directories "$dest"
-	fi
+	clean_empty_backup -i $backup_date "$path_dest"
 
 	# delete backup lock
 	release_lock

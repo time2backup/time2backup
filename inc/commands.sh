@@ -471,7 +471,7 @@ hard_links = $hard_links" > "$infofile"
 					prepare_dest=$?
 
 					# clean old directory if empty
-					clean_empty_directories "$(dirname "$destination/$last_clean_backup/$path_dest")"
+					clean_empty_backup $last_clean_backup "$(dirname "$path_dest")"
 
 					# change last clean backup for hard links
 					if $hard_links ; then
@@ -483,6 +483,9 @@ hard_links = $hard_links" > "$infofile"
 							last_clean_backup=""
 						fi
 					fi
+
+					# move latest link
+					create_latest_link
 				else
 					# create destination
 					mkdir "$finaldest"
@@ -499,8 +502,8 @@ hard_links = $hard_links" > "$infofile"
 			errors+=("$src (write error)")
 			[ $lb_exitcode == 0 ] && lb_exitcode=7
 
-			# clean final destination directory
-			clean_empty_directories "$finaldest"
+			# clean directory WITHOUT infofile
+			clean_empty_backup $backup_date "$path_dest"
 
 			# continue to next source
 			continue
@@ -554,8 +557,8 @@ hard_links = $hard_links" > "$infofile"
 			errors+=("$src (exclude error)")
 			lb_exitcode=11
 
-			# cleanup
-			clean_empty_directories "$finaldest"
+			# clean directory WITHOUT infofile
+			clean_empty_backup $backup_date "$path_dest"
 
 			# continue to next source
 			continue
@@ -605,7 +608,8 @@ hard_links = $hard_links" > "$infofile"
 				errors+=("$src (rsync test error)")
 				[ $lb_exitcode == 0 ] && lb_exitcode=12
 
-				clean_empty_directories "$finaldest"
+				# clean directory WITHOUT infofile
+				clean_empty_backup $backup_date "$path_dest"
 
 				# continue to the next backup source
 				continue
@@ -619,7 +623,8 @@ hard_links = $hard_links" > "$infofile"
 				errors+=("$src (not enough space left)")
 				[ $lb_exitcode == 0 ] && lb_exitcode=13
 
-				clean_empty_directories "$finaldest"
+				# clean directory WITHOUT infofile
+				clean_empty_backup $backup_date "$path_dest"
 
 				# continue to next source
 				continue
@@ -680,16 +685,16 @@ hard_links = $hard_links" > "$infofile"
 			fi
 		fi
 
-		# clean empty trash directories
+		# clean empty trash
 		if ! $hard_links ; then
-			clean_empty_directories "$trash"
+			clean_empty_backup -i $last_clean_backup "$path_dest"
 		fi
 
 		# save duration
 		echo "duration = $(( $(date +%s) - $src_timestamp ))" >> "$infofile"
 
-		# clean empty backup if nothing inside
-		clean_empty_directories "$finaldest"
+		# clean directory WITHOUT infofile
+		clean_empty_backup $backup_date "$path_dest"
 
 	done # end of backup sources
 
@@ -702,7 +707,7 @@ hard_links = $hard_links" > "$infofile"
 		lb_exitcode=14
 	else
 		# final cleanup
-		clean_empty_directories "$dest"
+		clean_empty_backup -i $backup_date
 
 		# if destination was not empty, rotate backups
 		if [ -d "$dest" ] ; then
