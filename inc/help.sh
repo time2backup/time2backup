@@ -125,12 +125,13 @@ print_help() {
 		clean)
 			echo "Command usage: $command [OPTIONS] PATH"
 			echo
-			echo "Clean files in backups"
+			echo "Delete backup versions of files"
 			echo
 			echo "Options:"
-			echo "  -f, --force  Force clean; do not display confirmation"
-			echo "  -q, --quiet  Quiet mode"
-			echo "  -h, --help   Print help"
+			echo "  -l, --keep-latest  Keep the latest backup version of the file(s)"
+			echo "  -f, --force        Force clean; do not display confirmation"
+			echo "  -q, --quiet        Quiet mode"
+			echo "  -h, --help         Print help"
 			;;
 		config)
 			echo "Command usage: $command [OPTIONS]"

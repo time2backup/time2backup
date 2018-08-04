@@ -1823,13 +1823,16 @@ t2b_mv() {
 t2b_clean() {
 
 	# default option values
+	local keep_latest=false
 	local force_mode=false
-	local clean_result=0
 	local quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
+			-l|--keep-latest)
+				keep_latest=true
+				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1865,36 +1868,60 @@ t2b_clean() {
 	# test backup destination
 	prepare_destination || return 4
 
-	file=$*
+	if [ "$lb_current_os" == Windows ] ; then
+		# get UNIX format for Windows paths
+		src=$(cygpath "$1")
+	else
+		src=$1
+	fi
 
-	# get all backup versions of this file
-	file_history=($(get_backup_history -a "$file"))
+	# get all backup versions of this path
+	file_history=($(get_backup_history -a "$src"))
 
 	# no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
-		lb_error "No backup found for '$file'!"
+		lb_error "No backup found for '$src'!"
 		return 5
 	fi
 
-	# confirmation
-	if ! $force_mode ; then
-		echo "${#file_history[@]} backups were found for this file."
-		lb_yesno "Do you really want to delete them?" || return 0
+	# get path of file
+	path_src=$(get_backup_path "$src")
+	if [ $? != 0 ] || [ -z "$path_src" ] ; then
+		lb_error "Cannot determine the backup path of your source. Please retry with an absolute path."
+		return 6
 	fi
 
-	# print backup versions
+	if $keep_latest && [ ${#file_history[@]} == 1 ] ; then
+		$quiet_mode || echo "1 backup found, nothing to do"
+		return 0
+	fi
+
+	$quiet_mode || echo "${#file_history[@]} backup(s) found for '$src'"
+
+	# confirm action
+	if ! $force_mode ; then
+		lb_yesno "Proceed cleaning?" || return 0
+	fi
+
+	local b res result=0 first=true
 	for b in "${file_history[@]}" ; do
-		# get path of file
-		abs_file=$(get_backup_path "$file")
-		[ -z "$abs_file" ] && continue
+
+		# if keep the latest, ignore this first entry
+		if $first && $keep_latest ; then
+			first=false
+			continue
+		fi
 
 		$quiet_mode || echo "Deleting backup $b..."
 
 		# delete file(s)
-		rm -rf "$destination/$b/$abs_file" || clean_result=6
+		rm -rf "$destination/$b/$path_src"
+		res=$?
+
+		$quiet_mode || lb_result $res || result=7
 	done
 
-	return $clean_result
+	return $result
 }
 
 

@@ -262,7 +262,7 @@ time2backup [GLOBAL_OPTIONS] mv [OPTIONS] PATH DESTINATION
 ---------------------------------------------------------------
 <a name="clean"></a>
 ## clean
-Clean some backup files.
+Delete backup versions of files.
 
 ### Usage
 ```bash
@@ -271,9 +271,10 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 
 ### Options
 ```
--f, --force  Force clean; do not display confirmation
--q, --quiet  Quiet mode
--h, --help   Print help
+-l, --keep-latest  Keep the latest backup version of the file(s)"
+-f, --force        Force clean; do not display confirmation
+-q, --quiet        Quiet mode
+-h, --help         Print help
 ```
 
 ### Exit codes
@@ -282,7 +283,8 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 - 3: Config error
 - 4: Backup device is not reachable
 - 5: No backup found for the path
-- 6: Some error occured while deleting files
+- 6: Cannot determine the backup path of source path or destination
+- 7: Error while deleting files
 
 ---------------------------------------------------------------
 <a name="config"></a>
