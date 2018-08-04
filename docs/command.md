@@ -108,6 +108,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 ```
 -d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
                  by default it restores the last available backup
+-l, --latest     Restore the last available backup
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
 -p, --progress   Display restore progress for each file (overrides configuration)
 -f, --force      Force restore; do not display confirmation

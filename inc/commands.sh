@@ -113,7 +113,7 @@ t2b_backup() {
 	fi
 
 	# get last backup timestamp
-	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -o -E "^[1-9][0-9]*$")
+	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -Eo "^[1-9][0-9]*$")
 
 	# if recurrent, check frequency
 	if $recurrent_backup ; then
@@ -166,7 +166,7 @@ t2b_backup() {
 							;;
 					esac
 
-					fqnum=$(echo $frequency | grep -o -E "^[0-9]*")
+					fqnum=$(echo $frequency | grep -Eo "^[0-9]*")
 
 					# set offset
 					seconds_offset=$(( $fqnum * $fqunit))
@@ -2161,7 +2161,7 @@ EOF
 
 	# (re)create link
 	if $create_link ; then
-		ln -s -f "$lb_current_script" "$cmd_alias" &> /dev/null
+		ln -snf "$lb_current_script" "$cmd_alias" &> /dev/null
 		if [ $? != 0 ] ; then
 			echo
 			echo "Cannot create command link. It's not critical, but you may not run time2backup command directly."

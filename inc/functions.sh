@@ -203,7 +203,7 @@ get_protocol() {
 	case $protocol in
 		ssh|t2b)
 			# double check protocol
-			if echo "$*" | grep -q -E "^$protocol://" ; then
+			if echo "$*" | grep -Eq "^$protocol://" ; then
 				echo $protocol
 				return 0
 			fi
@@ -1479,7 +1479,7 @@ clean_empty_backup() {
 
 	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
 		lb_debug --log "Clean empty backup: $1/$2"
-		$(cd "$destination" && rmdir -p "$1/$2") &> /dev/null
+		$(cd "$destination" 2> /dev/null && rmdir -p "$1/$2" 2> /dev/null)
 	fi
 
 	if $delete_infofile && \
@@ -1494,7 +1494,7 @@ clean_empty_backup() {
 	lb_debug --log "Clean empty backup: $1"
 
 	# delete and prevent loosing context
-	$(cd "$destination" && rmdir "$1") &> /dev/null
+	$(cd "$destination" 2> /dev/null && rmdir "$1" 2> /dev/null)
 
 	return 0
 }
@@ -1904,9 +1904,9 @@ create_latest_link() {
 	# create a new link
 	# in a sub-context to avoid confusion and do not care of output
 	if [ "$lb_current_os" == Windows ] ; then
-		dummy=$(cd "$destination" 2> /dev/null && rm -f latest && cmd /c mklink /j latest $backup_date)
+		dummy=$(cd "$destination" 2> /dev/null && rm -f latest 2> /dev/null && cmd /c mklink /j latest $backup_date 2> /dev/null)
 	else
-		dummy=$(cd "$destination" 2> /dev/null && ln -s -n -f $backup_date latest 2> /dev/null)
+		dummy=$(cd "$destination" 2> /dev/null && ln -snf $backup_date latest 2> /dev/null)
 	fi
 
 	return 0
@@ -2341,7 +2341,7 @@ config_wizard() {
 
 						# display dialog to enter custom frequency
 						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
-							echo $lbg_input_text | grep -q -E "^[1-9][0-9]*(m|h|d)"
+							echo $lbg_input_text | grep -Eq "^[1-9][0-9]*(m|h|d)"
 							if [ $? == 0 ] ; then
 								lb_set_config "$config_file" frequency $lbg_input_text
 							else
