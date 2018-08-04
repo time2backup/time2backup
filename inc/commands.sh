@@ -1077,7 +1077,7 @@ t2b_restore() {
 	# search for dates
 	if [ "$backup_date" != latest ] ; then
 		# if date was specified but not here, error
-		if ! lb_array_contains "$backup_date" "${file_history[@]}" ; then
+		if ! lb_in_array "$backup_date" "${file_history[@]}" ; then
 			lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
 			return 7
 		fi
@@ -1486,7 +1486,7 @@ t2b_explore() {
 			backup_date=${path_history[0]}
 		else
 			# test if specified date exists
-			if ! lb_array_contains "$backup_date" "${path_history[@]}" ; then
+			if ! lb_in_array "$backup_date" "${path_history[@]}" ; then
 				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
 				return 7
 			fi

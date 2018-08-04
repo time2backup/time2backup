@@ -1,10 +1,10 @@
 #
-# time2backup English messages
+#  time2backup English messages
 #
-# This file is part of time2backup (https://time2backup.org)
+#  This file is part of time2backup (https://time2backup.org)
 #
-# MIT License
-# Copyright (c) 2017-2018 Jean Prunneaux
+#  MIT License
+#  Copyright (c) 2017-2018 Jean Prunneaux
 #
 
 # Dates formatting

@@ -282,7 +282,7 @@ test_hardlinks() {
 	[ -z "$fstype" ] && return 1
 
 	# if destination filesystem does not support hard links, return error
-	lb_array_contains "$fstype" "${supported_fstypes[@]}" || return 2
+	lb_in_array "$fstype" "${supported_fstypes[@]}" || return 2
 }
 
 
@@ -376,7 +376,7 @@ rsync_result() {
 
 # Transform a config file in Windows format
 # Usage: file_for_windows PATH
-# Dependencies: $lb_current_os
+# Dependencies: none
 # Exit codes:
 #   0: OK
 #   1: Usage error / Unknown error
@@ -393,7 +393,7 @@ file_for_windows() {
 
 # Get readable backup date
 # Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
-# Dependencies: $lb_current_os, $tr_readable_date
+# Dependencies: $tr_readable_date
 # Return: backup datetime (format YYYY-MM-DD HH:MM:SS)
 # e.g. 2016-12-31-233059 -> 2016-12-31 23:30:59
 # Exit codes:
@@ -499,7 +499,7 @@ get_backup_history() {
 
 		# if get only non empty directories
 		if $not_empty && [ -d "$gbh_backup_file" ] ; then
-			lb_dir_is_empty "$gbh_backup_file" && continue
+			lb_is_dir_empty "$gbh_backup_file" && continue
 		fi
 
 		# if get only last version, print and exit
@@ -570,7 +570,7 @@ get_backup_history() {
 
 # Create configuration files in user config
 # Usage: create_config
-# Dependencies: $lb_current_script_directory, $config_directory, $config_file, $config_excludes, $config_sources, $lb_current_user
+# Dependencies: $config_directory, $config_file, $config_excludes, $config_sources
 # Exit codes:
 #   0: OK
 #   1: could not create config directory
@@ -623,7 +623,7 @@ create_config() {
 
 # Upgrade configuration
 # Usage: upgrade_config CURRENT_VERSION
-# Dependencies: $lb_current_os, $lb_current_script_directory, $config_file, $version, $quiet_mode, $command, $tr_upgrade_config, $tr_error_upgrade_config
+# Dependencies: $config_file, $version, $quiet_mode, $command, $tr_*
 # Exit codes:
 #   0: upgrade OK
 #   1: compatibility error
@@ -718,7 +718,7 @@ upgrade_config() {
 
 # Load configuration file
 # Usage: load_config
-# Dependencies: $lb_current_os, $config_sources, $config_file, $command, $quiet_mode, $tr_loading_config, $tr_error_read_config
+# Dependencies: $config_sources, $config_file, $command, $quiet_mode, $tr_*
 # Exit codes:
 #   0: OK
 #   1: cannot open config
@@ -816,7 +816,7 @@ load_config() {
 
 # Mount destination
 # Usage: mount_destination
-# Dependencies: $lb_current_os, $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint
+# Dependencies: $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint
 # Exit codes:
 #   0: mount OK
 #   1: mount error
@@ -1062,7 +1062,7 @@ delete_backup() {
 
 # Clean old backups
 # Usage: rotate_backups
-# Dependencies: $keep_limit, $tr_notify_rotate_backup, $tr_error_clean_backups
+# Dependencies: $keep_limit, $tr_*
 # Exit codes:
 #   0: rotate OK
 #   1: rm error
@@ -1118,7 +1118,7 @@ report_duration() {
 
 # Enable/disable cron jobs
 # Usage: crontab_config enable|disable
-# Dependencies: $lb_current_script, $lb_current_user, $config_directory, $user
+# Dependencies: $config_directory, $user
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -1223,7 +1223,7 @@ apply_config() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $lb_current_hostname, $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
+# Dependencies: $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
 #   0: destination is ready
 #   1: destination not reachable
@@ -1451,14 +1451,13 @@ test_free_space() {
 
 
 # Delete empty directories recursively
-# Usage: clean_empty_directories PATH
+# Usage: clean_empty_directories PATH [BACKUP_PATH]
 # Dependencies: $destination, $dest
 # Exit codes:
 #   0: cleaned
 #   1: usage error or path is not a directory
 clean_empty_directories() {
 
-	# get directory path
 	local d=$*
 
 	# delete empty directories recursively
@@ -1484,7 +1483,7 @@ clean_empty_directories() {
 		fi
 
 		# if directory is not empty, quit loop
-		lb_dir_is_empty "$d" || return 0
+		lb_is_dir_empty "$d" || return 0
 
 		lb_debug --log "Deleting empty directory: $d"
 
@@ -1501,7 +1500,7 @@ clean_empty_directories() {
 # Usage: open_config [OPTIONS] CONFIG_FILE
 # Options:
 #   -e COMMAND  use a custom text editor
-# Dependencies: $lb_current_os, $console_mode
+# Dependencies: $console_mode
 # Exit codes:
 #   0: OK
 #   1: usage error
@@ -1894,7 +1893,7 @@ After script failed (exit code: $result)
 
 # Create latest link
 # Usage: create_latest_link
-# Dependencies: $lb_current_os, $destination, $backup_date
+# Dependencies: $destination, $backup_date
 create_latest_link() {
 	lb_debug --log "Create latest link..."
 
@@ -1916,7 +1915,7 @@ create_latest_link() {
 
 # Clean things before exit
 # Usage: clean_exit [EXIT_CODE]
-# Dependencies: $lb_exitcode, $dest, $finaldest, $unmount, $keep_logs, $logfile, $logs_directory, $shutdown, $tr_*
+# Dependencies: $dest, $finaldest, $unmount, $keep_logs, $logfile, $logs_directory, $shutdown, $tr_*
 clean_exit() {
 
 	# set exit code if specified
@@ -1970,21 +1969,10 @@ clean_exit() {
 	esac
 
 	if $delete_logs ; then
-
+		# delete log file
 		rm -f "$logfile" &> /dev/null
-
-		if [ $? != 0 ] ; then
-			lb_debug --log "Failed to delete logfile"
-		fi
-
 		# delete logs directory if empty
-		if lb_dir_is_empty "$logs_directory" ; then
-			rmdir "$logs_directory" &> /dev/null
-
-			if [ $? != 0 ] ; then
-				lb_debug "Failed to delete logs directory"
-			fi
-		fi
+		rmdir "$logs_directory" &> /dev/null
 	fi
 
 	# if shutdown after backup, execute it
@@ -2028,7 +2016,7 @@ cancel_exit() {
 
 # Send email report
 # Usage: send_email_report
-# Dependencies: $lb_exitcode, $lb_current_hostname, $email_report, $email_recipient, $email_sender, $email_subject_prefix, $current_date, $report_details, $tr_*
+# Dependencies: $email_report, $email_recipient, $email_sender, $email_subject_prefix, $current_date, $report_details, $tr_*
 # Exit codes:
 #   0: email sent, not enabled or no error
 #   1: email recipient not set
