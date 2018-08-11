@@ -253,16 +253,8 @@ t2b_backup() {
 	notify "$tr_notify_prepare_backup"
 	lb_display --log "Prepare backup destination..."
 
-	# if mirror mode and there is an old backup, move last backup to current directory
-	last_backup=$(get_backups | tail -1)
-	if $mirror_mode && [ -n "$last_backup" ] ; then
-		mv "$destination/$last_backup" "$dest" && create_latest_link
-	else
-		# create destination
-		mkdir "$dest"
-	fi
-
-	# if failed to move or to create
+	# create destination
+	mkdir "$dest"
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 7
@@ -422,21 +414,19 @@ hard_links = $hard_links" > "$infofile"
 
 		if [ $prepare_dest == 0 ] ; then
 			# reset last backup date
-			last_clean_backup=""
-			last_clean_backup_linkdest=""
+			real_last_clean_backup=""
 
-			# find the last backup of this source (non empty)
-			if [ -n "$last_backup" ] ; then
-				last_clean_backup=$(get_backup_history -n -l "$src")
-				lb_debug --log "Last backup used for link/trash: $last_clean_backup"
-			fi
+			# find the last backup of this source
+			last_clean_backup=$(get_backup_history -n -l "$src")
+			lb_debug --log "Last backup used for link/trash: $last_clean_backup"
 
 			if [ -n "$last_clean_backup" ] ; then
 
-				# default behaviour: mkdir or mv destination
-				if $hard_links ; then
-					mv_dest=false
-				else
+				# default behaviour: mkdir
+				mv_dest=false
+
+				# if mirror mode or trash mode, move destination
+				if [ $keep_limit == 0 ] || ! $hard_links ; then
 					mv_dest=true
 				fi
 
@@ -457,7 +447,7 @@ hard_links = $hard_links" > "$infofile"
 							# ignore the current last backup
 							[ "$b" == "$last_clean_backup" ] && continue
 
-							last_clean_backup_linkdest=$b
+							real_last_clean_backup=$b
 							break
 						done
 
@@ -475,9 +465,9 @@ hard_links = $hard_links" > "$infofile"
 
 					# change last clean backup for hard links
 					if $hard_links ; then
-						if [ -n "$last_clean_backup_linkdest" ] ; then
-							lb_debug "Last backup used for links: $last_clean_backup_linkdest"
-							last_clean_backup=$last_clean_backup_linkdest
+						if [ -n "$real_last_clean_backup" ] ; then
+							lb_debug "Last backup used for links: $real_last_clean_backup"
+							last_clean_backup=$real_last_clean_backup
 						else
 							# if no older link, reset it
 							last_clean_backup=""
@@ -512,32 +502,31 @@ hard_links = $hard_links" > "$infofile"
 		# define rsync command
 		cmd=("${rsync_cmd[@]}")
 
-		if ! $mirror_mode ; then
-			# if first backup, no need to add incremental options
-			if [ -n "$last_clean_backup" ] ; then
-				# if destination supports hard links, use incremental with hard links system
-				if $hard_links ; then
-					# revision folder
-					linkdest=$(get_relative_path "$finaldest" "$destination")
-					if [ -e "$linkdest" ] ; then
-						cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
-
-						echo "trash = $last_clean_backup" >> "$infofile"
-					fi
-				else
-					# backups with a "trash" folder that contains older revisions
-					# be careful that trash must be set to parent directory
-					# or it will create something like dest/src/src
-					trash=$destination/$last_clean_backup/$path_dest
-
-					# create trash
-					mkdir -p "$trash"
-
-					# move last destination
-					cmd+=(-b --backup-dir "$trash")
+		# if keep_limit = 0, we don't need to use versionning
+		# if first backup, no need to add incremental options
+		if [ $keep_limit != 0 ] && [ -n "$last_clean_backup" ] ; then
+			# if destination supports hard links, use incremental with hard links system
+			if $hard_links ; then
+				# revision folder
+				linkdest=$(get_relative_path "$finaldest" "$destination")
+				if [ -e "$linkdest" ] ; then
+					cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
 
 					echo "trash = $last_clean_backup" >> "$infofile"
 				fi
+			else
+				# backups with a "trash" folder that contains older revisions
+				# be careful that trash must be set to parent directory
+				# or it will create something like dest/src/src
+				trash=$destination/$last_clean_backup/$path_dest
+
+				# create trash
+				mkdir -p "$trash"
+
+				# move last destination
+				cmd+=(-b --backup-dir "$trash")
+
+				echo "trash = $last_clean_backup" >> "$infofile"
 			fi
 		fi
 

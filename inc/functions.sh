@@ -718,7 +718,7 @@ upgrade_config() {
 
 # Load configuration file
 # Usage: load_config
-# Dependencies: $config_sources, $config_file, $command, $quiet_mode, $tr_*
+# Dependencies: $config_sources, $config_file, $command, $quiet_mode, $tr_*, $force_destination, $destination, $keep_limit
 # Exit codes:
 #   0: OK
 #   1: cannot open config
@@ -795,9 +795,6 @@ load_config() {
 
 	# remove file:// prefix if any
 	[ "${destination:0:7}" == "file://" ] && destination=${destination:7}
-
-	# if keep limit to 0, we are in a mirror mode
-	[ $keep_limit == 0 ] && mirror_mode=true
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
@@ -1347,7 +1344,7 @@ create_logfile() {
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup
-# Dependencies: $logfile, $infofile, $cmd, $total_size, $mirror_mode
+# Dependencies: $logfile, $infofile, $cmd, $total_size
 # Return: size of the backup (in bytes)
 # Exit codes:
 #   0: OK
@@ -1375,18 +1372,16 @@ test_backup() {
 	fi
 
 	# add the space to be taken by the folders!
-	# could be important if you have many folders; not necessary in mirror mode
-	if ! $mirror_mode ; then
+	# could be important if you have many folders
 
-		# get the source path from rsync command (array size - 2)
-		local src_folder=${test_cmd[${#test_cmd[@]}-2]}
+	# get the source path from rsync command (array size - 2)
+	local src_folder=${test_cmd[${#test_cmd[@]}-2]}
 
-		# get size of folders
-		local folders_size=$(folders_size "$src_folder")
+	# get size of folders
+	local folders_size=$(folders_size "$src_folder")
 
-		# add size of folders to total size
-		lb_is_integer $folders_size && total_size=$(($total_size + $folders_size))
-	fi
+	# add size of folders to total size
+	lb_is_integer $folders_size && total_size=$(($total_size + $folders_size))
 
 	# add a security margin of 1MB for logs and future backups
 	total_size=$(($total_size + 1000000))
@@ -1679,13 +1674,13 @@ release_lock() {
 prepare_rsync() {
 
 	# basic command
-	rsync_cmd=("$rsync_path" -aH)
+	rsync_cmd=("$rsync_path" -rltDH)
 
 	$quiet_mode || rsync_cmd+=(-v)
 
 	$files_progress && rsync_cmd+=(--progress)
 
-	$preserve_permissions || rsync_cmd+=(--no-o --no-g --no-p)
+	$preserve_permissions && rsync_cmd+=(-pog)
 
 	[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
 
