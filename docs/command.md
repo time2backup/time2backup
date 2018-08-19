@@ -156,7 +156,7 @@ time2backup [GLOBAL_OPTIONS] history [OPTIONS] PATH
 ---------------------------------------------------------------
 <a name="explore"></a>
 ## explore
-Open file browser to explore backuped files
+Open file browser to explore backups.
 
 ### Usage
 ```bash
@@ -184,7 +184,7 @@ Note: If no path is specified, it will open the root backup folder.
 ---------------------------------------------------------------
 <a name="status"></a>
 ## status
-Check if a backup is currently running
+Check if a backup is currently running.
 
 ### Usage
 ```bash
@@ -234,7 +234,7 @@ time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
 ---------------------------------------------------------------
 <a name="mv"></a>
 ## mv
-Move or rename backuped files.
+Move or rename file backups.
 
 Use this command if you want to rename/move a huge file/directory and avoid
 time2backup to consider it as deleted and retransfer the file/directory.

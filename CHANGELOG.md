@@ -3,7 +3,7 @@
 ## 1.3.1 (2018-02-19)
 - Fix bug when excluding destination folder to avoid recursive backups
 - Fix line return bug for emails
-- Fix "nothing was backuped" error if destination disappeard before end
+- Fix "nothing was backed up" error if destination disappears before end
 - New quit option in choose operation dialog
 - Add lock details in console
 - Hide explore command in console mode

@@ -665,7 +665,7 @@ hard_links = $hard_links" > "$infofile"
 			# determine between warnings and errors
 			if rsync_result $res ; then
 				# rsync minor errors (partial transfers)
-				warnings+=("$src (some files were not backuped; code: $res)")
+				warnings+=("$src (some files were not backed up; code: $res)")
 				lb_exitcode=15
 			else
 				# critical errors that caused backup to fail
@@ -702,9 +702,9 @@ hard_links = $hard_links" > "$infofile"
 		if [ -d "$dest" ] ; then
 			rotate_backups
 		else
-			# if nothing was backuped, consider it as a critical error
+			# if nothing was backed up, consider it as a critical error
 			# and do not rotate backups
-			errors+=("Nothing was backuped.")
+			errors+=("Nothing was backed up.")
 			lb_exitcode=14
 		fi
 	fi
