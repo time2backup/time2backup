@@ -1311,9 +1311,23 @@ prepare_destination() {
 	fi
 
 	# check if destination supports hard links
-	if $hard_links && ! $force_hard_links && ! test_hardlinks "$destination" ; then
-		lb_debug --log "Destination does not support hard links. Continue in trash mode."
-		hard_links=false
+	if $hard_links && ! $force_hard_links ; then
+		test_hardlinks "$destination"
+		case $? in
+			0)
+				# OK
+				;;
+			2)
+				# filesystem does not support hard links
+				lb_debug --log "Destination does not support hard links. Continue in trash mode."
+				hard_links=false
+				;;
+			*)
+				# filesystem not found
+				lb_warning --log "Destination filesystem not found. Continue in trash mode."
+				hard_links=false
+				;;
+		esac
 	fi
 }
 
