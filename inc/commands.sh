@@ -1735,13 +1735,32 @@ t2b_mv() {
 	# test backup destination
 	prepare_destination || return 4
 
-	if [ "$lb_current_os" == Windows ] ; then
+	if [ "$(get_protocol "$1")" == files ] ; then
 		# get UNIX format for Windows paths
-		src=$(cygpath "$1")
-		dest=$(cygpath "$2")
+		if [ "$lb_current_os" == Windows ] ; then
+			src=$(cygpath "$1")
+		else
+			src=$1
+		fi
+
+		# get absolute path of source
+		abs_src=$(lb_abspath "$src")
 	else
-		src=$1
-		dest=$2
+		abs_src=$src
+	fi
+
+	if [ "$(get_protocol "$2")" == files ] ; then
+		# get UNIX format for Windows paths
+		if [ "$lb_current_os" == Windows ] ; then
+			dest=$(cygpath "$2")
+		else
+			dest=$2
+		fi
+
+		# get absolute path of source
+		abs_dest=$(lb_abspath "$dest")
+	else
+		abs_dest=$dest
 	fi
 
 	# get all backup versions of this path
@@ -1769,7 +1788,7 @@ t2b_mv() {
 
 	# confirm action
 	if ! $force_mode ; then
-		$quiet_mode || echo "You are about to move backup '$1' to '$2'."
+		$quiet_mode || echo "You are about to move ${#file_history[@]} backups from '$1' to '$2'."
 
 		# warn user if destination already exists
 		if [ -e "$destination/$file_history/$path_dest" ] ; then
@@ -1779,14 +1798,28 @@ t2b_mv() {
 		lb_yesno "Do you want to continue?" || return 0
 	fi
 
-	local b res result=0
+	local b res infofile section result=0
 	for b in "${file_history[@]}" ; do
 		$quiet_mode || echo "Moving file(s) for backup $b..."
 
 		mv "$destination/$b/$path_src" "$destination/$b/$path_dest"
-		res=$?
+		if [ $? == 0 ] ; then
+			# get the infofile
+			infofile=$destination/$b/backup.info
+			section=$(find_infofile_section "$infofile" "$abs_src")
 
-		$quiet_mode || lb_result $res || result=7
+			# if the moved source is a source itself, rename it
+			if [ -n "$section" ] ; then
+				if [ "$(lb_get_config -s $section "$infofile" path)" == "$abs_src" ] ; then
+					lb_set_config -s $section "$infofile" path "$abs_dest"
+				fi
+			fi
+
+		else
+			# mv failed
+			$quiet_mode || lb_result 1
+			result=7
+		fi
 
 		# if mv only latest backup, quit
 		$mv_latest && break
