@@ -17,6 +17,7 @@
 #     get_protocol
 #     url2ssh
 #     find_infofile_section
+#     get_infofile_value
 #     test_hardlinks
 #     folders_size
 #     test_space_available
@@ -260,6 +261,24 @@ find_infofile_section() {
 
 	# not found
 	return 1
+}
+
+
+# Get value from an infofile
+# Usage: get_infofile_value INFO_FILE SOURCE_PATH PARAM
+# Dependencies: none
+# Return: value
+# Exit code:
+#   0: OK
+#   1: section not found
+#   2: parameter not found
+get_infofile_value() {
+	# search section
+	local infofile_section=$(find_infofile_section "$1" "$2")
+	[ -z "$infofile_section" ] && return 1
+
+	# get value
+	lb_get_config -s "$infofile_section" "$1" "$3" || return 2
 }
 
 
@@ -1814,22 +1833,26 @@ notify() {
 #
 
 # Return backup estimated duration
-# Usage: estimate_time
-# Dependencies: $src_checksum, $last_backup_info, $total_size
+# Usage: estimate_time INFO_FILE PATH BACKUP_SIZE
+# Dependencies: none
 # Return: estimated time (in seconds)
 estimate_time() {
+	# get section from path
+	local infofile_section=$(find_infofile_section "$1" "$2")
+	[ -z "$infofile_section" ] && return 1
+
 	# get last backup duration
-	local last_duration=$(lb_get_config -s $src_checksum "$last_backup_info" duration)
+	local last_duration=$(lb_get_config -s $infofile_section "$1" duration)
 	lb_is_integer $last_duration || return 1
 
 	# if no size specified, use the last duration time
-	if ! lb_is_integer $total_size ; then
+	if ! lb_is_integer $3 ; then
 		echo $last_duration
 		return 0
 	fi
 
 	# get last backup size
-	local last_size=$(lb_get_config -s $src_checksum "$last_backup_info" size)
+	local last_size=$(lb_get_config -s $infofile_section "$1" size)
 
 	# if failed to get last size, use the last duration
 	if ! lb_is_integer $last_size ; then
@@ -1837,7 +1860,7 @@ estimate_time() {
 		return 0
 	fi
 
-	echo $(($last_duration * $total_size / $last_size))
+	echo $(($last_duration * $3 / $last_size))
 }
 
 

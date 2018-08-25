@@ -294,15 +294,8 @@ hard_links = $hard_links" > "$infofile"
 		# save current timestamp
 		src_timestamp=$(date +%s)
 
-		# source path checksum
-		if [ "$lb_current_os" == macOS ] ; then
-			src_checksum=$(echo "$src" | md5)
-		else
-			src_checksum=$(echo "$src" | md5sum | awk '{print $1}')
-		fi
-
 		# write to info file
-		echo -e "\n[$src_checksum]\npath = $src" >> "$infofile"
+		echo -e "\n[src$(($s + 1))]\npath = $src" >> "$infofile"
 
 		# get source path
 		protocol=$(get_protocol "$src")
@@ -437,7 +430,7 @@ hard_links = $hard_links" > "$infofile"
 				# (only if infofile exists and in hard links mode)
 				if $hard_links && [ -f "$last_backup_info" ] ; then
 					# if last backup failed or was cancelled
-					rsync_result $(lb_get_config -s $src_checksum "$last_backup_info" rsync_result)
+					rsync_result $(get_infofile_value "$last_backup_info" "$src" rsync_result)
 
 					if [ $? == 2 ] ; then
 						lb_debug "Resume from failed backup: $last_clean_backup"
@@ -630,7 +623,7 @@ hard_links = $hard_links" > "$infofile"
 		fi
 
 		# get estimated time
-		estimated_time=$(estimate_time)
+		estimated_time=$(estimate_time "$last_backup_info" "$src" $total_size)
 		if [ -n "$estimated_time" ] ; then
 			# convert into minutes
 			estimated_time=$(($estimated_time / 60 + 1))
@@ -654,8 +647,7 @@ hard_links = $hard_links" > "$infofile"
 		res=${PIPESTATUS[0]}
 
 		# save rsync result in info file and delete temporary file
-		lb_set_config "$infofile" rsync_result $res && \
-		rm -f "$infofile~" &> /dev/null
+		lb_set_config "$infofile" rsync_result $res
 
 		if [ $res == 0 ] ; then
 			# backup succeeded
@@ -1141,11 +1133,8 @@ t2b_restore() {
 	# warn user if incomplete backup of directory
 	if $directory_mode ; then
 
-		local infofile=$destination/$backup_date/backup.info
-		local infofile_section=$(find_infofile_section "$infofile" "$dest")
-
 		# if rsync result was not good (backup failed or was incomplete)
-		if [ -n "$infofile_section" ] && [ "$(lb_get_config -s "$infofile_section" "$infofile" rsync_result)" != 0 ] ; then
+		if [ "$(get_infofile_value "$destination/$backup_date/backup.info" "$dest" rsync_result)" != 0 ] ; then
 			# warn user
 			lb_warning "$tr_warn_restore_partial"
 			# and ask user to cancel
