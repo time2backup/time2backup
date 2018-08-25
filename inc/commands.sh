@@ -453,7 +453,7 @@ hard_links = $hard_links" > "$infofile"
 					mv "$destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
 					prepare_dest=$?
 
-					# clean old directory if empty
+					# clean old directory if empty, but keep the infofile
 					clean_empty_backup $last_clean_backup "$(dirname "$path_dest")"
 
 					# change last clean backup for hard links
@@ -485,7 +485,7 @@ hard_links = $hard_links" > "$infofile"
 			errors+=("$src (write error)")
 			[ $lb_exitcode == 0 ] && lb_exitcode=7
 
-			# clean directory WITHOUT infofile
+			# clean directory but NOT the infofile
 			clean_empty_backup $backup_date "$path_dest"
 
 			# continue to next source
@@ -539,7 +539,7 @@ hard_links = $hard_links" > "$infofile"
 			errors+=("$src (exclude error)")
 			lb_exitcode=11
 
-			# clean directory WITHOUT infofile
+			# clean directory but NOT the infofile
 			clean_empty_backup $backup_date "$path_dest"
 
 			# continue to next source
@@ -590,7 +590,7 @@ hard_links = $hard_links" > "$infofile"
 				errors+=("$src (rsync test error)")
 				[ $lb_exitcode == 0 ] && lb_exitcode=12
 
-				# clean directory WITHOUT infofile
+				# clean directory but NOT the infofile
 				clean_empty_backup $backup_date "$path_dest"
 
 				# continue to the next backup source
@@ -605,7 +605,7 @@ hard_links = $hard_links" > "$infofile"
 				errors+=("$src (not enough space left)")
 				[ $lb_exitcode == 0 ] && lb_exitcode=13
 
-				# clean directory WITHOUT infofile
+				# clean directory but NOT the infofile
 				clean_empty_backup $backup_date "$path_dest"
 
 				# continue to next source
@@ -666,10 +666,8 @@ hard_links = $hard_links" > "$infofile"
 			fi
 		fi
 
-		# clean empty trash
-		if ! $hard_links ; then
-			clean_empty_backup -i $last_clean_backup "$path_dest"
-		fi
+		# clean empty trash and infofile
+		clean_empty_backup -i $last_clean_backup "$path_dest"
 
 		# save duration
 		echo "duration = $(( $(date +%s) - $src_timestamp ))" >> "$infofile"
