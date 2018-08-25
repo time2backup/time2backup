@@ -1735,32 +1735,30 @@ t2b_mv() {
 	# test backup destination
 	prepare_destination || return 4
 
-	if [ "$(get_protocol "$1")" == files ] ; then
+	src=$1
+	abs_src=$1
+
+	if [ "$(get_protocol "$src")" == files ] ; then
 		# get UNIX format for Windows paths
 		if [ "$lb_current_os" == Windows ] ; then
-			src=$(cygpath "$1")
-		else
-			src=$1
+			src=$(cygpath "$src")
 		fi
 
 		# get absolute path of source
 		abs_src=$(lb_abspath "$src")
-	else
-		abs_src=$src
 	fi
 
-	if [ "$(get_protocol "$2")" == files ] ; then
+	dest=$2
+	abs_dest=$2
+
+	if [ "$(get_protocol "$dest")" == files ] ; then
 		# get UNIX format for Windows paths
 		if [ "$lb_current_os" == Windows ] ; then
-			dest=$(cygpath "$2")
-		else
-			dest=$2
+			dest=$(cygpath "$dest")
 		fi
 
 		# get absolute path of source
 		abs_dest=$(lb_abspath "$dest")
-	else
-		abs_dest=$dest
 	fi
 
 	# get all backup versions of this path
@@ -1798,7 +1796,7 @@ t2b_mv() {
 		lb_yesno "Do you want to continue?" || return 0
 	fi
 
-	local b res infofile section result=0
+	local b infofile section result=0
 	for b in "${file_history[@]}" ; do
 		$quiet_mode || echo "Moving file(s) for backup $b..."
 
@@ -1912,7 +1910,7 @@ t2b_clean() {
 		lb_yesno "Proceed cleaning?" || return 0
 	fi
 
-	local b res result=0 first=true
+	local b result=0 first=true
 	for b in "${file_history[@]}" ; do
 
 		# if keep the latest, ignore this first entry
@@ -1925,9 +1923,10 @@ t2b_clean() {
 
 		# delete file(s)
 		rm -rf "$destination/$b/$path_src"
-		res=$?
-
-		$quiet_mode || lb_result $res || result=7
+		if [ $? != 0 ] ; then
+			$quiet_mode || lb_result 1
+			result=7
+		fi
 	done
 
 	return $result
