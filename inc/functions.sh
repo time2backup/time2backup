@@ -225,7 +225,8 @@ url2ssh() {
 	local ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
 	local ssh_prefix=ssh://$ssh_host
 
-	echo "$ssh_host:${1#$ssh_prefix}"
+	# return path [user@]host:/path/to/file with bugfix for path with spaces
+	echo "$ssh_host:${1#$ssh_prefix}" | sed 's/ /\\ /g'
 }
 
 
