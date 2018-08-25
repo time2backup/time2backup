@@ -190,7 +190,7 @@ else
 			# if found,
 			if [ -n "$xdisplay" ] ; then
 				# export the X display variable
-				export DISPLAY="$xdisplay"
+				export DISPLAY=$xdisplay
 
 				# reset GUI tools
 				lbg_set_gui
@@ -265,14 +265,14 @@ if [ -n "$config_directory" ] ; then
 			lb_error "Please set an existing directory for config path!"
 			exit 3
 		fi
-		config_directory="$parent_config_directory/$(basename "$config_directory")"
+		config_directory=$parent_config_directory/$(basename "$config_directory")
 	fi
 else
 	# default config directory
 	if [ -n "$default_config_directory" ] ; then
 		config_directory=$default_config_directory
 	else
-		config_directory="$(lb_homepath $user)/.config/time2backup/"
+		config_directory=$(lb_homepath $user)/.config/time2backup/
 		if [ $? != 0 ] ; then
 			lbg_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
 			exit 3
@@ -281,10 +281,10 @@ else
 fi
 
 # define config files
-config_file="$config_directory/time2backup.conf"
-config_sources="$config_directory/sources.conf"
-config_excludes="$config_directory/excludes.conf"
-config_includes="$config_directory/includes.conf"
+config_file=$config_directory/time2backup.conf
+config_sources=$config_directory/sources.conf
+config_excludes=$config_directory/excludes.conf
+config_includes=$config_directory/includes.conf
 
 if ! $quiet_mode ; then
 	case $command in

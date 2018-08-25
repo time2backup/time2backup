@@ -294,9 +294,6 @@ hard_links = $hard_links" > "$infofile"
 		# save current timestamp
 		src_timestamp=$(date +%s)
 
-		# write to info file
-		echo -e "\n[src$(($s + 1))]\npath = $src" >> "$infofile"
-
 		# get source path
 		protocol=$(get_protocol "$src")
 		case $protocol in
@@ -371,7 +368,7 @@ hard_links = $hard_links" > "$infofile"
 						continue
 					fi
 
-					src="$homedir/$(echo "$src" | sed 's/^[^/]*\///')"
+					src=$homedir/$(echo "$src" | sed 's/^[^/]*\///')
 				fi
 
 				# get UNIX format for Windows paths
@@ -396,6 +393,9 @@ hard_links = $hard_links" > "$infofile"
 				path_dest=$(get_backup_path "$abs_src")
 				;;
 		esac
+
+		# write source section to info file
+		echo -e "\n[src$(($s + 1))]\npath = $src" >> "$infofile"
 
 		# set final destination with is a representation of system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
@@ -1209,7 +1209,7 @@ t2b_restore() {
 	cmd+=("$src" "$dest")
 
 	# set log file path
-	logfile="$logs_directory/restore_$(date '+%Y-%m-%d-%H%M%S').log"
+	logfile=$logs_directory/restore_$(date '+%Y-%m-%d-%H%M%S').log
 
 	# create log file for errors
 	if ! create_logfile "$logfile" ; then
@@ -1260,8 +1260,7 @@ t2b_restore() {
 t2b_history() {
 
 	# default option values
-	local history_opts=""
-	local quiet_mode=false
+	local history_opts quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1597,9 +1596,7 @@ t2b_status() {
 t2b_stop() {
 
 	# default options and values
-	local force_mode=false
-	local quiet_mode=false
-	local pid_killed=false
+	local force_mode=false quiet_mode=false pid_killed=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1695,9 +1692,7 @@ t2b_stop() {
 t2b_mv() {
 
 	# default option values
-	local mv_latest=false
-	local force_mode=false
-	local quiet_mode=false
+	local mv_latest=false force_mode=false quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1806,9 +1801,7 @@ t2b_mv() {
 t2b_clean() {
 
 	# default option values
-	local keep_latest=false
-	local force_mode=false
-	local quiet_mode=false
+	local keep_latest=false force_mode=false quiet_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1914,8 +1907,7 @@ t2b_config() {
 
 	# default values
 	file=""
-	local op_config=""
-	local cmd_opts=""
+	local op_config cmd_opts
 
 	# get options
 	# following other options to open_config() function
@@ -2172,8 +2164,7 @@ EOF
 t2b_uninstall() {
 
 	# default options
-	local delete_files=false
-	local force_mode=false
+	local delete_files=false force_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do

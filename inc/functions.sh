@@ -175,16 +175,15 @@ get_relative_path() {
 	# go into the first path
 	cd "$src" 2> /dev/null || return 3
 
-	local relative_path="./"
+	local relative_path=./
 
 	# loop to find common path
 	while [ "$(pwd)" != "$common_path" ] ; do
-
 		# go to upper directory
 		cd .. 2> /dev/null || return 3
 
 		# append double dots to relative path
-		relative_path+="../"
+		relative_path+=../
 	done
 
 	# print relative path
@@ -224,7 +223,7 @@ get_protocol() {
 url2ssh() {
 
 	local ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
-	local ssh_prefix="ssh://$ssh_host"
+	local ssh_prefix=ssh://$ssh_host
 
 	echo "$ssh_host:${1#$ssh_prefix}"
 }
@@ -244,6 +243,7 @@ find_infofile_section() {
 	[ -f "$1" ] || return 2
 
 	local section path
+
 	# search in sections, ignoring global sections
 	for section in $(grep -Eo "^\[.*\]" "$1" 2> /dev/null | grep -Ev "(time2backup|destination)" | tr -d '[]') ; do
 
@@ -252,7 +252,7 @@ find_infofile_section() {
 		[ -z "$path" ] && continue
 
 		# bad path: continue
-		[[ "$2" != "$(lb_abspath "$path")"* ]] && continue
+		[[ "$2" != "$path"* ]] && continue
 
 		# return good section
 		echo $section
@@ -687,7 +687,7 @@ upgrade_config() {
 	# replace config by new one
 
 	# save old config file
-	local old_config="$config_file.v$old_config_version"
+	local old_config=$config_file.v$old_config_version
 
 	cp -p "$config_file" "$old_config"
 	if [ $? != 0 ] ; then
@@ -998,7 +998,7 @@ get_backup_path() {
 			local ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
-			local ssh_prefix="$protocol://$ssh_host"
+			local ssh_prefix=$protocol://$ssh_host
 			local ssh_path=${path#$ssh_prefix}
 
 			# return complete path
@@ -1750,7 +1750,7 @@ prepare_remote() {
 	t2bs_hostname=$(echo "$t2bs_host" | cut -d@ -f2)
 
 	# get destination path
-	t2bs_prefix="t2b://$t2bs_host"
+	t2bs_prefix=t2b://$t2bs_host
 	#TODO
 	t2bs_path=${t2bs_file#$t2bs_prefix}
 
@@ -1810,7 +1810,7 @@ auto_exclude() {
 	local exclude_path=${destination#$common_path}
 
 	if [ "${exclude_path:0:1}" != "/" ] ; then
-		exclude_path="/$exclude_path"
+		exclude_path=/$exclude_path
 	fi
 
 	# return path to exclude
