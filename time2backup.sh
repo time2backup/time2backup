@@ -10,7 +10,7 @@
 #  Version 1.4.0 (2018-08-19)
 #
 
-version=1.4.0-beta.2
+version=1.4.0-rc.1
 
 
 #
