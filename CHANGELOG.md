@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.4.0 (2018-09-12)
+### New features
+- New `--latest` option to `restore` command to restore the latest version of the path
+- New `--latest` option to `mv` command to move only the latest version of the path
+- New `--keep-latest` option to `clean` command to keep the latest version from deleting
+- More context informations are stored in the info file
+- More error details in email reports
+
+### Changes
+- Empty backup directories with nothing except info file are now deleted
+- Restore directories are now allowed in trash mode, only from the latest backup
+- Backup estimated time is more reliable
+- Improvements in rotate and clean empty backups
+- libbash.sh upgraded to version 1.9.2
+- Various code improvements in performance and readability
+
+### Bugfixes
+- Prevent multiple cron tasks when using default and custom config paths
+- macOS: fix bug when running in sudo
+- macOS: open configuration with default text editor instead of random application
+
 ## 1.3.1 (2018-02-19)
 - Fix bug when excluding destination folder to avoid recursive backups
 - Fix line return bug for emails
