@@ -1503,6 +1503,9 @@ clean_empty_backup() {
 		shift
 	done
 
+	# backup date not defined: usage error
+	[ -n "$1" ] || return 1
+
 	# if backup does not exists, quit
 	[ -d "$destination/$1" ] || return 0
 
