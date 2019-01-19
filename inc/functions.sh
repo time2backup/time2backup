@@ -117,43 +117,36 @@ get_common_path() {
 
 	# compare characters of paths one by one
 	local -i i=0
-	while true ; do
-		# if a character changes in the 2 paths,
-		if [ "${directory1:0:i}" == "${directory2:0:i}" ] ; then
-			i+=1
-			continue
-		fi
 
-		path=${directory1:0:i}
-
-		# if it's a directory, return it
-		if [ -d "$path" ] ; then
-			# special case of /
-			if [ "$path" == "/" ] ; then
-				echo /
-			else
-				# other directory
-				# return path without the last /
-				remove_end_slash "$path"
-			fi
-		else
-			# if it's not a directory, return parent directory
-			dirname "$path"
-		fi
-
-		# quit function
-		return 0
+	# if a character changes in the 2 paths,
+	while [ "${directory1:0:i}" == "${directory2:0:i}" ] ; do
+		i+=1
 	done
+
+	path=${directory1:0:i}
+
+	# if it's a directory, return it
+	if [ -d "$path" ] ; then
+		# special case of /
+		if [ "$path" == "/" ] ; then
+			echo /
+		else
+			# other directory
+			# return path without the last /
+			remove_end_slash "$path"
+		fi
+	else
+		# if it's not a directory, return parent directory
+		dirname "$path"
+	fi
 }
 
 
 # Get relative path to reach second path from a first one
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
-# Be careful to call this function with $() or it will cause the current
-# directory to change.
+# Be careful to call it with $() to avoid loosing context
 # Usage: $(get_relative_path SOURCE_PATH DESTINATION_PATH)
-# Dependencies: none
 # Return: relative path
 # Exit codes:
 #   0: OK
@@ -195,12 +188,12 @@ get_relative_path() {
 
 # Get protocol for backups or destination
 # Usage: get_protocol URL
-# Dependencies: none
-# Return: files|ssh|t2b
+# Return: protocol
 get_protocol() {
 
 	# get protocol
-	local protocol=$(echo $1 | cut -d: -f1)
+	local protocol
+	protocol=$(echo $1 | cut -d: -f1)
 
 	case $protocol in
 		ssh|t2b)
@@ -220,21 +213,23 @@ get_protocol() {
 # Transform URLs to SSH path
 # e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
 # Usage: url2ssh URL
-# Dependencies: none
 # Return: path
 url2ssh() {
 
-	local ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
+	# get ssh host
+	local ssh_host
+	ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
+
+	# prepare prefix to ignore
 	local ssh_prefix=ssh://$ssh_host
 
-	# return path [user@]host:/path/to/file with bugfix for path with spaces
+	# return path without prefix with bugfix for path with spaces
 	echo "$ssh_host:${1#$ssh_prefix}" | sed 's/ /\\ /g'
 }
 
 
 # Find section that matches a path in an infofile
 # Usage: find_infofile_section INFO_FILE PATH
-# Dependencies: none
 # Return: section name
 # Exit codes:
 #   0: section found
@@ -269,7 +264,6 @@ find_infofile_section() {
 
 # Get value from an infofile
 # Usage: get_infofile_value INFO_FILE SOURCE_PATH PARAM
-# Dependencies: none
 # Return: value
 # Exit code:
 #   0: OK
@@ -277,7 +271,10 @@ find_infofile_section() {
 #   2: parameter not found
 get_infofile_value() {
 	# search section
-	local infofile_section=$(find_infofile_section "$1" "$2")
+	local infofile_section
+	infofile_section=$(find_infofile_section "$1" "$2")
+
+	# section not found: quit
 	[ -z "$infofile_section" ] && return 1
 
 	# get value
@@ -285,9 +282,12 @@ get_infofile_value() {
 }
 
 
+#
+#  Backup tests
+#
+
 # Test if backup destination support hard links
 # Usage: test_hardlinks PATH
-# Dependencies: none
 # Exit codes:
 #   0: destination supports hard links
 #   1: cannot get filesystem type
@@ -300,7 +300,10 @@ test_hardlinks() {
 		ntfs)
 
 	# get destination filesystem
-	local fstype=$(lb_df_fstype "$*")
+	local fstype
+	fstype=$(lb_df_fstype "$*")
+
+	# filesystem not found: quit
 	[ -z "$fstype" ] && return 1
 
 	# if destination filesystem does not support hard links, return error
@@ -310,18 +313,16 @@ test_hardlinks() {
 
 # Calculate space to be taken by folders
 # Usage: folders_size PATH
-# Dependencies: none
 # Return: size in bytes
 # Exit codes:
 #   0: OK
 #   1: Usage error (path does not exists)
 folders_size() {
 
-	# get number of subfolders
-	local nb_directories=$(find "$*" -type d 2> /dev/null | wc -l)
+	local nb_directories directory_size
 
-	# set default size to 4096 bytes (ext*, FAT32)
-	local directory_size=4096
+	# get number of subfolders
+	nb_directories=$(find "$*" -type d 2> /dev/null | wc -l)
 
 	# get size of folders regarding FS type (in bytes)
 	case $(lb_df_fstype "$*") in
@@ -330,6 +331,10 @@ folders_size() {
 			;;
 		exfat)
 			directory_size=131072
+			;;
+		*)
+			# set default size to 4096 bytes (ext*, FAT32)
+			directory_size=4096
 			;;
 	esac
 
@@ -340,7 +345,6 @@ folders_size() {
 
 # Test space available on disk
 # Usage: test_space_available BACKUP_SIZE_IN_BYTES PATH
-# Dependencies: none
 # Exit codes:
 #   0: space ok for backup
 #   1: not enough space
@@ -349,7 +353,8 @@ test_space_available() {
 	# if 0, always OK
 	[ "$1" == 0 ] && return 0
 
-	local backup_size=$1 space_available=$(lb_df_space_left "$2")
+	local space_available
+	space_available=$(lb_df_space_left "$2")
 
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
@@ -363,8 +368,8 @@ test_space_available() {
 	lb_debug --log "Space available on disk (in bytes): $space_available"
 
 	# if space is not enough, error
-	if [ $space_available -lt $backup_size ] ; then
-		lb_debug --log "Not enough space on device! Needed (in bytes): $backup_size/$space_available"
+	if [ $space_available -lt $1 ] ; then
+		lb_debug --log "Not enough space on device! Needed (in bytes): $1/$space_available"
 		return 1
 	fi
 }
@@ -372,7 +377,6 @@ test_space_available() {
 
 # Manage rsync exit codes
 # Usage: rsync_result EXIT_CODE
-# Dependencies: none
 # Exit codes:
 #   0: rsync was OK
 #   1: usage error
@@ -398,12 +402,12 @@ rsync_result() {
 
 # Transform a config file in Windows format
 # Usage: file_for_windows PATH
-# Dependencies: none
 # Exit codes:
 #   0: OK
 #   1: Usage error / Unknown error
 file_for_windows() {
 
+	# not on Windows: do nothing
 	[ "$lb_current_os" != Windows ] && return 0
 
 	# test if a file
@@ -492,7 +496,8 @@ get_backup_history() {
 	[ ${#all_backups[@]} == 0 ] && return 2
 
 	# get backup path
-	local gbh_backup_path=$(get_backup_path "$*")
+	local gbh_backup_path
+	gbh_backup_path=$(get_backup_path "$*")
 	[ -z "$gbh_backup_path" ] && return 3
 
 	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
@@ -653,7 +658,8 @@ create_config() {
 upgrade_config() {
 
 	# get current config version
-	local old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
+	local old_config_version
+	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
 	if [ -z "$old_config_version" ] ; then
 		lb_display_error "Cannot get config version."
 		return 1
@@ -974,7 +980,6 @@ unmount_destination() {
 
 # Get path of a file backup
 # Usage: get_backup_path PATH
-# Dependencies: none
 # Return: backup path (e.g. /home/user -> /files/home/user)
 # Exit codes:
 #   0: OK
@@ -989,7 +994,9 @@ get_backup_path() {
 		return 0
 	fi
 
-	local protocol=$(get_protocol "$path")
+	# get protocol
+	local protocol
+	protocol=$(get_protocol "$path")
 
 	# if not absolute path, check protocols
 	case $protocol in
@@ -997,8 +1004,9 @@ get_backup_path() {
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
-			local ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
-			local ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
+			local ssh_host ssh_hostname
+			ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
+			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
 			local ssh_prefix=$protocol://$ssh_host
@@ -1182,7 +1190,8 @@ crontab_config() {
 	fi
 
 	# test if task exists (get line number)
-	local line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
+	local line
+	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
 	if [ -n "$line" ] ; then
 		if $crontab_enable ; then
 			# do nothing
