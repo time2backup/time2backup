@@ -150,7 +150,9 @@ get_common_path() {
 # Get relative path to reach second path from a first one
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
 # will return ../../second/path
-# Usage: get_relative_path SOURCE_PATH DESTINATION_PATH
+# Be careful to call this function with $() or it will cause the current
+# directory to change.
+# Usage: $(get_relative_path SOURCE_PATH DESTINATION_PATH)
 # Dependencies: none
 # Return: relative path
 # Exit codes:
@@ -1080,9 +1082,6 @@ delete_backup() {
 # Clean old backups
 # Usage: rotate_backups
 # Dependencies: $keep_limit, $tr_*
-# Exit codes:
-#   0: rotate OK
-#   1: rm error
 rotate_backups() {
 
 	# if unlimited, do not rotate
@@ -1211,9 +1210,7 @@ crontab_config() {
 	fi
 
 	# install new crontab
-	if ! echo "$crontab" | crontab $crontab_opts - ; then
-		return 3
-	fi
+	echo "$crontab" | crontab $crontab_opts - || return 3
 }
 
 
