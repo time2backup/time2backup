@@ -39,7 +39,11 @@ t2b_backup() {
 				files_progress=true
 				;;
 			-c|--comment)
-				backup_comment=$2
+				backup_comment=$(lb_getopt "$@")
+				if [ $? != 0 ] ; then
+					print_help
+					return 1
+				fi
 				shift
 				;;
 			-u|--unmount)
@@ -831,11 +835,11 @@ t2b_restore() {
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-d|--date)
-				if [ -z "$2" ] ; then
+				backup_date=$(lb_getopt "$@")
+				if [ -z "$backup_date" ] ; then
 					print_help
 					return 1
 				fi
-				backup_date=$2
 				choose_date=false
 				shift
 				;;
@@ -1370,11 +1374,11 @@ t2b_explore() {
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-d|--date)
-				if [ -z "$2" ] ; then
+				backup_date=$(lb_getopt "$@")
+				if [ -z "$backup_date" ] ; then
 					print_help
 					return 1
 				fi
-				backup_date=$2
 				shift
 				;;
 			-l|--latest)
@@ -1970,7 +1974,7 @@ t2b_config() {
 				op_config=reset
 				;;
 			-e|--editor)
-				if [ -z "$2" ] ; then
+				if [ -z "$(lb_getopt "$@")" ] ; then
 					print_help
 					return 1
 				fi

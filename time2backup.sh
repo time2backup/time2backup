@@ -95,6 +95,9 @@ if [ -f "$script_directory/config/default.conf" ] ; then
 	fi
 fi
 
+# get arguments
+lb_getargs "$@" && set -- "${lb_getargs[@]}"
+
 # get global options
 while [ $# -gt 0 ] ; do
 	case $1 in
@@ -102,45 +105,45 @@ while [ $# -gt 0 ] ; do
 			console_mode=true
 			;;
 		-u|--user)
-			# run as user
-			if [ -z "$2" ] ; then
+			# run as a custom user
+			user=$(lb_getopt "$@")
+			if [ -z "$user" ] ; then
 				print_help global
 				exit 1
 			fi
-			user=$2
 			shift
 			;;
 		-l|--log-level)
-			if [ -z "$2" ] ; then
+			log_level=$(lb_getopt "$@")
+			if [ -z "$log_level" ] ; then
 				print_help global
 				exit 1
 			fi
-			log_level=$2
 			shift
 			;;
 		-v|--verbose-level)
-			if [ -z "$2" ] ; then
+			verbose_level=$(lb_getopt "$@")
+			if [ -z "$verbose_level" ] ; then
 				print_help global
 				exit 1
 			fi
-			verbose_level=$2
 			shift
 			;;
 		-d|--destination)
-			if [ -z "$2" ] ; then
+			force_destination=$(lb_getopt "$@")
+			if [ -z "$force_destination" ] ; then
 				print_help global
 				exit 1
 			fi
-			force_destination=$2
 			shift
 			;;
 		-c|--config)
 			# custom config path
-			if [ -z "$2" ] ; then
+			config_directory=$(lb_getopt "$@")
+			if [ -z "$config_directory" ] ; then
 				print_help global
 				exit 1
 			fi
-			config_directory=$2
 			shift
 			;;
 		-D|--debug)
