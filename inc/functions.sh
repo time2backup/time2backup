@@ -2173,20 +2173,9 @@ choose_operation() {
 	commands+=(exit)
 
 	# display choice
-	lbg_choose_option -d 1 -l "${choices[@]}" || exit
+	lbg_choose_option -d 1 -l "${choices[@]}" || return 1
 
 	command=${commands[lbg_choose_option]}
-
-	case $command in
-		exit)
-			exit
-			;;
-		"")
-			# error or no choice
-			print_help global
-			exit 1
-			;;
-	esac
 }
 
 

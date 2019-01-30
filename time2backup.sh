@@ -233,17 +233,8 @@ case $command in
 		;;
 
 	install|uninstall)
-		# run commands not depending on configuration
-		t2b_cmd=(t2b_$command)
-
-		# forward arguments in space safe mode
-		while [ $# -gt 0 ] ; do
-			t2b_cmd+=("$1")
-			shift
-		done
-
-		# run command and exit
-		"${t2b_cmd[@]}"
+		# run commands not depending on configuration then exit
+		t2b_$command "$@"
 		exit $?
 		;;
 
@@ -339,31 +330,34 @@ fi
 # display choose operation dialog if not set
 [ -z "$command" ] && choose_operation
 
-# commands that needs to load config
-if [ $command != config ] ; then
-	# test configuration
-	if ! load_config ; then
-		lb_error "There are errors in your configuration."
-		lb_error "Please edit your configuration with 'config' command or manually."
-		exit 3
-	fi
+case $command in
+	exit)
+		# user choosed to quit
+		exit
+		;;
+	"")
+		# error or no choice
+		print_help global
+		exit 1
+		;;
+	config)
+		# commands that do not need to load config: do nothing
+		;;
+	*)
+		# test configuration
+		if ! load_config ; then
+			lb_error "There are errors in your configuration."
+			lb_error "Please edit your configuration with 'config' command or manually."
+			exit 3
+		fi
 
-	# apply configuration in a quiet mode; don't care of errors
-	apply_config &> /dev/null
-fi
-
-# prepare command
-t2b_cmd=(t2b_$command)
-
-# forward arguments in space safe mode
-while [ $# -gt 0 ] ; do
-	t2b_cmd+=("$1")
-	shift
-done
+		# apply configuration in a quiet mode; don't care of errors
+		apply_config &> /dev/null
+		;;
+esac
 
 # run command
-"${t2b_cmd[@]}"
-
+t2b_$command "$@"
 lb_exitcode=$?
 
 lb_debug "Exited with code: $lb_exitcode"
