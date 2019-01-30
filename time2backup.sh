@@ -211,15 +211,11 @@ if $debug_mode ; then
 else
 	# defines log level
 	# if not set (unknown error), set to default level
-	if ! lb_set_log_level "$log_level" ; then
-		lb_set_log_level "$default_log_level"
-	fi
+	lb_set_log_level "$log_level" || lb_set_log_level "$default_log_level"
 
 	# defines verbose level
 	# if not set (unknown error), set to default level
-	if ! lb_set_display_level "$verbose_level" ; then
-		lb_set_display_level "$default_verbose_level"
-	fi
+	lb_set_display_level "$verbose_level" || lb_set_display_level "$default_verbose_level"
 fi
 
 # validate commands
@@ -320,9 +316,7 @@ if [ -f "$config_file" ] ; then
 fi
 
 # security recheck: set default rsync path if not defined
-if [ -z "$rsync_path" ] ; then
-	rsync_path=$default_rsync_path
-fi
+[ -z "$rsync_path" ] && rsync_path=$default_rsync_path
 
 # test if rsync command is available
 if ! lb_command_exists "$rsync_path" ; then

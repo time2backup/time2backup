@@ -201,10 +201,8 @@ t2b_backup() {
 	prepare_destination
 	case $? in
 		1)
-			# destination not reachable
-			if ! $recurrent_backup ; then
-				lbg_error "$tr_backup_unreachable\n$tr_verify_media"
-			fi
+			# destination not reachable: display error if not recurrent backup
+			$recurrent_backup || lbg_error "$tr_backup_unreachable\n$tr_verify_media"
 			return 6
 			;;
 		2)
@@ -324,9 +322,7 @@ hard_links = $hard_links" > "$infofile"
 				# file or directory
 
 				# remove file:// prefix
-				if [ "${src:0:7}" == "file://" ] ; then
-					src=${src:7}
-				fi
+				[ "${src:0:7}" == "file://" ] && src=${src:7}
 
 				# replace ~ by user home directory
 				if [ "${src:0:1}" == "~" ] ; then
@@ -376,9 +372,7 @@ hard_links = $hard_links" > "$infofile"
 				fi
 
 				# get UNIX format for Windows paths
-				if [ "$lb_current_os" == Windows ] ; then
-					src=$(cygpath "$src")
-				fi
+				[ "$lb_current_os" == Windows ] && src=$(cygpath "$src")
 
 				# get absolute path for source
 				abs_src=$(lb_abspath "$src")
@@ -551,15 +545,11 @@ hard_links = $hard_links" > "$infofile"
 		fi
 
 		# search in source if exclude conf file is set
-		if [ -f "$abs_src/.rsyncignore" ] ; then
-			cmd+=(--exclude-from="$abs_src/.rsyncignore")
-		fi
+		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from="$abs_src"/.rsyncignore)
 
 		if $source_ssh ; then
-			# network compression
-			if $network_compression ; then
-				cmd+=(-z)
-			fi
+			# enables network compression
+			$network_compression && cmd+=(-z)
 
 			# add ssh options
 			if [ -n "$ssh_options" ] ; then
@@ -570,15 +560,11 @@ hard_links = $hard_links" > "$infofile"
 			fi
 
 			# rsync distant path option
-			if [ -n "$rsync_remote_path" ] ; then
-				cmd+=(--rsync-path "$rsync_remote_path")
-			fi
+			[ -n "$rsync_remote_path" ] && cmd+=(--rsync-path "$rsync_remote_path")
 		fi
 
 		# if it is a directory, add '/' at the end of the path
-		if [ -d "$abs_src" ] ; then
-			abs_src=$(remove_end_slash "$abs_src")/
-		fi
+		[ -d "$abs_src" ] && abs_src=$(remove_end_slash "$abs_src")/
 
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
@@ -983,9 +969,7 @@ t2b_restore() {
 			# remove destination path prefix
 			file=${file#$destination}
 			# remove first slash
-			if [ "${file:0:1}" == "/" ] ; then
-				file=${file:1}
-			fi
+			[ "${file:0:1}" == "/" ] && file=${file:1}
 
 			# get backup date
 			backup_date=$(echo $file | grep -oE "^$backup_date_format")
@@ -997,9 +981,7 @@ t2b_restore() {
 			choose_date=false
 
 			# if it is a directory, add '/' at the end of the path
-			if [ -d "$file" ] ; then
-				file=$(remove_end_slash "$file")/
-			fi
+			[ -d "$file" ] && file=$(remove_end_slash "$file")/
 
 			# remove backup date path prefix
 			file=${file#$backup_date}
@@ -1018,10 +1000,8 @@ t2b_restore() {
 		# get specified path
 		file=$*
 
-		# detect directory mode (useful for deleted directories)
-		if [ "${file:${#file}-1}" == "/" ] ; then
-			directory_mode=true
-		fi
+		# detect directory mode if path ends with / (useful for deleted directories)
+		[ "${file:${#file}-1}" == "/" ] && directory_mode=true
 
 		# get UNIX format for Windows paths
 		if [ "$(get_protocol "$file")" == files ] && [ "$lb_current_os" == Windows ] ; then
@@ -1103,9 +1083,7 @@ t2b_restore() {
 	fi
 
 	# if latest backup wanted, get most recent date
-	if [ "$backup_date" == latest ] ; then
-		backup_date=${file_history[0]}
-	fi
+	[ "$backup_date" == latest ] && backup_date=${file_history[0]}
 
 	# set backup source for restore command
 	src=$destination/$backup_date/$backup_file_path
@@ -1156,18 +1134,14 @@ t2b_restore() {
 	exclude_backup_dir=$(auto_exclude "$dest")
 	if [ $? == 0 ] ; then
 		# if there is something to exclude, do it
-		if [ -n "$exclude_backup_dir" ] ; then
-			rsync_cmd+=(--exclude "$exclude_backup_dir")
-		fi
+		[ -n "$exclude_backup_dir" ] && rsync_cmd+=(--exclude "$exclude_backup_dir")
 	else
 		lbg_error "$tr_restore_unknown_error"
 		return 8
 	fi
 
 	# search in source if exclude conf file is set
-	if [ -f "$src/.rsyncignore" ] ; then
-		rsync_cmd+=(--exclude-from="$src/.rsyncignore")
-	fi
+	[ -f "$src/.rsyncignore" ] && rsync_cmd+=(--exclude-from="$src/.rsyncignore")
 
 	# test newer files
 	if ! $delete_newer_files ; then
@@ -1184,9 +1158,8 @@ t2b_restore() {
 			"${cmd[@]}" | grep -q "^deleting "
 
 			if [ $? == 0 ] ; then
-				if ! lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" ; then
-					delete_newer_files=true
-				fi
+				# ask to keep new files
+				lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" || delete_newer_files=true
 			fi
 		else
 			# if restore a file, always delete new
@@ -1206,9 +1179,7 @@ t2b_restore() {
 	cmd=("${rsync_cmd[@]}")
 
 	# delete new files
-	if $delete_newer_files ; then
-		cmd+=(--delete)
-	fi
+	$delete_newer_files && cmd+=(--delete)
 
 	cmd+=("$src" "$dest")
 
@@ -1481,9 +1452,7 @@ t2b_explore() {
 		if $explore_all ; then
 			# warn user if displaying many folders
 			if [ ${#path_history[@]} -ge 10 ] ; then
-				if ! lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" ; then
-					return 0
-				fi
+				lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" || return 0
 			fi
 			backup_date=${path_history[@]}
 
@@ -1523,18 +1492,15 @@ t2b_explore() {
 		fi
 	fi
 
-	if ! [ -d "$path" ] ; then
-		backup_path=$(dirname "$backup_path")
-	fi
+	# not a directory: get parent
+	[ -d "$path" ] || backup_path=$(dirname "$backup_path")
 
 	for b in "${backup_date[@]}" ; do
 		echo "Exploring backup $b..."
 		lbg_open_directory "$destination/$b/$backup_path"
 	done
 
-	if [ $? != 0 ] ; then
-		return 8
-	fi
+	return 0
 }
 
 
@@ -1650,9 +1616,7 @@ t2b_stop() {
 	esac
 
 	# prompt confirmation
-	if ! $force_mode ; then
-		lb_yesno "Are you sure you want to interrupt the current backup?" || return 0
-	fi
+	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup?" || return 0
 
 	# search for a current rsync command and get parent PIDs
 	rsync_pids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
@@ -1744,9 +1708,7 @@ t2b_mv() {
 
 	if [ "$(get_protocol "$src")" == files ] ; then
 		# get UNIX format for Windows paths
-		if [ "$lb_current_os" == Windows ] ; then
-			src=$(cygpath "$src")
-		fi
+		[ "$lb_current_os" == Windows ] && src=$(cygpath "$src")
 
 		# get absolute path of source
 		abs_src=$(lb_abspath "$src")
@@ -1757,9 +1719,7 @@ t2b_mv() {
 
 	if [ "$(get_protocol "$dest")" == files ] ; then
 		# get UNIX format for Windows paths
-		if [ "$lb_current_os" == Windows ] ; then
-			dest=$(cygpath "$dest")
-		fi
+		[ "$lb_current_os" == Windows ] && dest=$(cygpath "$dest")
 
 		# get absolute path of source
 		abs_dest=$(lb_abspath "$dest")
@@ -1793,9 +1753,8 @@ t2b_mv() {
 		$quiet_mode || echo "You are about to move ${#file_history[@]} backups from '$1' to '$2'."
 
 		# warn user if destination already exists
-		if [ -e "$destination/$file_history/$path_dest" ] ; then
+		[ -e "$destination/$file_history/$path_dest" ] && \
 			lb_warning "Destination already exists! This action may erase files."
-		fi
 
 		lb_yesno "Do you want to continue?" || return 0
 	fi
@@ -1812,9 +1771,8 @@ t2b_mv() {
 
 			# if the moved source is a source itself, rename it
 			if [ -n "$section" ] ; then
-				if [ "$(lb_get_config -s $section "$infofile" path)" == "$abs_src" ] ; then
+				[ "$(lb_get_config -s $section "$infofile" path)" == "$abs_src" ] && \
 					lb_set_config -s $section "$infofile" path "$abs_dest"
-				fi
 			fi
 
 		else
@@ -1910,9 +1868,7 @@ t2b_clean() {
 	$quiet_mode || echo "${#file_history[@]} backup(s) found for '$src'"
 
 	# confirm action
-	if ! $force_mode ; then
-		lb_yesno "Proceed cleaning?" || return 0
-	fi
+	$force_mode || lb_yesno "Proceed cleaning?" || return 0
 
 	local b result=0 first=true
 	for b in "${file_history[@]}" ; do
@@ -2000,10 +1956,9 @@ t2b_config() {
 	if [ -z "$file" ] ; then
 
 		if [ -z "$op_config" ] ; then
-			if ! lbg_choose_option -d 1 -l "$tr_choose_config_file" \
-			     "$tr_global_config" "$tr_sources_config" "$tr_excludes_config" "$tr_includes_config" "$tr_run_config_wizard" ; then
-				return 0
-			fi
+			lbg_choose_option -d 1 -l "$tr_choose_config_file" \
+				"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" \
+				"$tr_includes_config" "$tr_run_config_wizard" || return 0
 
 			case $lbg_choose_option in
 				1)
@@ -2046,9 +2001,7 @@ t2b_config() {
 				lb_is_comment $line || echo "$line"
 			done < "$file"
 
-			if [ $? != 0 ] ; then
-				return 5
-			fi
+			[ $? != 0 ] && return 5
 			;;
 
 		test)
@@ -2059,9 +2012,8 @@ t2b_config() {
 
 		reset)
 			# reset config file
-			if lb_yesno "$tr_confirm_reset_config" ; then
+			lb_yesno "$tr_confirm_reset_config" && \
 				cat "$lb_current_script_directory/config/time2backup.example.conf" > "$config_file"
-			fi
 			;;
 
 		*)
@@ -2093,9 +2045,7 @@ t2b_config() {
 	esac
 
 	# config is not OK
-	if [ $? != 0 ] ; then
-		return 3
-	fi
+	[ $? != 0 ] && return 3
 }
 
 
@@ -2227,9 +2177,7 @@ t2b_uninstall() {
 	done
 
 	# confirm action
-	if ! $force_mode ; then
-		lb_yesno "Uninstall time2backup?" || return 0
-	fi
+	$force_mode || lb_yesno "Uninstall time2backup?" || return 0
 
 	echo "Uninstall time2backup..."
 

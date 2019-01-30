@@ -179,7 +179,6 @@ Note: If no path is specified, it will open the root backup folder.
 - 5: No backups available at this path
 - 6: No backups of this file
 - 7: No backup found at this date
-- 8: Unknown error of the file browser
 
 ---------------------------------------------------------------
 <a name="status"></a>
