@@ -114,16 +114,16 @@ while [ $# -gt 0 ] ; do
 			shift
 			;;
 		-l|--log-level)
-			log_level=$(lb_getopt "$@")
-			if [ -z "$log_level" ] ; then
+			force_log_level=$(lb_getopt "$@")
+			if [ -z "$force_log_level" ] ; then
 				print_help global
 				exit 1
 			fi
 			shift
 			;;
 		-v|--verbose-level)
-			verbose_level=$(lb_getopt "$@")
-			if [ -z "$verbose_level" ] ; then
+			force_verbose_level=$(lb_getopt "$@")
+			if [ -z "$force_verbose_level" ] ; then
 				print_help global
 				exit 1
 			fi
@@ -176,7 +176,7 @@ shift
 [ -z "$user" ] && user=$lb_current_user
 
 # set console mode
-if $console_mode ; then
+if istrue $console_mode ; then
 	lbg_set_gui console
 	# disable notifications by default
 	notifications=false
@@ -206,17 +206,8 @@ else
 	fi
 fi
 
-if $debug_mode ; then
-	lb_debug "Running in DEBUG mode..."
-else
-	# defines log level
-	# if not set (unknown error), set to default level
-	lb_set_log_level "$log_level" || lb_set_log_level "$default_log_level"
-
-	# defines verbose level
-	# if not set (unknown error), set to default level
-	lb_set_display_level "$verbose_level" || lb_set_display_level "$default_verbose_level"
-fi
+# set verbose and log levels
+set_verbose_log_levels
 
 # validate commands
 case $command in
@@ -276,7 +267,7 @@ config_sources=$config_directory/sources.conf
 config_excludes=$config_directory/excludes.conf
 config_includes=$config_directory/includes.conf
 
-if ! $quiet_mode ; then
+if ! istrue $quiet_mode ; then
 	case $command in
 		""|backup|restore)
 			echo "time2backup $version"
@@ -350,6 +341,9 @@ case $command in
 			lb_error "Please edit your configuration with 'config' command or manually."
 			exit 3
 		fi
+
+		# (re)set verbose and log levels after config was loaded
+		set_verbose_log_levels
 
 		# apply configuration in a quiet mode; don't care of errors
 		apply_config &> /dev/null
