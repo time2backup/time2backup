@@ -827,16 +827,6 @@ load_config() {
 		fi
 	fi
 
-	# test boolean values in config file
-	local v test_boolean=(test_destination resume_failed clean_old_backups recurrent mount exec_before_block unmount unmount_auto shutdown exec_after_block notifications files_progress console_mode network_compression hard_links force_hard_links preserve_permissions)
-
-	for v in "${test_boolean[@]}" ; do
-		if ! lb_is_boolean ${!v} ; then
-			lb_error "$v must be a boolean!"
-			return 2
-		fi
-	done
-
 	# test integer values in config file
 	local test_integer=(keep_limit clean_keep)
 
@@ -849,8 +839,13 @@ load_config() {
 
 	# other specific tests
 
+	if [ $keep_limit -lt -1 ] ; then
+		lb_error "keep_limit should be a positive integer, or -1 for unlimited"
+		return 2
+	fi
+
 	if [ $clean_keep -lt 0 ] ; then
-		lb_error "clean_keep must be a positive integer!"
+		lb_error "clean_keep should be a positive integer"
 		return 2
 	fi
 
@@ -863,12 +858,12 @@ load_config() {
 	clean_keep=$(($clean_keep + 1))
 
 	# set default rsync path if not defined or if custom commands not allowed
-	if [ -z "$rsync_path" ] || $disable_custom_commands ; then
+	if [ -z "$rsync_path" ] || istrue $disable_custom_commands ; then
 		rsync_path=$default_rsync_path
 	fi
 
 	# set default shutdown command or if custom commands not allowed
-	if [ ${#shutdown_cmd[@]} == 0 ] || $disable_custom_commands ; then
+	if [ ${#shutdown_cmd[@]} == 0 ] || istrue $disable_custom_commands ; then
 		shutdown_cmd=("${default_shutdown_cmd[@]}")
 	fi
 }
@@ -1487,7 +1482,7 @@ test_free_space() {
 		test_space_available $total_size "$destination" && return 0
 
 		# if no clean old backups option in config, continue to be stopped after
-		$clean_old_backups || return 1
+		istrue $clean_old_backups || return 1
 
 		# display clean notification
 		# (just display the first notification, not for every clean)
@@ -1868,9 +1863,7 @@ auto_exclude() {
 # Usage: notify TEXT
 # Dependencies: $notifications
 notify() {
-	if $notifications ; then
-		lbg_notify "$*" &
-	fi
+	istrue $notifications && lbg_notify "$*" &
 }
 
 
@@ -1917,7 +1910,7 @@ run_before() {
 	local result
 
 	# if disabled, inform user and exit
-	if $disable_custom_commands ; then
+	if istrue $disable_custom_commands ; then
 		lb_display_error "Custom commands are disabled."
 		false # bad command to go into the if $? != 0
 	else
@@ -1948,7 +1941,7 @@ run_after() {
 	local result
 
 	# if disabled, inform user and exit
-	if $disable_custom_commands ; then
+	if istrue $disable_custom_commands ; then
 		lb_display_error "Custom commands are disabled."
 		false # bad command to go into the if $? != 0
 	else

@@ -711,7 +711,7 @@ hard_links = $hard_links" > "$infofile"
 	if [ $lb_exitcode == 0 ] ; then
 		lb_display --log "Backup finished successfully."
 
-		if $notifications ; then
+		if istrue $notifications ; then
 			# Windows: display dialogs instead of notifications
 			if [ "$lb_current_os" == Windows ] ; then
 				# do not popup dialog that would prevent PC from shutdown
@@ -747,7 +747,7 @@ Warnings:
 "
 			done
 
-			if $notifications ; then
+			if istrue $notifications ; then
 				# do not display warning message if there are critical errors to come after that
 				if [ ${#errors[@]} == 0 ] ; then
 					fail_message="$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
@@ -776,7 +776,7 @@ Errors:
 "
 			done
 
-			if $notifications ; then
+			if istrue $notifications ; then
 				fail_message="$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
 
 				# Windows: display dialogs instead of notifications
@@ -809,11 +809,8 @@ t2b_restore() {
 
 	# default option values
 	backup_date=latest
-	force_mode=false
-	choose_date=true
-	directory_mode=false
-	restore_moved=false
-	delete_newer_files=false
+	local choose_date=true force_mode=false directory_mode=false \
+	      restore_moved=false delete_newer_files=false
 
 	# get options
 	while [ $# -gt 0 ] ; do

@@ -21,7 +21,6 @@ backup_date_format="[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5
 
 cmd_alias=/usr/bin/time2backup
 default_rsync_path=rsync
-disable_custom_commands=false
 
 if [ "$lb_current_os" == Windows ] ; then
 	enable_recurrent=false

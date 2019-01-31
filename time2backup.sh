@@ -178,7 +178,7 @@ shift
 # set console mode
 if istrue $console_mode ; then
 	lbg_set_gui console
-	# disable notifications by default
+	# disable notifications
 	notifications=false
 else
 	# try to find display (if into a cron job on Linux)
@@ -284,7 +284,7 @@ if [ -f "$config_file" ] ; then
 	if ! upgrade_config ; then
 
 		# if failed, display an error and quit
-		if $quiet_mode ; then
+		if istrue $quiet_mode ; then
 			lb_error "$tr_error_upgrade_config"
 		else
 			lbg_error "$tr_error_upgrade_config"
