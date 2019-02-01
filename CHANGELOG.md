@@ -40,7 +40,7 @@
 - New logfile if restore command failed
 - Explore command is now available from the choose operation dialog
 - Browse the global backup destination if no path specified in the explore command
-- Warn user if trying to restore a partially backuped directory
+- Warn user if trying to restore a partially backed up directory
 - New quiet option to hide rsync output for backup and restore commands
 - New procedure to restore a backup from another PC
 - Print backup estimated time

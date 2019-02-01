@@ -205,23 +205,21 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	existing_lock=$(ls "$destination/.lock_"* 2> /dev/null)
+	local existing_lock
+	existing_lock=$(current_lock)
 	if [ -n "$existing_lock" ] ; then
 
-		lb_warning "Backup lock found: $(basename "$existing_lock")"
+		lb_debug "Lock found: $existing_lock"
 
 		# force mode: delete old lock
 		if $force_unlock ; then
-			lb_info "Force mode: deleting lock"
-			rm -f "$existing_lock"
+			lb_info "Force mode: deleting lock $existing_lock"
+			release_lock || clean_exit 8
 		else
-			false
-		fi
-
-		# if no force mode or failed to delete lock
-		if [ $? != 0 ] ; then
 			# print error message
 			lb_display_error "$tr_backup_already_running"
+
+			# display window error
 			if ! $recurrent_backup && ! istrue $console_mode ; then
 				lbg_error "$tr_backup_already_running"
 			fi

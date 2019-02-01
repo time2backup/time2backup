@@ -1120,6 +1120,9 @@ delete_backup() {
 # Clean old backups
 # Usage: rotate_backups
 # Dependencies: $keep_limit, $tr_*
+# Exit codes:
+#   0: rotate OK
+#   1: rm error
 rotate_backups() {
 
 	# if unlimited, do not rotate
@@ -1687,6 +1690,7 @@ current_lock() {
 	# get lock file
 	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
 
+	# no lock
 	[ -z "$current_lock_file" ] && return 1
 
 	# return date of lock
