@@ -122,7 +122,7 @@ t2b_backup() {
 		fi
 
 		# recurrent backups not enabled in configuration
-		if ! istrue $recurrent ; then
+		if ! lb_istrue $recurrent ; then
 			lb_warning "Recurrent backups are disabled. You can enable it in configuration file."
 			clean_exit 20
 		fi
@@ -220,7 +220,7 @@ t2b_backup() {
 			lb_display_error "$tr_backup_already_running"
 
 			# display window error
-			if ! $recurrent_backup && ! istrue $console_mode ; then
+			if ! $recurrent_backup && ! lb_istrue $console_mode ; then
 				lbg_error "$tr_backup_already_running"
 			fi
 			clean_exit 8
@@ -257,7 +257,7 @@ t2b_backup() {
 	prepare_rsync backup
 
 	# force "false" in variable
-	istrue $hard_links || hard_links=false
+	lb_istrue $hard_links || hard_links=false
 
 	# create the info file
 	infofile=$dest/backup.info
@@ -299,7 +299,7 @@ hard_links = $hard_links" > "$infofile"
 			ssh)
 				# test if we don't have double remotes
 				# (rsync does not support ssh to ssh copy)
-				if istrue $remote_destination ; then
+				if lb_istrue $remote_destination ; then
 					lb_display_error --log "You cannot backup a remote path to a remote destination."
 					errors+=("$src (cannot backup a remote path on a remote destination)")
 					lb_exitcode=3
@@ -414,7 +414,7 @@ hard_links = $hard_links" > "$infofile"
 				mv_dest=false
 
 				# if mirror mode or trash mode, move destination
-				if [ $keep_limit == 0 ] || ! istrue $hard_links ; then
+				if [ $keep_limit == 0 ] || ! lb_istrue $hard_links ; then
 					mv_dest=true
 				fi
 
@@ -423,7 +423,7 @@ hard_links = $hard_links" > "$infofile"
 
 				# check status of the last backup
 				# (only if infofile exists and in hard links mode)
-				if istrue $hard_links && [ -f "$last_backup_info" ] ; then
+				if lb_istrue $hard_links && [ -f "$last_backup_info" ] ; then
 					# if last backup failed or was cancelled
 					rsync_result $(get_infofile_value "$last_backup_info" "$src" rsync_result)
 
@@ -452,7 +452,7 @@ hard_links = $hard_links" > "$infofile"
 					clean_empty_backup $last_clean_backup "$(dirname "$path_dest")"
 
 					# change last clean backup for hard links
-					if istrue $hard_links ; then
+					if lb_istrue $hard_links ; then
 						if [ -n "$real_last_clean_backup" ] ; then
 							lb_debug "Last backup used for links: $real_last_clean_backup"
 							last_clean_backup=$real_last_clean_backup
@@ -494,7 +494,7 @@ hard_links = $hard_links" > "$infofile"
 		# if first backup, no need to add incremental options
 		if [ $keep_limit != 0 ] && [ -n "$last_clean_backup" ] ; then
 			# if destination supports hard links, use incremental with hard links system
-			if istrue $hard_links ; then
+			if lb_istrue $hard_links ; then
 				# revision folder
 				linkdest=$(get_relative_path "$finaldest" "$destination")
 				if [ -e "$linkdest" ] ; then
@@ -546,7 +546,7 @@ hard_links = $hard_links" > "$infofile"
 
 		if $source_ssh ; then
 			# enables network compression
-			istrue $network_compression && cmd+=(-z)
+			lb_istrue $network_compression && cmd+=(-z)
 
 			# add ssh options
 			if [ -n "$ssh_options" ] ; then
@@ -567,7 +567,7 @@ hard_links = $hard_links" > "$infofile"
 		cmd+=("$abs_src" "$finaldest")
 
 		# prepare backup: testing space
-		if istrue $test_destination ; then
+		if lb_istrue $test_destination ; then
 
 			# test rsync and space available for backup
 			if ! test_backup ; then
@@ -709,11 +709,11 @@ hard_links = $hard_links" > "$infofile"
 	if [ $lb_exitcode == 0 ] ; then
 		lb_display --log "Backup finished successfully."
 
-		if istrue $notifications ; then
+		if lb_istrue $notifications ; then
 			# Windows: display dialogs instead of notifications
 			if [ "$lb_current_os" == Windows ] ; then
 				# do not popup dialog that would prevent PC from shutdown
-				if ! istrue $shutdown ; then
+				if ! lb_istrue $shutdown ; then
 					# release lock now, do not wait until user closes the window!
 					release_lock
 					lbg_info "$tr_backup_finished\n$(report_duration)"
@@ -745,7 +745,7 @@ Warnings:
 "
 			done
 
-			if istrue $notifications ; then
+			if lb_istrue $notifications ; then
 				# do not display warning message if there are critical errors to come after that
 				if [ ${#errors[@]} == 0 ] ; then
 					fail_message="$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
@@ -753,7 +753,7 @@ Warnings:
 					# Windows: display dialogs instead of notifications
 					if [ "$lb_current_os" == Windows ] ; then
 						# do not popup dialog that would prevent PC from shutdown
-						if ! istrue $shutdown ; then
+						if ! lb_istrue $shutdown ; then
 							# release lock now, do not wait until user closes the window!
 							release_lock
 							lbg_warning "$fail_message"
@@ -774,13 +774,13 @@ Errors:
 "
 			done
 
-			if istrue $notifications ; then
+			if lb_istrue $notifications ; then
 				fail_message="$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
 
 				# Windows: display dialogs instead of notifications
 				if [ "$lb_current_os" == Windows ] ; then
 					# do not popup dialog that would prevent PC from shutdown
-					if ! istrue $shutdown ; then
+					if ! lb_istrue $shutdown ; then
 						# release lock now, do not wait until user closes the window!
 						release_lock
 						lbg_error "$fail_message"
@@ -1084,7 +1084,7 @@ t2b_restore() {
 	# if source is a directory
 	if [ -d "$src" ] ; then
 		# trash mode: cannot restore directories
-		if ! istrue $hard_links ; then
+		if ! lb_istrue $hard_links ; then
 			lbg_error "$tr_cannot_restore_from_trash"
 			return 12
 		else
@@ -1260,7 +1260,7 @@ t2b_history() {
 		return 1
 	fi
 
-	if istrue $remote_destination ; then
+	if lb_istrue $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1288,7 +1288,7 @@ t2b_history() {
 	# print backup versions
 	for b in "${file_history[@]}" ; do
 		# quiet mode: just print the version
-		if istrue $quiet_mode ; then
+		if lb_istrue $quiet_mode ; then
 			echo "$b"
 		else
 			# complete result: print details
@@ -1317,7 +1317,7 @@ t2b_history() {
 	done
 
 	# complete result (not quiet mode)
-	if ! istrue $quiet_mode ; then
+	if ! lb_istrue $quiet_mode ; then
 		echo
 		echo "${#file_history[@]} backups found for $file"
 	fi
@@ -1368,12 +1368,12 @@ t2b_explore() {
 
 	path=$*
 
-	if istrue $console_mode ; then
+	if lb_istrue $console_mode ; then
 		echo "This command is not available in console mode."
 		return 255
 	fi
 
-	if istrue $remote_destination ; then
+	if lb_istrue $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1524,13 +1524,13 @@ t2b_status() {
 
 	# test backup destination
 	if ! prepare_destination &> /dev/null ; then
-		istrue $quiet_mode || echo "backup destination not reachable"
+		lb_istrue $quiet_mode || echo "backup destination not reachable"
 		return 4
 	fi
 
 	# if no backup lock exists, exit
 	if ! current_lock &> /dev/null ; then
-		istrue $quiet_mode || echo "backup is not running"
+		lb_istrue $quiet_mode || echo "backup is not running"
 		return 0
 	fi
 
@@ -1541,12 +1541,12 @@ t2b_status() {
 		# if current script, ignore it
 		[ $pid == $$ ] && continue
 
-		istrue $quiet_mode || echo "backup is running with PID $pid"
+		lb_istrue $quiet_mode || echo "backup is running with PID $pid"
 		return 5
 	done
 
 	# if no time2backup process found,
-	istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
+	lb_istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
 	return 6
 }
 
@@ -1588,19 +1588,19 @@ t2b_stop() {
 	# if no backup is running or error, cannot stop
 	case $? in
 		0)
-			istrue $quiet_mode || echo "backup is not running"
+			lb_istrue $quiet_mode || echo "backup is not running"
 			return 0
 			;;
 		1)
-			istrue $quiet_mode || echo "Unknown error"
+			lb_istrue $quiet_mode || echo "Unknown error"
 			return 6
 			;;
 		4)
-			istrue $quiet_mode || echo "backup destination not reachable"
+			lb_istrue $quiet_mode || echo "backup destination not reachable"
 			return 4
 			;;
 		6)
-			istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
+			lb_istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
 			return 7
 			;;
 	esac
@@ -1627,20 +1627,20 @@ t2b_stop() {
 
 	# if no rsync process found, quit
 	if ! $pid_killed ; then
-		istrue $quiet_mode || echo "Cannot found rsync PID"
+		lb_istrue $quiet_mode || echo "Cannot found rsync PID"
 		return 7
 	fi
 
 	# wait 30 sec max until time2backup is really stopped
 	for i in $(seq 1 30) ; do
 		if t2b_status &> /dev/null ; then
-			istrue $quiet_mode || echo "time2backup was successfully cancelled"
+			lb_istrue $quiet_mode || echo "time2backup was successfully cancelled"
 			return 0
 		fi
 		sleep 1
 	done
 
-	istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
+	lb_istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
 	return 5
 }
 
@@ -1685,7 +1685,7 @@ t2b_mv() {
 		return 1
 	fi
 
-	if istrue $remote_destination ; then
+	if lb_istrue $remote_destination ; then
 		lb_error "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1740,7 +1740,7 @@ t2b_mv() {
 
 	# confirm action
 	if ! $force_mode ; then
-		istrue $quiet_mode || echo "You are about to move ${#file_history[@]} backups from '$1' to '$2'."
+		lb_istrue $quiet_mode || echo "You are about to move ${#file_history[@]} backups from '$1' to '$2'."
 
 		# warn user if destination already exists
 		[ -e "$destination/$file_history/$path_dest" ] && \
@@ -1751,7 +1751,7 @@ t2b_mv() {
 
 	local b infofile section result=0
 	for b in "${file_history[@]}" ; do
-		istrue $quiet_mode || echo "Moving file(s) for backup $b..."
+		lb_istrue $quiet_mode || echo "Moving file(s) for backup $b..."
 
 		mv "$destination/$b/$path_src" "$destination/$b/$path_dest"
 		if [ $? == 0 ] ; then
@@ -1767,7 +1767,7 @@ t2b_mv() {
 
 		else
 			# mv failed
-			istrue $quiet_mode || lb_result 1
+			lb_istrue $quiet_mode || lb_result 1
 			result=7
 		fi
 
@@ -1819,7 +1819,7 @@ t2b_clean() {
 		return 1
 	fi
 
-	if istrue $remote_destination ; then
+	if lb_istrue $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1851,11 +1851,11 @@ t2b_clean() {
 	fi
 
 	if $keep_latest && [ ${#file_history[@]} == 1 ] ; then
-		istrue $quiet_mode || echo "1 backup found, nothing to do"
+		lb_istrue $quiet_mode || echo "1 backup found, nothing to do"
 		return 0
 	fi
 
-	istrue $quiet_mode || echo "${#file_history[@]} backup(s) found for '$src'"
+	lb_istrue $quiet_mode || echo "${#file_history[@]} backup(s) found for '$src'"
 
 	# confirm action
 	$force_mode || lb_yesno "Proceed cleaning?" || return 0
@@ -1869,12 +1869,12 @@ t2b_clean() {
 			continue
 		fi
 
-		istrue $quiet_mode || echo "Deleting backup $b..."
+		lb_istrue $quiet_mode || echo "Deleting backup $b..."
 
 		# delete file(s)
 		rm -rf "$destination/$b/$path_src"
 		if [ $? != 0 ] ; then
-			istrue $quiet_mode || lb_result 1
+			lb_istrue $quiet_mode || lb_result 1
 			result=7
 		fi
 	done

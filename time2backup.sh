@@ -10,7 +10,7 @@
 #  Version 1.4.0 (2018-09-12)
 #
 
-version=1.4.0
+declare -r version=1.5.0-beta.1
 
 
 #
@@ -176,7 +176,7 @@ shift
 [ -z "$user" ] && user=$lb_current_user
 
 # set console mode
-if istrue $console_mode ; then
+if lb_istrue $console_mode ; then
 	lbg_set_gui console
 	# disable notifications
 	notifications=false
@@ -267,7 +267,7 @@ config_sources=$config_directory/sources.conf
 config_excludes=$config_directory/excludes.conf
 config_includes=$config_directory/includes.conf
 
-if ! istrue $quiet_mode ; then
+if ! lb_istrue $quiet_mode ; then
 	case $command in
 		""|backup|restore)
 			echo "time2backup $version"
@@ -284,7 +284,7 @@ if [ -f "$config_file" ] ; then
 	if ! upgrade_config ; then
 
 		# if failed, display an error and quit
-		if istrue $quiet_mode ; then
+		if lb_istrue $quiet_mode ; then
 			lb_error "$tr_error_upgrade_config"
 		else
 			lbg_error "$tr_error_upgrade_config"

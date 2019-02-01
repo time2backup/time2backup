@@ -10,7 +10,6 @@
 # Index of functions
 #
 #   Global functions
-#     istrue
 #     remove_end_slash
 #     check_backup_date
 #     get_common_path
@@ -71,13 +70,6 @@
 #
 #  Global functions
 #
-
-# Test if a variable is boolean and true
-# Usage: istrue VALUE
-istrue() {
-	[ "$1" == true ]
-}
-
 
 # Remove the last / of a path
 # Usage: remove_end_slash PATH
@@ -301,7 +293,7 @@ get_infofile_value() {
 set_verbose_log_levels() {
 
 	# debug mode: do nothing
-	istrue $debug_mode && return 0
+	lb_istrue $debug_mode && return 0
 
 	# overwritten levels
 	[ -n "$force_log_level" ] && log_level=$force_log_level
@@ -519,7 +511,7 @@ get_backup_history() {
 	[ $# == 0 ] && return 1
 
 	# if remote destination, always latest
-	if istrue $remote_destination ; then
+	if lb_istrue $remote_destination ; then
 		echo latest
 		return 0
 	fi
@@ -703,7 +695,7 @@ upgrade_config() {
 	# if current version, OK
 	[ "$old_config_version" == "$version" ] && return 0
 
-	if ! istrue $quiet_mode ; then
+	if ! lb_istrue $quiet_mode ; then
 		case $command in
 			""|backup|restore)
 				echo
@@ -788,7 +780,7 @@ upgrade_config() {
 #   2: there are errors in config
 load_config() {
 
-	if ! istrue $quiet_mode ; then
+	if ! lb_istrue $quiet_mode ; then
 		case $command in
 			""|backup|restore)
 				echo -e "\n$tr_loading_config\n"
@@ -858,12 +850,12 @@ load_config() {
 	clean_keep=$(($clean_keep + 1))
 
 	# set default rsync path if not defined or if custom commands not allowed
-	if [ -z "$rsync_path" ] || istrue $disable_custom_commands ; then
+	if [ -z "$rsync_path" ] || lb_istrue $disable_custom_commands ; then
 		rsync_path=$default_rsync_path
 	fi
 
 	# set default shutdown command or if custom commands not allowed
-	if [ ${#shutdown_cmd[@]} == 0 ] || istrue $disable_custom_commands ; then
+	if [ ${#shutdown_cmd[@]} == 0 ] || lb_istrue $disable_custom_commands ; then
 		shutdown_cmd=("${default_shutdown_cmd[@]}")
 	fi
 }
@@ -883,7 +875,7 @@ load_config() {
 mount_destination() {
 
 	# remote destination: do nothing
-	istrue $remote_destination && return 0
+	lb_istrue $remote_destination && return 0
 
 	# if UUID not set, return error
 	[ -z "$backup_disk_uuid" ] && return 5
@@ -966,7 +958,7 @@ mount_destination() {
 unmount_destination() {
 
 	# remote destination: do nothing
-	istrue $remote_destination && return 0
+	lb_istrue $remote_destination && return 0
 
 	lb_display --log "Unmount destination..."
 
@@ -1267,7 +1259,7 @@ apply_config() {
 	# if disabled, do not continue
 	$enable_recurrent || return 0
 
-	if istrue $recurrent ; then
+	if lb_istrue $recurrent ; then
 		echo "Enable recurrent backups..."
 		crontab_config enable
 	else
@@ -1326,7 +1318,7 @@ prepare_destination() {
 
 		# if automount set and backup disk mountpoint is defined,
 		# try to mount disk
-		if istrue $mount && [ -n "$backup_disk_mountpoint" ] ; then
+		if lb_istrue $mount && [ -n "$backup_disk_mountpoint" ] ; then
 			mount_destination && destok=true
 		fi
 	fi
@@ -1338,7 +1330,7 @@ prepare_destination() {
 	fi
 
 	# auto unmount: unmount if it was NOT mounted
-	if istrue $unmount_auto && ! istrue $mounted ; then
+	if lb_istrue $unmount_auto && ! lb_istrue $mounted ; then
 		unmount=true
 	fi
 
@@ -1370,7 +1362,7 @@ prepare_destination() {
 	fi
 
 	# check if destination supports hard links
-	if istrue $hard_links && ! istrue $force_hard_links ; then
+	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
 		test_hardlinks "$destination"
 		case $? in
 			0)
@@ -1485,7 +1477,7 @@ test_free_space() {
 		test_space_available $total_size "$destination" && return 0
 
 		# if no clean old backups option in config, continue to be stopped after
-		istrue $clean_old_backups || return 1
+		lb_istrue $clean_old_backups || return 1
 
 		# display clean notification
 		# (just display the first notification, not for every clean)
@@ -1620,7 +1612,7 @@ open_config() {
 
 	# if no custom editor, open file with graphical editor
 	# check if we are using something else than a console
-	if ! $custom_editor && ! istrue $console_mode && [ "$(lbg_get_gui)" != console ] ; then
+	if ! $custom_editor && ! lb_istrue $console_mode && [ "$(lbg_get_gui)" != console ] ; then
 		case $lb_current_os in
 			macOS)
 				all_editors+=(open -t)
@@ -1685,7 +1677,7 @@ open_config() {
 current_lock() {
 
 	# do not check lock if remote destination
-	istrue $remote_destination && return 1
+	lb_istrue $remote_destination && return 1
 
 	# get lock file
 	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
@@ -1707,7 +1699,7 @@ current_lock() {
 create_lock() {
 
 	# do not create lock if remote destination
-	istrue $remote_destination && return 0
+	lb_istrue $remote_destination && return 0
 
 	lb_debug "Create lock..."
 
@@ -1724,7 +1716,7 @@ create_lock() {
 release_lock() {
 
 	# do nothing if remote destination
-	istrue $remote_destination && return 0
+	lb_istrue $remote_destination && return 0
 
 	lb_debug "Deleting lock..."
 
@@ -1753,11 +1745,11 @@ prepare_rsync() {
 	# basic command
 	rsync_cmd=("$rsync_path" -rltDH)
 
-	istrue $quiet_mode || rsync_cmd+=(-v)
+	lb_istrue $quiet_mode || rsync_cmd+=(-v)
 
-	istrue $files_progress && rsync_cmd+=(--progress)
+	lb_istrue $files_progress && rsync_cmd+=(--progress)
 
-	istrue $preserve_permissions && rsync_cmd+=(-pog)
+	lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
 	[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
 
@@ -1786,7 +1778,7 @@ prepare_remote() {
 	local remote_cmd=()
 
 	# add sudo mode in remote command
-	istrue $server_sudo && remote_cmd=(sudo)
+	lb_istrue $server_sudo && remote_cmd=(sudo)
 
 	# extract from url t2b://user@hostname/path/for/backup :
 	# 1. destination=user@hostname
@@ -1818,7 +1810,7 @@ prepare_remote() {
 	rsync_cmd+=(--rsync-path "${remote_cmd[@]}")
 
 	# network compression
-	istrue $network_compression && rsync_cmd+=(-z)
+	lb_istrue $network_compression && rsync_cmd+=(-z)
 
 	if [ -n "$ssh_options" ] ; then
 		cmd+=(-e "$ssh_options")
@@ -1867,7 +1859,7 @@ auto_exclude() {
 # Usage: notify TEXT
 # Dependencies: $notifications
 notify() {
-	istrue $notifications && lbg_notify "$*" &
+	lb_istrue $notifications && lbg_notify "$*" &
 }
 
 
@@ -1914,7 +1906,7 @@ run_before() {
 	local result
 
 	# if disabled, inform user and exit
-	if istrue $disable_custom_commands ; then
+	if lb_istrue $disable_custom_commands ; then
 		lb_display_error "Custom commands are disabled."
 		false # bad command to go into the if $? != 0
 	else
@@ -1931,7 +1923,7 @@ Before script failed (exit code: $result)
 	lb_exitcode=5
 
 	# option exit if error
-	if istrue $exec_before_block ; then
+	if lb_istrue $exec_before_block ; then
 		lb_debug --log "Before script exited with error."
 		clean_exit
 	fi
@@ -1945,7 +1937,7 @@ run_after() {
 	local result
 
 	# if disabled, inform user and exit
-	if istrue $disable_custom_commands ; then
+	if lb_istrue $disable_custom_commands ; then
 		lb_display_error "Custom commands are disabled."
 		false # bad command to go into the if $? != 0
 	else
@@ -1963,7 +1955,7 @@ After script failed (exit code: $result)
 	[ $lb_exitcode == 0 ] && lb_exitcode=16
 
 	# option exit if error
-	if istrue $exec_after_block ; then
+	if lb_istrue $exec_after_block ; then
 		lb_debug --log "After script exited with error."
 		clean_exit
 	fi
@@ -2012,7 +2004,7 @@ clean_exit() {
 	trap
 
 	# unmount destination
-	if istrue $unmount ; then
+	if lb_istrue $unmount ; then
 		if ! unmount_destination ; then
 			lb_display_critical --log "$tr_error_unmount"
 			lbg_critical "$tr_error_unmount"
@@ -2043,7 +2035,7 @@ clean_exit() {
 	fi
 
 	# if shutdown after backup, execute it
-	istrue $shutdown && haltpc
+	lb_istrue $shutdown && haltpc
 
 	lb_debug "Exited with code: $lb_exitcode"
 
@@ -2193,7 +2185,7 @@ choose_operation() {
 	local commands=("" backup restore config)
 
 	# explore command: only in GUI mode
-	if ! istrue $console_mode ; then
+	if ! lb_istrue $console_mode ; then
 		choices+=("$tr_explore_backups")
 		commands+=(explore)
 	fi
@@ -2297,7 +2289,7 @@ config_wizard() {
 		fi
 
 		# test if destination supports hard links
-		if istrue $hard_links && istrue $force_hard_links && ! test_hardlinks "$destination" ; then
+		if lb_istrue $hard_links && lb_istrue $force_hard_links && ! test_hardlinks "$destination" ; then
 
 			# ask user to keep or not the force mode
 			if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
@@ -2332,7 +2324,7 @@ config_wizard() {
 		if [ $res_edit == 0 ] ; then
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
-				istrue $console_mode || lbg_info "$tr_finished_edit"
+				lb_istrue $console_mode || lbg_info "$tr_finished_edit"
 			fi
 		else
 			lb_error "Error in editing sources config file (result code: $res_edit)"
@@ -2427,7 +2419,7 @@ config_wizard() {
 		open_config "$config_file"
 		if [ $? == 0 ] && [ "$lb_current_os" != Windows ] ; then
 			# display window to wait until user has finished
-			istrue $console_mode || lbg_info "$tr_finished_edit"
+			lb_istrue $console_mode || lbg_info "$tr_finished_edit"
 		fi
 	fi
 
