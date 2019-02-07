@@ -1067,14 +1067,20 @@ get_backup_path() {
 
 
 # Get all backup dates
-# Usage: get_backups
+# Usage: get_backups [PATH]
 # Dependencies: $destination, $backup_date_format
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
 #   1: nothing found
 get_backups() {
-	ls "$destination" 2> /dev/null | grep -E "^$backup_date_format$"
+	local path=$destination
+
+	# get specified path (option)
+	[ -n "$1" ] && path=$1
+
+	# return content of path (only the backup folders)
+	ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
 }
 
 
