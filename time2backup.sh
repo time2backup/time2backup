@@ -5,9 +5,9 @@
 #
 #  Website: https://time2backup.org
 #  MIT License
-#  Copyright (c) 2017-2018 Jean Prunneaux
+#  Copyright (c) 2017-2019 Jean Prunneaux
 #
-#  Version 1.4.0 (2018-09-12)
+#  Version 1.5.0 (2019-02-08)
 #
 
 declare -r version=1.5.0-beta.1
