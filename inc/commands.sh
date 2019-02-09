@@ -17,6 +17,7 @@
 #   t2b_stop
 #   t2b_mv
 #   t2b_clean
+#   t2b_copy
 #   t2b_config
 #   t2b_install
 #   t2b_uninstall
@@ -1880,6 +1881,173 @@ t2b_clean() {
 	done
 
 	return $result
+}
+
+
+# Copy backups
+# Usage: t2b_copy [OPTIONS] PATH
+t2b_copy() {
+
+	# default option values
+	local only_latest=false reference
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-l|--latest)
+				only_latest=true
+				;;
+			--reference)
+				if ! check_backup_date "$(lb_getopt "$@")" ; then
+					print_help
+					return 1
+				fi
+				reference=$2
+				shift
+				;;
+			--force-hardlinks)
+				hard_links=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# missing arguments
+	if [ -z "$1" ] ; then
+		print_help
+		return 1
+	fi
+
+	# TODO: enable for remote destinations
+	if lb_istrue $remote_destination ; then
+		lb_error "This command is disabled for remote destinations."
+		return 255
+	fi
+
+	# test backup destination
+	prepare_destination || return 4
+
+	# get destination path
+	if [ "$lb_current_os" == Windows ] ; then
+		# get UNIX format for Windows paths
+		copy_destination=$(cygpath "$1")
+	else
+		copy_destination=$1
+	fi
+
+	local -a backups existing_copies
+
+	# get available backups
+	if $only_latest ; then
+		backups=($(get_backups -l))
+	else
+		backups=($(get_backups))
+	fi
+
+	# no backup found
+	if [ ${#backups[@]} == 0 ] ; then
+		lb_error "No backups to copy."
+		return 0
+	fi
+
+	# search for a backup reference
+	if [ -z "$reference" ] ; then
+		existing_copies=($(get_backups "$copy_destination"))
+		if [ $? != 0 ] ; then
+			lb_warning "Destination copy not found. Copy may take more time."
+			lb_info "Please use the reference option to make it faster."
+		fi
+	fi
+
+	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
+
+	# confirm action
+	$force_mode || lb_yesno "Proceed to copy?" || return 0
+
+	# prepare rsync command
+	prepare_rsync copy
+
+	local b d src cmd first=true result errors=()
+	for ((b=${#backups[@]}-1; b>=0; b--)) ; do
+
+		src=${backups[b]}
+
+		lb_print
+		lb_print "Synchronise $src... ($((${#backups[@]} - $b))/${#backups[@]})"
+
+		# prepare rsync command
+		cmd=("${rsync_cmd[@]}")
+
+		# defines hard links
+		if lb_istrue $hard_links ; then
+			# if reference link not set
+			if [ -z "$reference" ] ; then
+
+				# search the last existing distant backup
+				if [ ${#existing_copies[@]} -gt 0 ] ; then
+					for ((d=${#existing_copies[@]}-1; d>=0; d--)) ; do
+						# avoid reference to be equal to the current item
+						if [ "${existing_copies[d]}" != "$src" ] ; then
+							reference=${existing_copies[d]}
+							break
+						fi
+					done
+				fi
+			fi
+
+			# add link and avoid to use the same backup date
+			if [ -n "$reference" ] && [ "$reference" != "$src" ] ; then
+				cmd+=(--link-dest ../"$reference")
+			fi
+		fi
+
+		lb_debug Running "${cmd[@]}" "$destination/$src/" "$copy_destination/$src"
+
+		"${cmd[@]}" "$destination/$src/" "$copy_destination/$src"
+		lb_result
+		result=$?
+
+		lb_debug Result: $result
+
+		if [ $result != 0 ] ; then
+			if rsync_result $result ; then
+				errors+=("Partial copy $src (exit code: $result)")
+			else
+				errors+=("Failed to copy $src (exit code: $result)")
+			fi
+		fi
+
+		# change reference
+		if $first && rsync_result $result ; then
+			reference=$src
+			first=false
+		fi
+	done
+
+	# print report
+	lb_print
+	if [ ${#errors[@]} == 0 ] ; then
+		lb_print "Copy finished"
+	else
+		lb_print "Some errors occurred when copy:"
+		local e
+		for e in "${errors[@]}" ; do
+			lb_print "   - $e"
+		done
+
+		return 6
+	fi
 }
 
 

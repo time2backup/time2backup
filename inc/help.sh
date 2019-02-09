@@ -33,6 +33,7 @@ print_help() {
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
 		echo "   clean      Clean files in backups"
+		echo "   copy       Copy backups to another folder or host"
 		echo "   config     Edit configuration"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
@@ -134,6 +135,16 @@ print_help() {
 			echo "  -q, --quiet        Quiet mode"
 			echo "  -h, --help         Print help"
 			;;
+		copy)
+				echo "Command usage: $command [OPTIONS] PATH"
+				echo
+				echo "Copy backups to another folder or host"
+				echo
+				echo "Options:"
+				echo "  -l, --latest      Copy only the latest backup"
+				echo "  --reference DATE  Specify a backup date reference for a quick copy"
+				echo "  -h, --help        Print help"
+				;;
 		config)
 			echo "Command usage: $command [OPTIONS]"
 			echo

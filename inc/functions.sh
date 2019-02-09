@@ -49,7 +49,6 @@
 #     create_lock
 #     release_lock
 #     prepare_rsync
-#     prepare_remote
 #     auto_exclude
 #     notify
 #   Backup steps
@@ -1067,20 +1066,36 @@ get_backup_path() {
 
 
 # Get all backup dates
-# Usage: get_backups [PATH]
+# Usage: get_backups [OPTIONS] [PATH]
+# Options:
+#   -l  Get only latest backup
 # Dependencies: $destination, $backup_date_format
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
 #   1: nothing found
 get_backups() {
-	local path=$destination
+	# default options
+	local latest=false path=$destination
 
-	# get specified path (option)
+	# get latest option
+	if [ "$1" == "-l" ] ; then
+		latest=true
+		shift
+	fi
+
+	# get specified path option
 	[ -n "$1" ] && path=$1
 
 	# return content of path (only the backup folders)
-	ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
+	if $latest ; then
+		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$" | tail -1
+	else
+		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
+	fi
+
+	# return error only if ls command failed
+	return ${PIPESTATUS[0]}
 }
 
 
@@ -1744,86 +1759,44 @@ release_lock() {
 
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
-# Usage: prepare_rsync backup|restore
+# Usage: prepare_rsync backup|restore|copy
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
 
 	# basic command
 	rsync_cmd=("$rsync_path" -rltDH)
 
+	# options depending on configuration
+
 	lb_istrue $quiet_mode || rsync_cmd+=(-v)
 
 	lb_istrue $files_progress && rsync_cmd+=(--progress)
 
-	lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
+	if [ "$1" != copy ] ; then
+		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
-	[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
+		[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
 
-	[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
+		[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
 
-	# user defined options
-	[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
+		# user defined options
+		[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
+	fi
 
 	# command-specific options
-	if [ "$1" == backup ] ; then
-		# delete newer files
-		rsync_cmd+=(--delete)
 
-		# add max size if specified
-		[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
-	fi
-}
+	case $1 in
+		backup)
+			# delete newer files
+			rsync_cmd+=(--delete)
 
-
-# Prepare the remote destination command
-# TODO (draft function to be completed)
-# Usage: prepare_remote
-# Dependencies: $rsync_cmd
-prepare_remote() {
-
-	local remote_cmd=()
-
-	# add sudo mode in remote command
-	lb_istrue $server_sudo && remote_cmd=(sudo)
-
-	# extract from url t2b://user@hostname/path/for/backup :
-	# 1. destination=user@hostname
-	# 2. /path/for/backup
-
-	# get t2b server user@host
-	t2bs_host=$(echo "$destination" | awk -F '/' '{print $3}')
-	t2bs_hostname=$(echo "$t2bs_host" | cut -d@ -f2)
-
-	# get destination path
-	t2bs_prefix=t2b://$t2bs_host
-	#TODO
-	t2bs_path=${t2bs_file#$t2bs_prefix}
-
-	# return complete path
-	echo "/t2b/$t2bs_hostname/$t2bs_path"
-
-	# if server path is specified, use it
-	if [ -n "$server_path" ] ; then
-		remote_cmd+=("$server_path")
-	else
-		# or suppose it is a the destination of the remote path
-		remote_cmd+=("$t2bs_path/time2backup-server/t2b-server.sh")
-	fi
-
-	# add remote destination path, date and backup path
-	remote_cmd+=("$t2bs_path" $backup_date "$src")
-
-	rsync_cmd+=(--rsync-path "${remote_cmd[@]}")
-
-	# network compression
-	lb_istrue $network_compression && rsync_cmd+=(-z)
-
-	if [ -n "$ssh_options" ] ; then
-		cmd+=(-e "$ssh_options")
-	else
-		# if empty, defines ssh
-		cmd+=(-e ssh)
-	fi
+			# add max size if specified
+			[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
+			;;
+		copy)
+			rsync_cmd+=(--delete)
+			;;
+	esac
 }
 
 
