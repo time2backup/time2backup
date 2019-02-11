@@ -1689,7 +1689,9 @@ open_config() {
 
 
 # Return date of the current lock (if exists)
-# Usage: current_lock
+# Usage: current_lock [-p]
+# Options:
+#   -p  Get the process PID instead of lock date
 # Dependencies: $remote_destination, $destination
 # Return: date of lock, empty if no lock
 # Exit code:
@@ -1706,8 +1708,13 @@ current_lock() {
 	# no lock
 	[ -z "$current_lock_file" ] && return 1
 
-	# return date of lock
-	basename "$current_lock_file" | sed 's/^.lock_//'
+	if [ "$1" == "-p" ] ; then
+		# return PID (option)
+		cat "$current_lock_file" 2> /dev/null
+	else
+		# return date of lock
+		basename "$current_lock_file" | sed 's/^.lock_//'
+	fi
 }
 
 
@@ -1724,7 +1731,8 @@ create_lock() {
 
 	lb_debug "Create lock..."
 
-	touch "$destination/.lock_$backup_date"
+	# create lock file with process PID inside
+	echo $$ > "$destination/.lock_$backup_date"
 }
 
 
@@ -1768,9 +1776,10 @@ prepare_rsync() {
 
 	# options depending on configuration
 
-	lb_istrue $quiet_mode || rsync_cmd+=(-v)
-
-	lb_istrue $files_progress && rsync_cmd+=(--progress)
+	if ! lb_istrue $quiet_mode ; then
+		rsync_cmd+=(-v)
+		lb_istrue $files_progress && rsync_cmd+=(--progress)
+	fi
 
 	if [ "$1" != copy ] ; then
 		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)

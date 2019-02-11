@@ -1535,20 +1535,26 @@ t2b_status() {
 		return 0
 	fi
 
-	# search for time2backup PID
-	local pid pids=($(ps -ef | grep time2backup | awk '{print $2}'))
+	# get process PID
+	local pid
+	pid=$(current_lock -p)
 
-	for pid in "${pids[@]}" ; do
-		# if current script, ignore it
-		[ $pid == $$ ] && continue
+	lb_debug "File lock contains: $pid"
 
+	if ! lb_is_integer "$pid" ; then
+		lb_istrue $quiet_mode || echo "Cannot retrieve process PID! Please search it manually."
+		return 7
+	fi
+
+	# search if time2backup is running
+	if ps -f $pid &> /dev/null ; then
 		lb_istrue $quiet_mode || echo "backup is running with PID $pid"
 		return 5
-	done
-
-	# if no time2backup process found,
-	lb_istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
-	return 6
+	else
+		# if no time2backup process found,
+		lb_istrue $quiet_mode || echo "backup lock is here, but no backup is currently running"
+		return 6
+	fi
 }
 
 
@@ -1592,6 +1598,9 @@ t2b_stop() {
 			lb_istrue $quiet_mode || echo "backup is not running"
 			return 0
 			;;
+		5)
+			# backup is running: continue
+			;;
 		1)
 			lb_istrue $quiet_mode || echo "Unknown error"
 			return 6
@@ -1600,49 +1609,57 @@ t2b_stop() {
 			lb_istrue $quiet_mode || echo "backup destination not reachable"
 			return 4
 			;;
-		6)
-			lb_istrue $quiet_mode || echo "backup lock is here, but there is no rsync command currently running"
+		*)
+			lb_istrue $quiet_mode || echo "Cannot retrieve information about process"
 			return 7
 			;;
 	esac
 
-	# prompt confirmation
-	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup?" || return 0
+	local t2b_pid
 
-	# search for a current rsync command and get parent PIDs
-	rsync_pids=($(ps -ef | grep "$rsync_path" | head -1 | awk '{print $2}'))
-
-	for pid in "${rsync_pids[@]}" ; do
-		# get parent PID
-		parent_pid=$(ps -f $pid 2> /dev/null | tail -1 | awk '{print $3}')
-		[ -z "$parent_pid" ] && continue
-
-		# check if parent process is an instance of time2backup
-		ps -f $parent_pid 2> /dev/null | grep -q time2backup
-		if [ $? == 0 ] ; then
-			# send the kill signal to time2backup THEN rsync subprocess
-			kill $parent_pid $pid && pid_killed=true
-			break
-		fi
-	done
-
-	# if no rsync process found, quit
-	if ! $pid_killed ; then
-		lb_istrue $quiet_mode || echo "Cannot found rsync PID"
+	# get time2backup PID
+	t2b_pid=$(current_lock -p)
+	if ! lb_is_integer $t2b_pid ; then
+		lb_istrue $quiet_mode || lb_error "PID not found"
 		return 7
 	fi
 
-	# wait 30 sec max until time2backup is really stopped
-	for i in $(seq 1 30) ; do
-		if t2b_status &> /dev/null ; then
-			lb_istrue $quiet_mode || echo "time2backup was successfully cancelled"
-			return 0
-		fi
-		sleep 1
-	done
+	# prompt confirmation
+	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $pid)?" || return 0
 
-	lb_istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
-	return 5
+	# send kill signal to time2backup
+	if kill $t2b_pid ; then
+
+		local rsync_pid
+
+		# search for a current rsync command
+		rsync_pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
+
+		if lb_is_integer $rsync_pid ; then
+			lb_debug "Found rsync PID: $rsync_pid"
+
+			# send the kill signal to rsync
+			kill $rsync_pid || lb_warning "Failed to kill rsync PID $rsync_pid"
+		fi
+
+		# wait 30 sec max until time2backup is really stopped
+		local i
+		for i in $(seq 1 20) ; do
+			if t2b_status &> /dev/null ; then
+				break
+			fi
+			sleep 1
+		done
+	fi
+
+	# recheck
+	if t2b_status &> /dev/null ; then
+		lb_istrue $quiet_mode || echo "time2backup was successfully stopped"
+		return 0
+	else
+		lb_istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
+		return 5
+	fi
 }
 
 
@@ -2012,9 +2029,12 @@ t2b_copy() {
 			fi
 		fi
 
-		lb_debug Running "${cmd[@]}" "$destination/$src/" "$copy_destination/$src"
+		# add source and destination in rsync command
+		cmd+=("$destination/$src/" "$copy_destination/$src")
 
-		"${cmd[@]}" "$destination/$src/" "$copy_destination/$src"
+		lb_debug Running ${cmd[*]}
+
+		"${cmd[@]}"
 		lb_result
 		result=$?
 
