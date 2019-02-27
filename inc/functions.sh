@@ -1438,8 +1438,8 @@ test_backup() {
 	lb_display --log "\nTesting backup..."
 
 	# prepare rsync in test mode
-	# (rsync options without the first argument rsync)
-	local test_cmd=(rsync --dry-run --stats "${cmd[@]:1}")
+	# (append options to rsync command with erase of rsync path)
+	local test_cmd=("$rsync_path" --dry-run --stats "${cmd[@]:1}")
 
 	# rsync test
 	# option dry-run makes a simulation for rsync
