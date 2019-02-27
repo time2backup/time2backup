@@ -117,7 +117,7 @@ t2b_backup() {
 	if $recurrent_backup ; then
 
 		# if disabled in default configuration
-		if ! $enable_recurrent ; then
+		if ! lb_istrue $enable_recurrent ; then
 			lb_display_error "Recurrent backups are disabled."
 			clean_exit 20
 		fi

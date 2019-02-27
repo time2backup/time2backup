@@ -29,14 +29,14 @@ fi
 script_directory=$(dirname "$current_script")
 
 # load libbash
-source "$script_directory/libbash/libbash.sh" --gui &> /dev/null
+source "$script_directory"/libbash/libbash.sh --gui &> /dev/null
 if [ $? != 0 ] ; then
 	echo >&2 "time2backup: [ERROR] cannot load libbash.sh"
 	exit 1
 fi
 
 # load default english messages
-source "$script_directory/locales/en.sh" > /dev/null
+source "$script_directory"/locales/en.sh
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load messages!"
 	exit 1
@@ -50,46 +50,46 @@ lb_current_script_name=time2backup
 
 
 #
-#  Functions
+#  Main program
 #
 
 # load init config
-source "$script_directory/inc/init.sh" > /dev/null
+source "$script_directory"/inc/init.sh
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load init!"
 	exit 1
 fi
 
 # load functions
-source "$script_directory/inc/functions.sh" > /dev/null
+source "$script_directory"/inc/functions.sh
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load functions!"
 	exit 1
 fi
 
 # load commands
-source "$script_directory/inc/commands.sh" > /dev/null
+source "$script_directory"/inc/commands.sh
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load commands!"
 	exit 1
 fi
 
 # load help
-source "$script_directory/inc/help.sh" > /dev/null
+source "$script_directory"/inc/help.sh
 if [ $? != 0 ] ; then
 	lb_error "time2backup: [ERROR] cannot load help!"
 	exit 1
 fi
 
-
-#
-#  Main program
-#
+# load the default config
+if ! lb_import_config "$script_directory"/config/default.example.conf ; then
+	echo "time2backup: [ERROR] cannot load default config!"
+	exit 3
+fi
 
 # load the default config if exists
-if [ -f "$script_directory/config/default.conf" ] ; then
-	# load the default config
-	if ! lb_import_config "$script_directory/config/default.conf" ; then
+if [ -f "$script_directory"/config/default.conf ] ; then
+	if ! lb_import_config "$script_directory"/config/default.conf ; then
 		echo "time2backup: [ERROR] cannot load default config!"
 		exit 3
 	fi

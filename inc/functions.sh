@@ -509,10 +509,9 @@ get_backup_history() {
 	# usage error
 	[ $# == 0 ] && return 1
 
-	# if remote destination, always latest
+	# if remote destination, disable
 	if lb_istrue $remote_destination ; then
-		echo latest
-		return 0
+		return 1
 	fi
 
 	# get all backups
@@ -526,7 +525,8 @@ get_backup_history() {
 	gbh_backup_path=$(get_backup_path "$*")
 	[ -z "$gbh_backup_path" ] && return 3
 
-	# subtility: path/to/symlink_dir/ is not detected as a link, but so does path/to/symlink_dir
+	# subtility: path/to/symlink_dir/ is not detected as a link,
+	# but so does path/to/symlink_dir
 	# so we return path without the last /
 	gbh_backup_path=$(remove_end_slash "$gbh_backup_path")
 
@@ -1278,7 +1278,7 @@ crontab_config() {
 apply_config() {
 
 	# if disabled, do not continue
-	$enable_recurrent || return 0
+	lb_istrue $enable_recurrent || return 0
 
 	if lb_istrue $recurrent ; then
 		echo "Enable recurrent backups..."
@@ -1784,8 +1784,8 @@ prepare_rsync() {
 	if [ "$1" != copy ] ; then
 		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
+		# includes & excludes
 		[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
-
 		[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
 
 		# user defined options
@@ -2229,7 +2229,7 @@ config_wizard() {
 			fi
 
 			# detect changed hostname
-			if $destination_subdirectories && [ -d "$destination/backups" ] ; then
+			if [ -d "$destination/backups" ] ; then
 				existing_hostname=($(ls "$destination/backups"))
 				if [ ${#existing_hostname[@]} == 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
 					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" ${existing_hostname[0]})" ; then
@@ -2320,7 +2320,7 @@ config_wizard() {
 	fi
 
 	# activate recurrent backups
-	if $enable_recurrent ; then
+	if lb_istrue $enable_recurrent ; then
 		if lbg_yesno "$tr_ask_activate_recurrent" ; then
 
 			# default custom frequency

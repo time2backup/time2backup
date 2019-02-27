@@ -8,19 +8,15 @@
 #
 
 #
-#  Variables declaration
+#  Global variables declaration
 #
 
-rsync_cmd=()
 backup_date_format="[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]-[0-2][0-9][0-5][0-9][0-5][0-9]"
 
 
 #
 #  Default core config
 #
-
-cmd_alias=/usr/bin/time2backup
-default_rsync_path=rsync
 
 if [ "$lb_current_os" == Windows ] ; then
 	enable_recurrent=false
@@ -37,7 +33,6 @@ fi
 #  Default config
 #
 
-destination_subdirectories=true
 test_destination=true
 
 keep_limit=-1
