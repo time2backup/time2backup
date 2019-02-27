@@ -611,7 +611,7 @@ hard_links = $hard_links" > "$infofile"
 		fi
 
 		# get estimated time
-		estimated_time=$(estimate_time "$last_backup_info" "$src" $total_size)
+		estimated_time=$(estimate_backup_time "$last_backup_info" "$src" $total_size)
 		if [ -n "$estimated_time" ] ; then
 			# convert into minutes
 			estimated_time=$(($estimated_time / 60 + 1))
@@ -709,21 +709,7 @@ hard_links = $hard_links" > "$infofile"
 
 	if [ $lb_exitcode == 0 ] ; then
 		lb_display --log "Backup finished successfully."
-
-		if lb_istrue $notifications ; then
-			# Windows: display dialogs instead of notifications
-			if [ "$lb_current_os" == Windows ] ; then
-				# do not popup dialog that would prevent PC from shutdown
-				if ! lb_istrue $shutdown ; then
-					# release lock now, do not wait until user closes the window!
-					release_lock
-					lbg_info "$tr_backup_finished\n$(report_duration)"
-				fi
-			else
-				notify "$tr_backup_finished\n$(report_duration)"
-			fi
-		fi
-
+		notify_backup_end "$tr_backup_finished\n$(report_duration)"
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
@@ -746,23 +732,9 @@ Warnings:
 "
 			done
 
-			if lb_istrue $notifications ; then
-				# do not display warning message if there are critical errors to come after that
-				if [ ${#errors[@]} == 0 ] ; then
-					fail_message="$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
-
-					# Windows: display dialogs instead of notifications
-					if [ "$lb_current_os" == Windows ] ; then
-						# do not popup dialog that would prevent PC from shutdown
-						if ! lb_istrue $shutdown ; then
-							# release lock now, do not wait until user closes the window!
-							release_lock
-							lbg_warning "$fail_message"
-						fi
-					else
-						notify "$fail_message"
-					fi
-				fi
+			# do not display warning message if there are critical errors to display after that
+			if [ ${#errors[@]} == 0 ] ; then
+				notify_backup_end "$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
 			fi
 		fi
 
@@ -775,21 +747,7 @@ Errors:
 "
 			done
 
-			if lb_istrue $notifications ; then
-				fail_message="$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
-
-				# Windows: display dialogs instead of notifications
-				if [ "$lb_current_os" == Windows ] ; then
-					# do not popup dialog that would prevent PC from shutdown
-					if ! lb_istrue $shutdown ; then
-						# release lock now, do not wait until user closes the window!
-						release_lock
-						lbg_error "$fail_message"
-					fi
-				else
-					notify "$fail_message"
-				fi
-			fi
+			notify_backup_end "$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
 		fi
 
 		lb_display --log "$report_details"

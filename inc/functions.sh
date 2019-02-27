@@ -52,10 +52,11 @@
 #     auto_exclude
 #     notify
 #   Backup steps
-#     estimate_time
+#     estimate_backup_time
 #     run_before
 #     run_after
 #     create_latest_link
+#     notify_backup_end
 #   Exit functions
 #     clean_exit
 #     cancel_exit
@@ -72,7 +73,6 @@
 
 # Remove the last / of a path
 # Usage: remove_end_slash PATH
-# Dependencies: none
 # Return: new path
 remove_end_slash() {
 	local path=$*
@@ -99,7 +99,6 @@ check_backup_date() {
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
 # will return /home/user/my/
 # Usage: get_common_path PATH_1 PATH_2
-# Dependencies: none
 # Return: absolute path of the common directory
 # Exit codes:
 #   0: OK
@@ -1406,7 +1405,6 @@ prepare_destination() {
 
 # Create log file
 # Usage: create_logfile PATH
-# Dependencies: none
 # Exit codes:
 #   0: OK
 #   1: failed to create log directory
@@ -1856,10 +1854,9 @@ notify() {
 #
 
 # Return backup estimated duration
-# Usage: estimate_time INFO_FILE PATH BACKUP_SIZE
-# Dependencies: none
+# Usage: estimate_backup_time INFO_FILE PATH BACKUP_SIZE
 # Return: estimated time (in seconds)
-estimate_time() {
+estimate_backup_time() {
 	# get section from path
 	local infofile_section=$(find_infofile_section "$1" "$2")
 	[ -z "$infofile_section" ] && return 1
@@ -1965,6 +1962,26 @@ create_latest_link() {
 	fi
 
 	return 0
+}
+
+
+# Display notification at the end of the backup
+# Usage: notify_backup_end MESSAGE
+notify_backup_end() {
+	# notifications disabled: do nothing
+	lb_istrue $notifications || return 0
+
+	# Windows: display dialogs instead of notifications
+	if [ "$lb_current_os" == Windows ] ; then
+		# do not popup dialog that would prevent PC from shutdown
+		if ! lb_istrue $shutdown ; then
+			# release lock now, do not wait until user closes the window!
+			release_lock
+			lbg_info "$*"
+		fi
+	else
+		notify "$*"
+	fi
 }
 
 
