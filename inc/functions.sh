@@ -16,42 +16,47 @@
 #     get_relative_path
 #     get_protocol
 #     url2ssh
-#     find_infofile_section
-#     get_infofile_value
-#   Global steps
+#     file_for_windows
+#     notify
+#     folders_size
 #     set_verbose_log_levels
 #     test_hardlinks
-#     folders_size
 #     test_space_available
-#     rsync_result
-#     file_for_windows
 #     get_backup_fulldate
 #     get_backup_history
-#     create_config
-#     upgrade_config
-#     load_config
-#     mount_destination
-#     unmount_destination
 #     get_backup_path
 #     get_backups
 #     delete_backup
 #     rotate_backups
 #     report_duration
-#     crontab_config
-#     apply_config
 #     prepare_destination
-#     create_logfile
-#     test_backup
 #     test_free_space
 #     clean_empty_backup
+#     auto_exclude
+#   Config functions
+#     create_config
+#     upgrade_config
+#     load_config
+#     crontab_config
+#     apply_config
 #     open_config
+#   Log functions
+#     create_logfile
+#   Infofile functions
+#     find_infofile_section
+#     get_infofile_value
+#   Mount functions
+#     mount_destination
+#     unmount_destination
+#   Lock functions
 #     current_lock
 #     create_lock
 #     release_lock
+#   rsync functions
 #     prepare_rsync
-#     auto_exclude
-#     notify
+#     rsync_result
 #   Backup steps
+#     test_backup
 #     estimate_backup_time
 #     run_before
 #     run_after
@@ -228,111 +233,28 @@ url2ssh() {
 }
 
 
-# Find section that matches a path in an infofile
-# Usage: find_infofile_section INFO_FILE PATH
-# Return: section name
+# Transform a config file in Windows format
+# Usage: file_for_windows PATH
 # Exit codes:
-#   0: section found
-#   1: section not found
-#   2: file does not exists
-find_infofile_section() {
-
-	# if file does not exists, quit
-	[ -f "$1" ] || return 2
-
-	local section path
-
-	# search in sections, ignoring global sections
-	for section in $(grep -Eo "^\[.*\]" "$1" 2> /dev/null | grep -Ev "(time2backup|destination)" | tr -d '[]') ; do
-
-		# get path of the backup
-		path=$(lb_get_config -s "$section" "$1" path)
-		[ -z "$path" ] && continue
-
-		# bad path: continue
-		[[ "$2" != "$path"* ]] && continue
-
-		# return good section
-		echo $section
-		return 0
-	done
-
-	# not found
-	return 1
-}
-
-
-# Get value from an infofile
-# Usage: get_infofile_value INFO_FILE SOURCE_PATH PARAM
-# Return: value
-# Exit code:
 #   0: OK
-#   1: section not found
-#   2: parameter not found
-get_infofile_value() {
-	# search section
-	local infofile_section
-	infofile_section=$(find_infofile_section "$1" "$2")
+#   1: Usage error / Unknown error
+file_for_windows() {
 
-	# section not found: quit
-	[ -z "$infofile_section" ] && return 1
+	# not on Windows: do nothing
+	[ "$lb_current_os" != Windows ] && return 0
 
-	# get value
-	lb_get_config -s "$infofile_section" "$1" "$3" || return 2
+	# test if a file
+	[ -f "$*" ] || return 1
+
+	lb_edit 's/$/\r/g' "$*"
 }
 
 
-#
-#  Global steps
-#
-
-# Usage: set_verbose_log_levels
-# Dependencies: $debug_mode, $force_verbose_level, $force_log_level, $verbose_level, $log_level
-set_verbose_log_levels() {
-
-	# debug mode: do nothing
-	lb_istrue $debug_mode && return 0
-
-	# overwritten levels
-	[ -n "$force_log_level" ] && log_level=$force_log_level
-	[ -n "$force_verbose_level" ] && verbose_level=$force_verbose_level
-
-	# defines log level
-	# if not set (unknown error), set to default level
-	lb_set_log_level "$log_level" || lb_set_log_level INFO
-
-	# defines verbose level
-	# if not set (unknown error), set to default level
-	lb_set_display_level "$verbose_level" || lb_set_display_level INFO
-}
-
-
-#
-#  Backup tests
-#
-
-# Test if backup destination support hard links
-# Usage: test_hardlinks PATH
-# Exit codes:
-#   0: destination supports hard links
-#   1: cannot get filesystem type
-#   2: destination does not support hard links
-test_hardlinks() {
-
-	# supported filesystems on Linux, macOS and Windows
-	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
-		hfs hfsplus apfs \
-		ntfs)
-
-	# get destination filesystem
-	local fstype
-	fstype=$(lb_df_fstype "$*")
-
-	# filesystem not found: quit
-	[ -z "$fstype" ] && return 1
-
-	# if destination filesystem does not support hard links, return error
-	lb_in_array "$fstype" "${supported_fstypes[@]}" || return 2
+# Display a notification if enabled
+# Usage: notify TEXT
+# Dependencies: $notifications
+notify() {
+	lb_istrue $notifications && lbg_notify "$*" &
 }
 
 
@@ -368,6 +290,52 @@ folders_size() {
 }
 
 
+# Usage: set_verbose_log_levels
+# Dependencies: $debug_mode, $force_verbose_level, $force_log_level, $verbose_level, $log_level
+set_verbose_log_levels() {
+
+	# debug mode: do nothing
+	lb_istrue $debug_mode && return 0
+
+	# overwritten levels
+	[ -n "$force_log_level" ] && log_level=$force_log_level
+	[ -n "$force_verbose_level" ] && verbose_level=$force_verbose_level
+
+	# defines log level
+	# if not set (unknown error), set to default level
+	lb_set_log_level "$log_level" || lb_set_log_level INFO
+
+	# defines verbose level
+	# if not set (unknown error), set to default level
+	lb_set_display_level "$verbose_level" || lb_set_display_level INFO
+}
+
+
+# Test if backup destination support hard links
+# Usage: test_hardlinks PATH
+# Exit codes:
+#   0: destination supports hard links
+#   1: cannot get filesystem type
+#   2: destination does not support hard links
+test_hardlinks() {
+
+	# supported filesystems on Linux, macOS and Windows
+	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
+		hfs hfsplus apfs \
+		ntfs)
+
+	# get destination filesystem
+	local fstype
+	fstype=$(lb_df_fstype "$*")
+
+	# filesystem not found: quit
+	[ -z "$fstype" ] && return 1
+
+	# if destination filesystem does not support hard links, return error
+	lb_in_array "$fstype" "${supported_fstypes[@]}" || return 2
+}
+
+
 # Test space available on disk
 # Usage: test_space_available BACKUP_SIZE_IN_BYTES PATH
 # Exit codes:
@@ -397,48 +365,6 @@ test_space_available() {
 		lb_debug --log "Not enough space on device! Needed (in bytes): $1/$space_available"
 		return 1
 	fi
-}
-
-
-# Manage rsync exit codes
-# Usage: rsync_result EXIT_CODE
-# Exit codes:
-#   0: rsync was OK
-#   1: usage error
-#   2: rsync error
-rsync_result() {
-
-	# usage error
-	lb_is_integer $1 || return 1
-
-	# manage results
-	case $1 in
-		0|23|24)
-			# OK or partial transfer
-			return 0
-			;;
-		*)
-			# critical errors that caused backup to fail
-			return 2
-			;;
-	esac
-}
-
-
-# Transform a config file in Windows format
-# Usage: file_for_windows PATH
-# Exit codes:
-#   0: OK
-#   1: Usage error / Unknown error
-file_for_windows() {
-
-	# not on Windows: do nothing
-	[ "$lb_current_os" != Windows ] && return 0
-
-	# test if a file
-	[ -f "$*" ] || return 1
-
-	lb_edit 's/$/\r/g' "$*"
 }
 
 
@@ -619,6 +545,445 @@ get_backup_history() {
 	[ $nb_versions -gt 0 ] || return 2
 }
 
+
+# Get path of a file backup
+# Usage: get_backup_path PATH
+# Return: backup path (e.g. /home/user -> /files/home/user)
+# Exit codes:
+#   0: OK
+#   1: cannot get original path (not absolute and parent directory does not exists)
+get_backup_path() {
+
+	local path=$*
+
+	# if absolute path (first character is a /), return file path
+	if [ "${path:0:1}" == "/" ] ; then
+		echo "/files$path"
+		return 0
+	fi
+
+	# get protocol
+	local protocol
+	protocol=$(get_protocol "$path")
+
+	# if not absolute path, check protocols
+	case $protocol in
+		ssh)
+			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
+
+			# get ssh user@host
+			local ssh_host ssh_hostname
+			ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
+			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
+
+			# get ssh path
+			local ssh_prefix=$protocol://$ssh_host
+			local ssh_path=${path#$ssh_prefix}
+
+			# return complete path
+			echo "/$protocol/$ssh_hostname/$ssh_path"
+			return 0
+			;;
+	esac
+
+	# if file or directory (relative path)
+
+	# remove file:// prefix
+	[ "${path:0:7}" == "file://" ] && path=${path:7}
+
+	# if not exists (file moved or deleted), try to get parent directory path
+	if [ -e "$path" ] ; then
+		echo -n "/files/$(lb_abspath "$path")"
+
+		# if it is a directory, add '/' at the end of the path
+		if [ -d "$path" ] ; then
+			echo /
+		fi
+	else
+		if [ -d "$(dirname "$path")" ] ; then
+			echo "/files/$(lb_abspath "$path")"
+		else
+			# if not exists, I cannot guess original path
+			lb_error "File does not exist."
+			lb_error "If you want to restore a deleted file, please specify an absolute path."
+			return 1
+		fi
+	fi
+}
+
+
+# Get all backup dates
+# Usage: get_backups [OPTIONS] [PATH]
+# Options:
+#   -l  Get only latest backup
+# Dependencies: $destination, $backup_date_format
+# Return: dates list (format YYYY-MM-DD-HHMMSS)
+# Exit codes:
+#   0: OK
+#   1: nothing found
+get_backups() {
+	# default options
+	local latest=false path=$destination
+
+	# get latest option
+	if [ "$1" == "-l" ] ; then
+		latest=true
+		shift
+	fi
+
+	# get specified path option
+	[ -n "$1" ] && path=$1
+
+	# return content of path (only the backup folders)
+	if $latest ; then
+		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$" | tail -1
+	else
+		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
+	fi
+
+	# return error only if ls command failed
+	return ${PIPESTATUS[0]}
+}
+
+
+# Delete a backup
+# Usage: delete_backup DATE_REFERENCE
+# Dependencies: $destination, $logfile, $logs_directory
+# Exit codes:
+#   0: delete OK
+#   1: usage error
+#   2: rm error
+delete_backup() {
+
+	# usage error
+	[ -z "$1" ] && return 1
+
+	# delete log file
+	lb_debug --log "Removing log file time2backup_$1.log..."
+	rm -f "$logs_directory/time2backup_$1.log" 2>> "$logfile"
+
+	# delete backup directory
+	lb_debug --log "Removing $destination/$1..."
+	rm -rf "$destination/$1" 2>> "$logfile"
+
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
+		return 2
+	fi
+}
+
+
+# Clean old backups
+# Usage: rotate_backups
+# Dependencies: $keep_limit, $tr_*
+# Exit codes:
+#   0: rotate OK
+#   1: rm error
+rotate_backups() {
+
+	# if unlimited, do not rotate
+	[ $keep_limit -lt 0 ] && return 0
+
+	# always keep nb + 1 (do not delete current backup)
+	local nb_keep=$(($keep_limit + 1))
+
+	# get backups & number
+	local all_backups=($(get_backups))
+	local nb_backups=${#all_backups[@]}
+
+	# if limit not reached, do nothing
+	[ $nb_backups -le $nb_keep ] && return 0
+
+	lb_display --log "Cleaning old backups..."
+	lb_debug --log "Clean to keep $nb_keep backups on $nb_backups"
+
+	notify "$tr_notify_rotate_backup"
+
+	# get old backups until max - nb to keep
+	local c to_clean=(${all_backups[@]:0:$(($nb_backups - $nb_keep))})
+
+	# remove backups from older to newer
+	for c in "${to_clean[@]}" ; do
+		delete_backup "$c" || lb_display_error "$tr_error_clean_backups"
+	done
+
+	# line jump
+	lb_display --log
+
+	# don't care of other errors
+	return 0
+}
+
+
+# Print report of duration from start of script to now
+# Usage: report_duration
+# Dependencies: $start_timestamp, $tr_report_duration
+# Return: complete report with elapsed time in HH:MM:SS
+report_duration() {
+
+	# calculate duration
+	local duration=$(($(date +%s) - $start_timestamp))
+
+	# print report
+	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
+}
+
+
+# Test if destination is reachable and mount it if needed
+# Usage: prepare_destination
+# Dependencies: $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
+# Exit codes:
+#   0: destination is ready
+#   1: destination not reachable
+#   2: destination not writable
+prepare_destination() {
+
+	lb_debug "Testing destination on: $destination..."
+
+	case $(get_protocol "$destination") in
+		ssh|t2b)
+			remote_destination=true
+			# do not test if there is enough space on distant device
+			test_destination=false
+
+			# define the default logs path to the local config directory
+			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
+
+			# quit ok
+			return 0
+			;;
+		*)
+			# define the default logs path
+			[ -z "$logs_directory" ] && logs_directory=$destination/logs
+			;;
+	esac
+
+	# subdirectories removed since 1.3.0
+	local new_destination=$destination/backups/$lb_current_hostname
+	if [ -d "$new_destination" ] ; then
+		lb_debug "Migration destination path to: $new_destination"
+		destination=$new_destination
+		lb_set_config "$config_file" destination "\"$new_destination\""
+	fi
+
+	local destok=false
+
+	# test backup destination directory
+	if [ -d "$destination" ] ; then
+		lb_debug "Destination mounted."
+		mounted=true
+		destok=true
+	else
+		lb_debug "Destination NOT mounted."
+
+		# if automount set and backup disk mountpoint is defined,
+		# try to mount disk
+		if lb_istrue $mount && [ -n "$backup_disk_mountpoint" ] ; then
+			mount_destination && destok=true
+		fi
+	fi
+
+	# error message if destination not ready
+	if ! $destok ; then
+		lb_display --log "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
+		return 1
+	fi
+
+	# auto unmount: unmount if it was NOT mounted
+	if lb_istrue $unmount_auto && ! lb_istrue $mounted ; then
+		unmount=true
+	fi
+
+	# create destination if not exists
+	mkdir -p "$destination" &> /dev/null
+	if [ $? != 0 ] ; then
+		# if mkdir failed, exit
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		else
+			lbg_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+		fi
+		return 2
+	fi
+
+	# test if destination is writable
+	# must keep this test because if directory exists, the previous mkdir -p command returns no error
+	# create the info file if not exists (don't care of errors)
+	touch "$destination"/.time2backup &> /dev/null
+	if [ $? != 0 ] ; then
+		if $recurrent_backup ; then
+			# don't popup in recurrent mode
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		else
+			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
+		fi
+		return 2
+	fi
+
+	# check if destination supports hard links
+	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
+		test_hardlinks "$destination"
+		case $? in
+			0)
+				# OK
+				;;
+			2)
+				# filesystem does not support hard links
+				lb_debug --log "Destination does not support hard links. Continue in trash mode."
+				hard_links=false
+				;;
+			*)
+				# filesystem not found
+				lb_warning --log "Destination filesystem not found. Continue in trash mode."
+				hard_links=false
+				;;
+		esac
+	fi
+}
+
+
+# Test free space on disk and remove old backups until it's ready
+# Usage: test_free_space
+# Dependencies: $destination, $total_size, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
+# Exit codes:
+#   0: ok
+#   1: not OK
+test_free_space() {
+
+	local i all_backups=($(get_backups))
+	local nb_backups=${#all_backups[@]}
+
+	# test free space until it's ready
+	for ((i=0; i<=$nb_backups; i++)) ; do
+
+		# if space ok, quit loop to continue backup
+		test_space_available $total_size "$destination" && return 0
+
+		# if no clean old backups option in config, continue to be stopped after
+		lb_istrue $clean_old_backups || return 1
+
+		# display clean notification
+		# (just display the first notification, not for every clean)
+		if [ $i == 0 ] ; then
+			notify "$tr_notify_cleaning_space"
+			lb_display --log "Not enough space on device. Clean old backups to free space..."
+		fi
+
+		# recheck all backups list (more safety)
+		all_backups=($(get_backups))
+
+		# do not remove the last backup, nor the current
+		[ ${#all_backups[@]} -le 2 ] && return 1
+
+		# always keep the current backup and respect the clean limit
+		# (continue to be stopped after)
+		if [ $clean_keep -gt 0 ] ; then
+			[ ${#all_backups[@]} -le $clean_keep ] && return 1
+		fi
+
+		# do not delete the last clean backup that will be used for hard links
+		[ "${all_backups[0]}" == "$last_clean_backup" ] && continue
+
+		# clean oldest backup to free space
+		delete_backup ${all_backups[0]}
+	done
+
+	# if all finished, error
+	return 1
+}
+
+
+# Delete empty backup directory
+# Usage: clean_empty_backup [OPTIONS] BACKUP_DATE [PATH]
+# Options:
+#   -i Delete infofile if exists
+# Dependencies: $destination
+# Exit codes:
+#   0: cleaned
+#   1: usage error or path is not a directory
+clean_empty_backup() {
+
+	local delete_infofile=false
+
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-i)
+				delete_infofile=true
+				;;
+			*)
+				break
+				;;
+		esac
+		shift
+	done
+
+	# backup date not defined: usage error
+	[ -n "$1" ] || return 1
+
+	# if backup does not exists, quit
+	[ -d "$destination/$1" ] || return 0
+
+	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
+		lb_debug --log "Clean empty backup: $1/$2"
+		$(cd "$destination" 2> /dev/null && rmdir -p "$1/$2" 2> /dev/null)
+	fi
+
+	if $delete_infofile && \
+	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
+		lb_debug --log "Clean info file of backup $1"
+		rm -f "$destination/$1/backup.info" &> /dev/null
+	fi
+
+	# if not empty, do nothing
+	lb_is_dir_empty "$destination/$1" || return 0
+
+	lb_debug --log "Clean empty backup: $1"
+
+	# delete and prevent loosing context
+	$(cd "$destination" 2> /dev/null && rmdir "$1" 2> /dev/null)
+
+	return 0
+}
+
+
+# Auto exclude the backup directory if it is inside destination
+# Usage: auto_exclude PATH
+# Dependencies: $destination
+# Exit codes:
+#  0: path excluded (or no result)
+#  1: failed
+auto_exclude() {
+
+	# if destination not inside, quit
+	[[ "$destination" != "$1"* ]] && return 0
+
+	# get common path of the backup directory and source
+	# e.g. /media
+	local common_path
+	common_path=$(get_common_path "$destination" "$1")
+
+	if [ $? != 0 ] ; then
+		lb_error "Cannot exclude directory backup from $1!"
+		return 1
+	fi
+
+	# get relative exclude directory
+	# e.g. /user/device/path/to/backups
+	local exclude_path=${destination#$common_path}
+
+	if [ "${exclude_path:0:1}" != "/" ] ; then
+		exclude_path=/$exclude_path
+	fi
+
+	# return path to exclude
+	echo "$exclude_path"
+}
+
+
+#
+#  Config functions
+#
 
 # Create configuration files in user config
 # Usage: create_config
@@ -859,6 +1224,301 @@ load_config() {
 }
 
 
+# Enable/disable cron jobs
+# Usage: crontab_config enable|disable
+# Dependencies: $config_directory, $user
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   2: cannot access to crontab
+#   3: cannot install new crontab
+#   4: cannot write into the temporary crontab file
+crontab_config() {
+
+	local crontab crontab_opts crontab_enable=false
+
+	[ "$1" == enable ] && crontab_enable=true
+
+	# prepare backup task in quiet mode
+	local crontask="\"$lb_current_script\" -q -c \"$config_directory\" backup --recurrent"
+
+	# if root, use crontab -u option
+	# Note: macOS does supports -u option only if current user is root
+	if [ "$lb_current_user" == root ] && [ "$user" != root ] ; then
+		crontab_opts="-u $user"
+	fi
+
+	# check if crontab exists
+	crontab=$(crontab $crontab_opts -l 2>&1)
+	if [ $? != 0 ] ; then
+		# special case for error when no crontab
+		if echo "$crontab" | grep -q "no crontab for " ; then
+			# if empty and disable mode: nothing to do
+			$crontab_enable || return 0
+
+			# reset crontab
+			crontab=""
+		else
+			# if other error (cannot access to user crontab)
+
+			# inform user to add cron job manually
+			if $crontab_enable ; then
+				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
+				lb_display --log "* * * * *	$crontask"
+				return 2
+			else
+				# we don't care
+				return 0
+			fi
+		fi
+	fi
+
+	# test if task exists (get line number)
+	local line
+	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
+	if [ -n "$line" ] ; then
+		if $crontab_enable ; then
+			# do nothing
+			return 0
+		else
+			# disable: delete crontab entry lines
+			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; ${line}d") || return 4
+		fi
+
+	else
+		# if cron task does not exists,
+		# if old entry exists, rename it
+		line=$(echo "$crontab" | grep -n "\* \* \* \* \*\s*\"$lb_current_script\" -q backup --recurrent" | cut -d: -f2)
+		if [ -n "$line" ] ; then
+			crontab=$(echo "$crontab" | sed "${line}s/.*/\* \* \* \* \*	$crontask/")
+		fi
+
+		if $crontab_enable ; then
+			# append command to crontab
+			crontab+=$(echo -e "\n# time2backup recurrent backups\n* * * * *\t$crontask")
+		else
+			# do nothing
+			return 0
+		fi
+	fi
+
+	# install new crontab
+	echo "$crontab" | crontab $crontab_opts - || return 3
+}
+
+
+# Install configuration (recurrent tasks, ...)
+# Usage: apply_config
+# Dependencies: $enable_recurrent, $recurrent
+# Exit codes:
+#   0: OK
+#   other: failed (exit code forwarded from crontab_config)
+apply_config() {
+
+	# if disabled, do not continue
+	lb_istrue $enable_recurrent || return 0
+
+	if lb_istrue $recurrent ; then
+		echo "Enable recurrent backups..."
+		crontab_config enable
+	else
+		echo "Disable recurrent backups..."
+		crontab_config disable
+	fi
+}
+
+
+# Edit configuration
+# Usage: open_config [OPTIONS] CONFIG_FILE
+# Options:
+#   -e COMMAND  use a custom text editor
+# Dependencies: $console_mode
+# Exit codes:
+#   0: OK
+#   1: usage error
+#   3: failed to open configuration
+#   4: no editor found to open configuration file
+open_config() {
+
+	# default values
+	local editors=(nano vim vi)
+	local all_editors=()
+	local custom_editor=false
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-e)
+				[ -z "$2" ] && return 1
+				editors=("$2")
+				custom_editor=true
+				shift
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# usage error
+	[ -z "$1" ] && return 1
+
+	local edit_file=$*
+
+	# test file
+	if [ -e "$edit_file" ] ; then
+		# if exists but is not a file, return error
+		[ -f "$edit_file" ] || return 1
+	else
+		# create empty file if it does not exists (should be includes.conf)
+		echo > "$edit_file"
+	fi
+
+	# if no custom editor, open file with graphical editor
+	# check if we are using something else than a console
+	if ! $custom_editor && ! lb_istrue $console_mode && [ "$(lbg_get_gui)" != console ] ; then
+		case $lb_current_os in
+			macOS)
+				all_editors+=(open -t)
+				;;
+			Windows)
+				all_editors+=(notepad)
+				;;
+			*)
+				all_editors+=(xdg-open)
+				;;
+		esac
+	fi
+
+	# add console editors or chosen one
+	all_editors+=("${editors[@]}")
+
+	# select an editor
+	for e in "${all_editors[@]}" ; do
+		# test if editor exists
+		if lb_command_exists "$e" ; then
+			editor=$e
+			break
+		fi
+	done
+
+	# run text editor and wait for it to close
+	if [ -n "$editor" ] ; then
+		# Windows: transform to Windows path like c:\...\time2backup.conf
+		if [ "$lb_current_os" == Windows ] ; then
+			edit_file=$(cygpath -w "$edit_file")
+		fi
+
+		# open editor and wait until process ends (does not work with all editors)
+		"$editor" "$edit_file" 2> /dev/null
+		wait $! 2> /dev/null
+	else
+		if $custom_editor ; then
+			lb_error "Editor '$editor' was not found on this system."
+		else
+			lb_error "No editor was found on this system."
+			lb_error "Please edit $edit_file manually."
+		fi
+
+		return 4
+	fi
+
+	if [ $? != 0 ] ; then
+		lb_error "Failed to open configuration."
+		lb_error "Please edit $edit_file manually."
+		return 3
+	fi
+}
+
+
+#
+#  Log functions
+#
+
+# Create log file
+# Usage: create_logfile PATH
+# Exit codes:
+#   0: OK
+#   1: failed to create log directory
+#   2: failed to create log file
+create_logfile() {
+	# create logs directory
+	mkdir -p "$(dirname "$*")"
+	if [ $? != 0 ] ; then
+		lb_display_error "Could not create logs directory. Please verify your access rights."
+		return 1
+	fi
+
+	# create log file
+	if ! lb_set_logfile "$*" ; then
+		lb_display_error "Cannot create log file $*. Please verify your access rights."
+		return 2
+	fi
+}
+
+#
+#  Infofile functions
+#
+
+# Find section that matches a path in an infofile
+# Usage: find_infofile_section INFO_FILE PATH
+# Return: section name
+# Exit codes:
+#   0: section found
+#   1: section not found
+#   2: file does not exists
+find_infofile_section() {
+
+	# if file does not exists, quit
+	[ -f "$1" ] || return 2
+
+	local section path
+
+	# search in sections, ignoring global sections
+	for section in $(grep -Eo "^\[.*\]" "$1" 2> /dev/null | grep -Ev "(time2backup|destination)" | tr -d '[]') ; do
+
+		# get path of the backup
+		path=$(lb_get_config -s "$section" "$1" path)
+		[ -z "$path" ] && continue
+
+		# bad path: continue
+		[[ "$2" != "$path"* ]] && continue
+
+		# return good section
+		echo $section
+		return 0
+	done
+
+	# not found
+	return 1
+}
+
+
+# Get value from an infofile
+# Usage: get_infofile_value INFO_FILE SOURCE_PATH PARAM
+# Return: value
+# Exit code:
+#   0: OK
+#   1: section not found
+#   2: parameter not found
+get_infofile_value() {
+	# search section
+	local infofile_section
+	infofile_section=$(find_infofile_section "$1" "$2")
+
+	# section not found: quit
+	[ -z "$infofile_section" ] && return 1
+
+	# get value
+	lb_get_config -s "$infofile_section" "$1" "$3" || return 2
+}
+
+
+#
+#  Mount functions
+#
+
 # Mount destination
 # Usage: mount_destination
 # Dependencies: $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint
@@ -998,689 +1658,9 @@ unmount_destination() {
 }
 
 
-# Get path of a file backup
-# Usage: get_backup_path PATH
-# Return: backup path (e.g. /home/user -> /files/home/user)
-# Exit codes:
-#   0: OK
-#   1: cannot get original path (not absolute and parent directory does not exists)
-get_backup_path() {
-
-	local path=$*
-
-	# if absolute path (first character is a /), return file path
-	if [ "${path:0:1}" == "/" ] ; then
-		echo "/files$path"
-		return 0
-	fi
-
-	# get protocol
-	local protocol
-	protocol=$(get_protocol "$path")
-
-	# if not absolute path, check protocols
-	case $protocol in
-		ssh)
-			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
-
-			# get ssh user@host
-			local ssh_host ssh_hostname
-			ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
-			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
-
-			# get ssh path
-			local ssh_prefix=$protocol://$ssh_host
-			local ssh_path=${path#$ssh_prefix}
-
-			# return complete path
-			echo "/$protocol/$ssh_hostname/$ssh_path"
-			return 0
-			;;
-	esac
-
-	# if file or directory (relative path)
-
-	# remove file:// prefix
-	[ "${path:0:7}" == "file://" ] && path=${path:7}
-
-	# if not exists (file moved or deleted), try to get parent directory path
-	if [ -e "$path" ] ; then
-		echo -n "/files/$(lb_abspath "$path")"
-
-		# if it is a directory, add '/' at the end of the path
-		if [ -d "$path" ] ; then
-			echo /
-		fi
-	else
-		if [ -d "$(dirname "$path")" ] ; then
-			echo "/files/$(lb_abspath "$path")"
-		else
-			# if not exists, I cannot guess original path
-			lb_error "File does not exist."
-			lb_error "If you want to restore a deleted file, please specify an absolute path."
-			return 1
-		fi
-	fi
-}
-
-
-# Get all backup dates
-# Usage: get_backups [OPTIONS] [PATH]
-# Options:
-#   -l  Get only latest backup
-# Dependencies: $destination, $backup_date_format
-# Return: dates list (format YYYY-MM-DD-HHMMSS)
-# Exit codes:
-#   0: OK
-#   1: nothing found
-get_backups() {
-	# default options
-	local latest=false path=$destination
-
-	# get latest option
-	if [ "$1" == "-l" ] ; then
-		latest=true
-		shift
-	fi
-
-	# get specified path option
-	[ -n "$1" ] && path=$1
-
-	# return content of path (only the backup folders)
-	if $latest ; then
-		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$" | tail -1
-	else
-		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
-	fi
-
-	# return error only if ls command failed
-	return ${PIPESTATUS[0]}
-}
-
-
-# Delete a backup
-# Usage: delete_backup DATE_REFERENCE
-# Dependencies: $destination, $logfile, $logs_directory
-# Exit codes:
-#   0: delete OK
-#   1: usage error
-#   2: rm error
-delete_backup() {
-
-	# usage error
-	[ -z "$1" ] && return 1
-
-	# delete log file
-	lb_debug --log "Removing log file time2backup_$1.log..."
-	rm -f "$logs_directory/time2backup_$1.log" 2>> "$logfile"
-
-	# delete backup directory
-	lb_debug --log "Removing $destination/$1..."
-	rm -rf "$destination/$1" 2>> "$logfile"
-
-	if [ $? != 0 ] ; then
-		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
-		return 2
-	fi
-}
-
-
-# Clean old backups
-# Usage: rotate_backups
-# Dependencies: $keep_limit, $tr_*
-# Exit codes:
-#   0: rotate OK
-#   1: rm error
-rotate_backups() {
-
-	# if unlimited, do not rotate
-	[ $keep_limit -lt 0 ] && return 0
-
-	# always keep nb + 1 (do not delete current backup)
-	local nb_keep=$(($keep_limit + 1))
-
-	# get backups & number
-	local all_backups=($(get_backups))
-	local nb_backups=${#all_backups[@]}
-
-	# if limit not reached, do nothing
-	[ $nb_backups -le $nb_keep ] && return 0
-
-	lb_display --log "Cleaning old backups..."
-	lb_debug --log "Clean to keep $nb_keep backups on $nb_backups"
-
-	notify "$tr_notify_rotate_backup"
-
-	# get old backups until max - nb to keep
-	local c to_clean=(${all_backups[@]:0:$(($nb_backups - $nb_keep))})
-
-	# remove backups from older to newer
-	for c in "${to_clean[@]}" ; do
-		delete_backup "$c" || lb_display_error "$tr_error_clean_backups"
-	done
-
-	# line jump
-	lb_display --log
-
-	# don't care of other errors
-	return 0
-}
-
-
-# Print report of duration from start of script to now
-# Usage: report_duration
-# Dependencies: $start_timestamp, $tr_report_duration
-# Return: complete report with elapsed time in HH:MM:SS
-report_duration() {
-
-	# calculate duration
-	local duration=$(($(date +%s) - $start_timestamp))
-
-	# print report
-	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
-}
-
-
-# Enable/disable cron jobs
-# Usage: crontab_config enable|disable
-# Dependencies: $config_directory, $user
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   2: cannot access to crontab
-#   3: cannot install new crontab
-#   4: cannot write into the temporary crontab file
-crontab_config() {
-
-	local crontab crontab_opts crontab_enable=false
-
-	[ "$1" == enable ] && crontab_enable=true
-
-	# prepare backup task in quiet mode
-	local crontask="\"$lb_current_script\" -q -c \"$config_directory\" backup --recurrent"
-
-	# if root, use crontab -u option
-	# Note: macOS does supports -u option only if current user is root
-	if [ "$lb_current_user" == root ] && [ "$user" != root ] ; then
-		crontab_opts="-u $user"
-	fi
-
-	# check if crontab exists
-	crontab=$(crontab $crontab_opts -l 2>&1)
-	if [ $? != 0 ] ; then
-		# special case for error when no crontab
-		if echo "$crontab" | grep -q "no crontab for " ; then
-			# if empty and disable mode: nothing to do
-			$crontab_enable || return 0
-
-			# reset crontab
-			crontab=""
-		else
-			# if other error (cannot access to user crontab)
-
-			# inform user to add cron job manually
-			if $crontab_enable ; then
-				lb_display --log "Failed! \nPlease edit crontab manually and add the following line:"
-				lb_display --log "* * * * *	$crontask"
-				return 2
-			else
-				# we don't care
-				return 0
-			fi
-		fi
-	fi
-
-	# test if task exists (get line number)
-	local line
-	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
-	if [ -n "$line" ] ; then
-		if $crontab_enable ; then
-			# do nothing
-			return 0
-		else
-			# disable: delete crontab entry lines
-			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; ${line}d") || return 4
-		fi
-
-	else
-		# if cron task does not exists,
-		# if old entry exists, rename it
-		line=$(echo "$crontab" | grep -n "\* \* \* \* \*\s*\"$lb_current_script\" -q backup --recurrent" | cut -d: -f2)
-		if [ -n "$line" ] ; then
-			crontab=$(echo "$crontab" | sed "${line}s/.*/\* \* \* \* \*	$crontask/")
-		fi
-
-		if $crontab_enable ; then
-			# append command to crontab
-			crontab+=$(echo -e "\n# time2backup recurrent backups\n* * * * *\t$crontask")
-		else
-			# do nothing
-			return 0
-		fi
-	fi
-
-	# install new crontab
-	echo "$crontab" | crontab $crontab_opts - || return 3
-}
-
-
-# Install configuration (recurrent tasks, ...)
-# Usage: apply_config
-# Dependencies: $enable_recurrent, $recurrent
-# Exit codes:
-#   0: OK
-#   other: failed (exit code forwarded from crontab_config)
-apply_config() {
-
-	# if disabled, do not continue
-	lb_istrue $enable_recurrent || return 0
-
-	if lb_istrue $recurrent ; then
-		echo "Enable recurrent backups..."
-		crontab_config enable
-	else
-		echo "Disable recurrent backups..."
-		crontab_config disable
-	fi
-}
-
-
-# Test if destination is reachable and mount it if needed
-# Usage: prepare_destination
-# Dependencies: $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
-# Exit codes:
-#   0: destination is ready
-#   1: destination not reachable
-#   2: destination not writable
-prepare_destination() {
-
-	lb_debug "Testing destination on: $destination..."
-
-	case $(get_protocol "$destination") in
-		ssh|t2b)
-			remote_destination=true
-			# do not test if there is enough space on distant device
-			test_destination=false
-
-			# define the default logs path to the local config directory
-			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
-
-			# quit ok
-			return 0
-			;;
-		*)
-			# define the default logs path
-			[ -z "$logs_directory" ] && logs_directory=$destination/logs
-			;;
-	esac
-
-	# subdirectories removed since 1.3.0
-	local new_destination=$destination/backups/$lb_current_hostname
-	if [ -d "$new_destination" ] ; then
-		lb_debug "Migration destination path to: $new_destination"
-		destination=$new_destination
-		lb_set_config "$config_file" destination "\"$new_destination\""
-	fi
-
-	local destok=false
-
-	# test backup destination directory
-	if [ -d "$destination" ] ; then
-		lb_debug "Destination mounted."
-		mounted=true
-		destok=true
-	else
-		lb_debug "Destination NOT mounted."
-
-		# if automount set and backup disk mountpoint is defined,
-		# try to mount disk
-		if lb_istrue $mount && [ -n "$backup_disk_mountpoint" ] ; then
-			mount_destination && destok=true
-		fi
-	fi
-
-	# error message if destination not ready
-	if ! $destok ; then
-		lb_display --log "Backup destination is not reachable.\nPlease verify if your media is plugged in and try again."
-		return 1
-	fi
-
-	# auto unmount: unmount if it was NOT mounted
-	if lb_istrue $unmount_auto && ! lb_istrue $mounted ; then
-		unmount=true
-	fi
-
-	# create destination if not exists
-	mkdir -p "$destination" &> /dev/null
-	if [ $? != 0 ] ; then
-		# if mkdir failed, exit
-		if $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
-		else
-			lbg_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
-		fi
-		return 2
-	fi
-
-	# test if destination is writable
-	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	# create the info file if not exists (don't care of errors)
-	touch "$destination"/.time2backup &> /dev/null
-	if [ $? != 0 ] ; then
-		if $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		else
-			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		fi
-		return 2
-	fi
-
-	# check if destination supports hard links
-	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
-		test_hardlinks "$destination"
-		case $? in
-			0)
-				# OK
-				;;
-			2)
-				# filesystem does not support hard links
-				lb_debug --log "Destination does not support hard links. Continue in trash mode."
-				hard_links=false
-				;;
-			*)
-				# filesystem not found
-				lb_warning --log "Destination filesystem not found. Continue in trash mode."
-				hard_links=false
-				;;
-		esac
-	fi
-}
-
-
-# Create log file
-# Usage: create_logfile PATH
-# Exit codes:
-#   0: OK
-#   1: failed to create log directory
-#   2: failed to create log file
-create_logfile() {
-	# create logs directory
-	mkdir -p "$(dirname "$*")"
-	if [ $? != 0 ] ; then
-		lb_display_error "Could not create logs directory. Please verify your access rights."
-		return 1
-	fi
-
-	# create log file
-	if ! lb_set_logfile "$*" ; then
-		lb_display_error "Cannot create log file $*. Please verify your access rights."
-		return 2
-	fi
-}
-
-
-# Test backup command
-# rsync simulation and get total size of the files to transfer
-# Usage: test_backup
-# Dependencies: $logfile, $infofile, $cmd, $total_size
-# Return: size of the backup (in bytes)
-# Exit codes:
-#   0: OK
-#   1: rsync test command failed
-test_backup() {
-
-	lb_display --log "\nTesting backup..."
-
-	# prepare rsync in test mode
-	# (append options to rsync command with erase of rsync path)
-	local test_cmd=("$rsync_path" --dry-run --stats "${cmd[@]:1}")
-
-	# rsync test
-	# option dry-run makes a simulation for rsync
-	# then we get the last line with the total amount of bytes to be copied
-	# which is in format 999,999,999 so then we delete the commas
-	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[*]}..."
-
-	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
-
-	# if rsync command not ok, error
-	if ! lb_is_integer $total_size ; then
-		lb_debug --log "rsync test failed."
-		return 1
-	fi
-
-	# add the space to be taken by the folders!
-	# could be important if you have many folders
-
-	# get the source path from rsync command (array size - 2)
-	local src_folder=${test_cmd[${#test_cmd[@]}-2]}
-
-	# get size of folders
-	local folders_size=$(folders_size "$src_folder")
-
-	# add size of folders to total size
-	lb_is_integer $folders_size && total_size=$(($total_size + $folders_size))
-
-	# add a security margin of 1MB for logs and future backups
-	total_size=$(($total_size + 1000000))
-
-	lb_debug --log "Backup total size (in bytes): $total_size"
-	echo "size = $total_size" >> "$infofile"
-
-	# force exit code to 0
-	return 0
-}
-
-
-# Test free space on disk and remove old backups until it's ready
-# Usage: test_free_space
-# Dependencies: $destination, $total_size, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
-# Exit codes:
-#   0: ok
-#   1: not OK
-test_free_space() {
-
-	local i all_backups=($(get_backups))
-	local nb_backups=${#all_backups[@]}
-
-	# test free space until it's ready
-	for ((i=0; i<=$nb_backups; i++)) ; do
-
-		# if space ok, quit loop to continue backup
-		test_space_available $total_size "$destination" && return 0
-
-		# if no clean old backups option in config, continue to be stopped after
-		lb_istrue $clean_old_backups || return 1
-
-		# display clean notification
-		# (just display the first notification, not for every clean)
-		if [ $i == 0 ] ; then
-			notify "$tr_notify_cleaning_space"
-			lb_display --log "Not enough space on device. Clean old backups to free space..."
-		fi
-
-		# recheck all backups list (more safety)
-		all_backups=($(get_backups))
-
-		# do not remove the last backup, nor the current
-		[ ${#all_backups[@]} -le 2 ] && return 1
-
-		# always keep the current backup and respect the clean limit
-		# (continue to be stopped after)
-		if [ $clean_keep -gt 0 ] ; then
-			[ ${#all_backups[@]} -le $clean_keep ] && return 1
-		fi
-
-		# do not delete the last clean backup that will be used for hard links
-		[ "${all_backups[0]}" == "$last_clean_backup" ] && continue
-
-		# clean oldest backup to free space
-		delete_backup ${all_backups[0]}
-	done
-
-	# if all finished, error
-	return 1
-}
-
-
-# Delete empty backup directory
-# Usage: clean_empty_backup [OPTIONS] BACKUP_DATE [PATH]
-# Options:
-#   -i Delete infofile if exists
-# Dependencies: $destination
-# Exit codes:
-#   0: cleaned
-#   1: usage error or path is not a directory
-clean_empty_backup() {
-
-	local delete_infofile=false
-
-	while [ $# -gt 0 ] ; do
-		case $1 in
-			-i)
-				delete_infofile=true
-				;;
-			*)
-				break
-				;;
-		esac
-		shift
-	done
-
-	# backup date not defined: usage error
-	[ -n "$1" ] || return 1
-
-	# if backup does not exists, quit
-	[ -d "$destination/$1" ] || return 0
-
-	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
-		lb_debug --log "Clean empty backup: $1/$2"
-		$(cd "$destination" 2> /dev/null && rmdir -p "$1/$2" 2> /dev/null)
-	fi
-
-	if $delete_infofile && \
-	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
-		lb_debug --log "Clean info file of backup $1"
-		rm -f "$destination/$1/backup.info" &> /dev/null
-	fi
-
-	# if not empty, do nothing
-	lb_is_dir_empty "$destination/$1" || return 0
-
-	lb_debug --log "Clean empty backup: $1"
-
-	# delete and prevent loosing context
-	$(cd "$destination" 2> /dev/null && rmdir "$1" 2> /dev/null)
-
-	return 0
-}
-
-
-# Edit configuration
-# Usage: open_config [OPTIONS] CONFIG_FILE
-# Options:
-#   -e COMMAND  use a custom text editor
-# Dependencies: $console_mode
-# Exit codes:
-#   0: OK
-#   1: usage error
-#   3: failed to open configuration
-#   4: no editor found to open configuration file
-open_config() {
-
-	# default values
-	local editors=(nano vim vi)
-	local all_editors=()
-	local custom_editor=false
-
-	# get options
-	while [ $# -gt 0 ] ; do
-		case $1 in
-			-e)
-				[ -z "$2" ] && return 1
-				editors=("$2")
-				custom_editor=true
-				shift
-				;;
-			*)
-				break
-				;;
-		esac
-		shift # load next argument
-	done
-
-	# usage error
-	[ -z "$1" ] && return 1
-
-	local edit_file=$*
-
-	# test file
-	if [ -e "$edit_file" ] ; then
-		# if exists but is not a file, return error
-		[ -f "$edit_file" ] || return 1
-	else
-		# create empty file if it does not exists (should be includes.conf)
-		echo > "$edit_file"
-	fi
-
-	# if no custom editor, open file with graphical editor
-	# check if we are using something else than a console
-	if ! $custom_editor && ! lb_istrue $console_mode && [ "$(lbg_get_gui)" != console ] ; then
-		case $lb_current_os in
-			macOS)
-				all_editors+=(open -t)
-				;;
-			Windows)
-				all_editors+=(notepad)
-				;;
-			*)
-				all_editors+=(xdg-open)
-				;;
-		esac
-	fi
-
-	# add console editors or chosen one
-	all_editors+=("${editors[@]}")
-
-	# select an editor
-	for e in "${all_editors[@]}" ; do
-		# test if editor exists
-		if lb_command_exists "$e" ; then
-			editor=$e
-			break
-		fi
-	done
-
-	# run text editor and wait for it to close
-	if [ -n "$editor" ] ; then
-		# Windows: transform to Windows path like c:\...\time2backup.conf
-		if [ "$lb_current_os" == Windows ] ; then
-			edit_file=$(cygpath -w "$edit_file")
-		fi
-
-		# open editor and wait until process ends (does not work with all editors)
-		"$editor" "$edit_file" 2> /dev/null
-		wait $! 2> /dev/null
-	else
-		if $custom_editor ; then
-			lb_error "Editor '$editor' was not found on this system."
-		else
-			lb_error "No editor was found on this system."
-			lb_error "Please edit $edit_file manually."
-		fi
-
-		return 4
-	fi
-
-	if [ $? != 0 ] ; then
-		lb_error "Failed to open configuration."
-		lb_error "Please edit $edit_file manually."
-		return 3
-	fi
-}
-
+#
+#  Lock functions
+#
 
 # Return date of the current lock (if exists)
 # Usage: current_lock [-p]
@@ -1760,6 +1740,10 @@ release_lock() {
 }
 
 
+#
+#  rsync functions
+#
+
 # Prepare rsync command and arguments in the $rsync_cmd variable
 # Usage: prepare_rsync backup|restore|copy
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
@@ -1803,51 +1787,87 @@ prepare_rsync() {
 }
 
 
-# Auto exclude the backup directory if it is inside destination
-# Usage: auto_exclude PATH
-# Dependencies: $destination
+# Manage rsync exit codes
+# Usage: rsync_result EXIT_CODE
 # Exit codes:
-#  0: path excluded (or no result)
-#  1: failed
-auto_exclude() {
+#   0: rsync was OK
+#   1: usage error
+#   2: rsync error
+rsync_result() {
 
-	# if destination not inside, quit
-	[[ "$destination" != "$1"* ]] && return 0
+	# usage error
+	lb_is_integer $1 || return 1
 
-	# get common path of the backup directory and source
-	# e.g. /media
-	local common_path
-	common_path=$(get_common_path "$destination" "$1")
-
-	if [ $? != 0 ] ; then
-		lb_error "Cannot exclude directory backup from $1!"
-		return 1
-	fi
-
-	# get relative exclude directory
-	# e.g. /user/device/path/to/backups
-	local exclude_path=${destination#$common_path}
-
-	if [ "${exclude_path:0:1}" != "/" ] ; then
-		exclude_path=/$exclude_path
-	fi
-
-	# return path to exclude
-	echo "$exclude_path"
-}
-
-
-# Display a notification if enabled
-# Usage: notify TEXT
-# Dependencies: $notifications
-notify() {
-	lb_istrue $notifications && lbg_notify "$*" &
+	# manage results
+	case $1 in
+		0|23|24)
+			# OK or partial transfer
+			return 0
+			;;
+		*)
+			# critical errors that caused backup to fail
+			return 2
+			;;
+	esac
 }
 
 
 #
 #  Backup steps
 #
+
+# Test backup command
+# rsync simulation and get total size of the files to transfer
+# Usage: test_backup
+# Dependencies: $logfile, $infofile, $cmd, $total_size
+# Return: size of the backup (in bytes)
+# Exit codes:
+#   0: OK
+#   1: rsync test command failed
+test_backup() {
+
+	lb_display --log "\nTesting backup..."
+
+	# prepare rsync in test mode
+	# (append options to rsync command with erase of rsync path)
+	local test_cmd=("$rsync_path" --dry-run --stats "${cmd[@]:1}")
+
+	# rsync test
+	# option dry-run makes a simulation for rsync
+	# then we get the last line with the total amount of bytes to be copied
+	# which is in format 999,999,999 so then we delete the commas
+	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[*]}..."
+
+	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
+
+	# if rsync command not ok, error
+	if ! lb_is_integer $total_size ; then
+		lb_debug --log "rsync test failed."
+		return 1
+	fi
+
+	# add the space to be taken by the folders!
+	# could be important if you have many folders
+
+	# get the source path from rsync command (array size - 2)
+	local src_folder=${test_cmd[${#test_cmd[@]}-2]}
+
+	# get size of folders
+	local folders_size=$(folders_size "$src_folder")
+
+	# add size of folders to total size
+	lb_is_integer $folders_size && total_size=$(($total_size + $folders_size))
+
+	# add a security margin of 1MB for logs and future backups
+	total_size=$(($total_size + 1000000))
+
+	lb_debug --log "Backup total size (in bytes): $total_size"
+	echo "size = $total_size" >> "$infofile"
+
+	# force exit code to 0
+	return 0
+}
+
 
 # Return backup estimated duration
 # Usage: estimate_backup_time INFO_FILE PATH BACKUP_SIZE
