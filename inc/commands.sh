@@ -1144,8 +1144,8 @@ t2b_restore() {
 
 	# if no errors,
 	if [ $res == 0 ] ; then
-		# delete logfile, print info and quit
-		rm -f "$logfile" &> /dev/null
+		# delete log file, print info and quit
+		delete_logfile
 		lbg_info "$tr_restore_finished"
 		return 0
 	fi

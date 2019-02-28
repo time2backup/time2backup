@@ -33,6 +33,7 @@
 #     test_free_space
 #     clean_empty_backup
 #     auto_exclude
+#     try_sudo
 #   Config functions
 #     create_config
 #     upgrade_config
@@ -42,6 +43,7 @@
 #     open_config
 #   Log functions
 #     create_logfile
+#     delete_logfile
 #   Infofile functions
 #     find_infofile_section
 #     get_infofile_value
@@ -951,8 +953,8 @@ clean_empty_backup() {
 # Usage: auto_exclude PATH
 # Dependencies: $destination
 # Exit codes:
-#  0: path excluded (or no result)
-#  1: failed
+#   0: path excluded (or no result)
+#   1: failed
 auto_exclude() {
 
 	# if destination not inside, quit
@@ -978,6 +980,23 @@ auto_exclude() {
 
 	# return path to exclude
 	echo "$exclude_path"
+}
+
+
+# Run a command then retry in sudo if failed
+# Usage: try_sudo COMMAND
+# Exit codes:
+#   0: command OK
+#   1: command failed
+try_sudo() {
+	# run command
+	"$@"
+
+	# if failed, retry in sudo
+	if [ $? != 0 ] ; then
+		lb_debug --log "...Failed! Try with sudo..."
+		sudo "$@"
+	fi
 }
 
 
@@ -1457,6 +1476,25 @@ create_logfile() {
 	fi
 }
 
+
+# Delete log file
+# Usage: delete_logfile
+# Dependencies: $logfile, $logs_directory
+# Exit codes:
+#   0: logfile deleted
+#   1: failed to delete
+delete_logfile() {
+	# delete log file (and quit if error)
+	rm -f "$logfile" &> /dev/null || return 1
+
+	# delete logs directory if empty
+	rmdir "$logs_directory" &> /dev/null
+
+	# always OK (rmdir failed is not an error)
+	return 0
+}
+
+
 #
 #  Infofile functions
 #
@@ -1558,49 +1596,29 @@ mount_destination() {
 	if ! [ -d "$backup_disk_mountpoint" ] ; then
 
 		lb_display --log "Create disk mountpoint..."
-		mkdir -p "$backup_disk_mountpoint"
+		try_sudo mkdir -p "$backup_disk_mountpoint"
 
-		# if failed, try in sudo mode
 		if [ $? != 0 ] ; then
-			lb_debug --log "...Failed! Try with sudo..."
-			sudo mkdir -p "$backup_disk_mountpoint"
-
-			if [ $? != 0 ] ; then
-				lb_display --log "...Failed!"
-				# failed to create mount point
-				return 3
-			fi
+			lb_display --log "...Failed!"
+			return 3
 		fi
 	fi
 
 	# mount disk
 	lb_display --log "Mount backup disk..."
-	mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
+	try_sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
 
-	# if failed, try in sudo mode
 	if [ $? != 0 ] ; then
-		lb_debug --log "...Failed! Trying in sudo..."
-		sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
+		lb_display --log "...Failed! Delete mountpoint..."
 
+		try_sudo rmdir "$backup_disk_mountpoint"
 		if [ $? != 0 ] ; then
-			lb_display --log "...Failed! Delete mountpoint..."
-
-			# delete mount point
-			rmdir "$backup_disk_mountpoint" &> /dev/null
-			# if failed, try in sudo mode
-			if [ $? != 0 ] ; then
-				lb_debug --log "...Failed! Trying in sudo..."
-				sudo rmdir "$backup_disk_mountpoint" &> /dev/null
-				if [ $? != 0 ] ; then
-					lb_display --log "...Failed!"
-					# failed to remove mount directory
-					return 6
-				fi
-			fi
-
-			# mount failed
-			return 1
+			lb_display --log "...Failed!"
+			return 6
 		fi
+
+		# mount failed
+		return 1
 	fi
 }
 
@@ -1629,31 +1647,17 @@ unmount_destination() {
 	fi
 
 	# unmount
-	umount "$destination_mountpoint" &> /dev/null
-
-	# if failed, try in sudo mode
+	try_sudo umount "$destination_mountpoint"
 	if [ $? != 0 ] ; then
-		lb_debug --log "...Failed! Try with sudo..."
-		sudo umount "$destination_mountpoint" &> /dev/null
-
-		if [ $? != 0 ] ; then
-			lb_display --log "...Failed!"
-			return 2
-		fi
+		lb_display --log "...Failed!"
+		return 2
 	fi
 
 	lb_debug --log "Delete mount point..."
-	rmdir "$destination_mountpoint" &> /dev/null
-
-	# if failed, try in sudo mode
+	try_sudo rmdir "$destination_mountpoint"
 	if [ $? != 0 ] ; then
-		lb_debug --log "...Failed! Trying in sudo..."
-		sudo rmdir "$destination_mountpoint" &> /dev/null
-
-		if [ $? != 0 ] ; then
-			lb_display --log "...Failed!"
-			return 3
-		fi
+		lb_display --log "...Failed!"
+		return 3
 	fi
 }
 
@@ -2048,12 +2052,8 @@ clean_exit() {
 			;;
 	esac
 
-	if $delete_logs ; then
-		# delete log file
-		rm -f "$logfile" &> /dev/null
-		# delete logs directory if empty
-		rmdir "$logs_directory" &> /dev/null
-	fi
+	# delete log file
+	$delete_logs && delete_logfile
 
 	# if shutdown after backup, execute it
 	lb_istrue $shutdown && haltpc
