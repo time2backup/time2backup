@@ -60,7 +60,7 @@
 #   Exit functions
 #     clean_exit
 #     cancel_exit
-#     email_report
+#     send_email_report
 #     haltpc
 #   Wizards
 #     choose_operation
@@ -2263,13 +2263,8 @@ config_wizard() {
 
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
-
-				lb_set_config "$config_file" backup_disk_mountpoint "\"$mountpoint\""
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_debug "Error in setting config parameter backup_disk_mountpoint (result code: $res_edit)"
-				fi
+				lb_set_config "$config_file" backup_disk_mountpoint "\"$mountpoint\"" || \
+					lb_warning "Cannot set config: backup_disk_mountpoint"
 			fi
 		else
 			lb_debug "Could not find mount point of destination."
@@ -2282,12 +2277,8 @@ config_wizard() {
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
-				lb_set_config "$config_file" backup_disk_uuid "\"$disk_uuid\""
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_debug "Error in setting config parameter backup_disk_uuid (result code: $res_edit)"
-				fi
+				lb_set_config "$config_file" backup_disk_uuid "\"$disk_uuid\"" || \
+					lb_warning "Cannot set config: backup_disk_uuid"
 			fi
 		else
 			lb_debug "Could not find disk UUID of destination."
@@ -2300,12 +2291,8 @@ config_wizard() {
 			if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
 
 				# set config
-				lb_set_config "$config_file" force_hard_links false
-
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_display_error "Error in setting config parameter force_hard_links (result code: $res_edit)"
-				fi
+				lb_set_config "$config_file" force_hard_links false || \
+					lb_warning "Cannot set config: force_hard_links"
 			fi
 		fi
 	else
@@ -2322,17 +2309,13 @@ config_wizard() {
 	# edit sources to backup
 	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
 
-		open_config "$config_sources"
-
-		# manage result
-		res_edit=$?
-		if [ $res_edit == 0 ] ; then
+		if open_config "$config_sources" ; then
 			if [ "$lb_current_os" != Windows ] ; then
 				# display window to wait until user has finished
 				lb_istrue $console_mode || lbg_info "$tr_finished_edit"
 			fi
 		else
-			lb_error "Error in editing sources config file (result code: $res_edit)"
+			lb_warning "Failed to edit sources config file"
 		fi
 	fi
 
@@ -2408,12 +2391,7 @@ config_wizard() {
 						;;
 				esac
 
-				res_edit=$?
-				if [ $res_edit != 0 ] ; then
-					lb_debug "Error in setting config parameter frequency (result code: $res_edit)"
-				fi
-			else
-				lb_debug "Error or cancel when choosing recurrence frequency (result code: $?)."
+				[ $? != 0 ] && lb_warning "Cannot set config: frequency"
 			fi
 		fi
 	fi
@@ -2429,11 +2407,8 @@ config_wizard() {
 	fi
 
 	# enable/disable recurrence in config
-	lb_set_config "$config_file" recurrent $recurrent_enabled
-	res_edit=$?
-	if [ $res_edit != 0 ] ; then
-		lb_debug "Error in setting config parameter recurrent (result code: $res_edit)"
-	fi
+	lb_set_config "$config_file" recurrent $recurrent_enabled || \
+		lb_warning "Cannot set config: recurrent"
 
 	# reload config
 	if ! load_config ; then
@@ -2442,18 +2417,15 @@ config_wizard() {
 	fi
 
 	# apply configuration
-	if ! apply_config ; then
-		lbg_warning "$tr_cannot_install_cronjobs"
-	fi
+	apply_config || lbg_warning "$tr_cannot_install_cronjobs"
 
 	# ask for the first backup
-	if lbg_yesno -y "$tr_ask_backup_now" ; then
-		t2b_backup
-		return $?
+	if ! lbg_yesno -y "$tr_ask_backup_now" ; then
+		# no backup: inform user time2backup is ready
+		lbg_info "$tr_info_time2backup_ready"
+		return 0
 	fi
 
-	# no backup: inform user time2backup is ready
-	lbg_info "$tr_info_time2backup_ready"
-
-	return 0
+	# run the first backup
+	t2b_backup
 }

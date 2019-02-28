@@ -105,10 +105,8 @@ t2b_backup() {
 	last_backup_file=$config_directory/.lastbackup
 
 	# if file does not exist, create it
-	touch "$last_backup_file"
-	if [ $? != 0 ] ; then
-		lb_display_error "Cannot create last backup! Verify your right access on config directory."
-	fi
+	touch "$last_backup_file" || \
+		lb_warning "Cannot create last backup file! Verify your right access on config directory."
 
 	# get last backup timestamp
 	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -Eo "^[1-9][0-9]*$")
@@ -550,12 +548,7 @@ hard_links = $hard_links" > "$infofile"
 			lb_istrue $network_compression && cmd+=(-z)
 
 			# add ssh options
-			if [ -n "$ssh_options" ] ; then
-				cmd+=(-e "$ssh_options")
-			else
-				# if empty, defines ssh
-				cmd+=(-e ssh)
-			fi
+			[ -n "$ssh_options" ] && cmd+=(-e "$ssh_options")
 
 			# rsync distant path option
 			[ -n "$rsync_remote_path" ] && cmd+=(--rsync-path "$rsync_remote_path")
@@ -693,18 +686,16 @@ hard_links = $hard_links" > "$infofile"
 			lb_debug --log "Save backup timestamp"
 
 			# save current timestamp into config/.lastbackup file
-			date +%s > "$last_backup_file"
-			if [ $? != 0 ] ; then
+			date +%s > "$last_backup_file" || \
 				lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
-			fi
 
+			# create latest backup directory link
 			create_latest_link
 			;;
 	esac
 
 	# print final report
 	lb_display --log "Backup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
-
 	lb_display --log "$(report_duration)\n"
 
 	if [ $lb_exitcode == 0 ] ; then

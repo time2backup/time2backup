@@ -31,19 +31,22 @@ script_directory=$(dirname "$current_script")
 # load libbash
 source "$script_directory"/libbash/libbash.sh --gui &> /dev/null
 if [ $? != 0 ] ; then
-	echo >&2 "time2backup: [ERROR] cannot load libbash.sh"
+	echo >&2 "[ERROR] cannot load libbash.sh"
 	exit 1
 fi
 
 # load default english messages
 source "$script_directory"/locales/en.sh
 if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load messages!"
+	lb_error "[ERROR] cannot load english messages"
 	exit 1
 fi
 
 # load translation (don't care of errors)
 source "$script_directory/locales/$lb_lang.sh" &> /dev/null
+if [ $? != 0 ] ; then
+	lb_debug "Failed to load locales for $lb_lang"
+fi
 
 # change current script name
 lb_current_script_name=time2backup
@@ -56,41 +59,41 @@ lb_current_script_name=time2backup
 # load init config
 source "$script_directory"/inc/init.sh
 if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load init!"
+	lb_error "[ERROR] cannot load init script"
 	exit 1
 fi
 
 # load functions
 source "$script_directory"/inc/functions.sh
 if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load functions!"
+	lb_error "[ERROR] cannot load functions"
 	exit 1
 fi
 
 # load commands
 source "$script_directory"/inc/commands.sh
 if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load commands!"
+	lb_error "[ERROR] cannot load commands"
 	exit 1
 fi
 
 # load help
 source "$script_directory"/inc/help.sh
 if [ $? != 0 ] ; then
-	lb_error "time2backup: [ERROR] cannot load help!"
+	lb_error "[ERROR] cannot load help"
 	exit 1
 fi
 
 # load the default config
 if ! lb_import_config "$script_directory"/config/default.example.conf ; then
-	echo "time2backup: [ERROR] cannot load default config!"
-	exit 3
+	lb_error "[ERROR] cannot load core config"
+	exit 1
 fi
 
 # load the default config if exists
 if [ -f "$script_directory"/config/default.conf ] ; then
 	if ! lb_import_config "$script_directory"/config/default.conf ; then
-		echo "time2backup: [ERROR] cannot load default config!"
+		lb_error "[ERROR] cannot load default config"
 		exit 3
 	fi
 fi
