@@ -1110,22 +1110,18 @@ delete_backup() {
 	# usage error
 	[ -z "$1" ] && return 1
 
-	lb_debug --log "Removing $destination/$1..."
+	# delete log file
+	lb_debug --log "Removing log file time2backup_$1.log..."
+	rm -f "$logs_directory/time2backup_$1.log" 2>> "$logfile"
 
-	# delete backup path
-	rm -rf "$destination/$1" 2> "$logfile"
+	# delete backup directory
+	lb_debug --log "Removing $destination/$1..."
+	rm -rf "$destination/$1" 2>> "$logfile"
 
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
 		return 2
 	fi
-
-	# delete log file
-	lb_debug --log "Removing log file time2backup_$1.log..."
-	rm -f "$logs_directory/time2backup_$1.log" 2> "$logfile"
-
-	# don't care of rm log errors
-	return 0
 }
 
 
