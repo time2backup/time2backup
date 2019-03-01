@@ -286,7 +286,6 @@ hard_links = $hard_links" > "$infofile"
 
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
-
 		lb_display --log "Preparing backup..."
 
 		# save current timestamp
@@ -543,6 +542,7 @@ hard_links = $hard_links" > "$infofile"
 		# search in source if exclude conf file is set
 		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from="$abs_src"/.rsyncignore)
 
+		# if remote source
 		if $source_ssh ; then
 			# enables network compression
 			lb_istrue $network_compression && cmd+=(-z)
@@ -550,8 +550,16 @@ hard_links = $hard_links" > "$infofile"
 			# add ssh options
 			[ -n "$ssh_options" ] && cmd+=(-e "$ssh_options")
 
-			# rsync distant path option
-			[ -n "$rsync_remote_path" ] && cmd+=(--rsync-path "$rsync_remote_path")
+			# set rsync distant path
+			if [ -n "$rsync_remote_path" ] ; then
+				if lb_istrue $remote_sudo ; then
+					cmd+=(--rsync-path "sudo $rsync_remote_path")
+				else
+					cmd+=(--rsync-path "$rsync_remote_path")
+				fi
+			else
+				lb_istrue $remote_sudo && cmd+=(--rsync-path "sudo rsync")
+			fi
 		fi
 
 		# if it is a directory, add '/' at the end of the path
