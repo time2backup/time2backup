@@ -1051,6 +1051,18 @@ t2b_restore() {
 		fi
 	fi
 
+	# warn user if incomplete backup of directory
+	if $directory_mode ; then
+
+		# if rsync result was not good (backup failed or was incomplete)
+		if [ "$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)" != 0 ] ; then
+			# warn user
+			lb_warning "$tr_warn_restore_partial"
+			# and ask user to cancel
+			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
+		fi
+	fi
+
 	# prepare destination path
 	case $(get_protocol "$file") in
 		ssh)
@@ -1061,23 +1073,11 @@ t2b_restore() {
 			;;
 	esac
 
-	# warn user if incomplete backup of directory
-	if $directory_mode ; then
-
-		# if rsync result was not good (backup failed or was incomplete)
-		if [ "$(get_infofile_value "$destination/$backup_date/backup.info" "$dest" rsync_result)" != 0 ] ; then
-			# warn user
-			lb_warning "$tr_warn_restore_partial"
-			# and ask user to cancel
-			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
-		fi
-	fi
+	# prepare rsync command
+	prepare_rsync restore
 
 	# catch term signals
 	trap cancel_exit SIGHUP SIGINT SIGTERM
-
-	# prepare rsync command
-	prepare_rsync restore
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
