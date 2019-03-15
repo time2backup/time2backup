@@ -1581,8 +1581,10 @@ t2b_stop() {
 		return 7
 	fi
 
+	lb_debug "time2backup PID found: $t2b_pid"
+
 	# prompt confirmation
-	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $pid)?" || return 0
+	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $t2b_pid)?" || return 0
 
 	# send kill signal to time2backup
 	if kill $t2b_pid ; then

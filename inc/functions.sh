@@ -622,7 +622,7 @@ get_backup_path() {
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
-#   1: nothing found
+#   1: error for the path
 get_backups() {
 	# default options
 	local latest=false path=$destination
