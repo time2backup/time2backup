@@ -66,6 +66,8 @@
 #     create_latest_link
 #     notify_backup_end
 #   Exit functions
+#     catch_kills
+#     uncatch_kills
 #     clean_exit
 #     cancel_exit
 #     send_email_report
@@ -2038,10 +2040,34 @@ notify_backup_end() {
 #  Exit functions
 #
 
+# trap kill signals
+# Usage: catch_kills [COMMAND]
+catch_kills() {
+	# reset traps
+	uncatch_kills
+
+	local cmd=clean_exit
+	[ -n "$1" ] && cmd=$1
+
+	trap $cmd SIGHUP SIGINT SIGTERM
+}
+
+
+# Delete trap for kill signals
+# Usage: uncatch_kills
+uncatch_kills() {
+	trap - 1 2 3 15
+	trap
+}
+
+
 # Clean things before exit
 # Usage: clean_exit [EXIT_CODE]
 # Dependencies: $dest, $finaldest, $unmount, $keep_logs, $logfile, $logs_directory, $shutdown, $tr_*
 clean_exit() {
+
+	# clear all traps to avoid infinite loop if following commands takes some time
+	uncatch_kills
 
 	# set exit code if specified
 	[ -n "$1" ] && lb_exitcode=$1
@@ -2052,10 +2078,6 @@ clean_exit() {
 
 	# delete backup lock
 	release_lock
-
-	# clear all traps to avoid infinite loop if following commands takes some time
-	trap - 1 2 3 15
-	trap
 
 	# unmount destination
 	if lb_istrue $unmount ; then
@@ -2112,8 +2134,7 @@ cancel_exit() {
 			exit 11
 			;;
 		*)
-			notify "Unkown operation cancelled."
-			exit 255
+			lb_exit
 			;;
 	esac
 }

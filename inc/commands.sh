@@ -230,7 +230,7 @@ t2b_backup() {
 	create_lock
 
 	# catch term signals
-	trap cancel_exit SIGHUP SIGINT SIGTERM
+	catch_kills cancel_exit
 
 	# set log file path
 	logfile=$logs_directory/time2backup_$backup_date.log
@@ -660,6 +660,9 @@ hard_links = $hard_links" > "$infofile"
 
 	done # end of backup sources
 
+	# do not consider as cancelled backup
+	catch_kills clean_exit
+
 	lb_display --log "\n********************************************\n"
 
 	# if destination disappered (e.g. network folder disconnected),
@@ -671,12 +674,9 @@ hard_links = $hard_links" > "$infofile"
 		# final cleanup
 		clean_empty_backup -i $backup_date
 
-		# if destination was not empty, rotate backups
-		if [ -d "$dest" ] ; then
-			rotate_backups
-		else
-			# if nothing was backed up, consider it as a critical error
-			# and do not rotate backups
+		# if nothing was backed up, consider it as a critical error
+		# and do not rotate backups
+		if ! [ -d "$dest" ] ; then
 			errors+=("Nothing was backed up.")
 			lb_exitcode=14
 		fi
@@ -687,12 +687,15 @@ hard_links = $hard_links" > "$infofile"
 		0|5|15)
 			lb_debug --log "Save backup timestamp"
 
+			# create latest backup directory link
+			create_latest_link
+
 			# save current timestamp into config/.lastbackup file
 			date +%s > "$last_backup_file" || \
 				lb_display_error --log "Failed to save backup date! Please check your access rights on the config directory or recurrent backups won't work."
 
-			# create latest backup directory link
-			create_latest_link
+			# rotate backups
+			rotate_backups
 			;;
 	esac
 
@@ -1071,7 +1074,7 @@ t2b_restore() {
 	prepare_rsync restore
 
 	# catch term signals
-	trap cancel_exit SIGHUP SIGINT SIGTERM
+	catch_kills cancel_exit
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
