@@ -7,20 +7,21 @@
 #  Copyright (c) 2017-2019 Jean Prunneaux
 #
 
-# Index of functions
+# Index
 #
-#   t2b_backup
-#   t2b_restore
-#   t2b_history
-#   t2b_explore
-#   t2b_status
-#   t2b_stop
-#   t2b_mv
-#   t2b_clean
-#   t2b_copy
-#   t2b_config
-#   t2b_install
-#   t2b_uninstall
+#   Commands
+#     t2b_backup
+#     t2b_restore
+#     t2b_history
+#     t2b_explore
+#     t2b_status
+#     t2b_stop
+#     t2b_mv
+#     t2b_clean
+#     t2b_copy
+#     t2b_config
+#     t2b_install
+#     t2b_uninstall
 
 
 # Perform backup
@@ -550,16 +551,9 @@ hard_links = $hard_links" > "$infofile"
 			# add ssh options
 			[ -n "$ssh_options" ] && cmd+=(-e "$ssh_options")
 
-			# set rsync distant path
-			if [ -n "$rsync_remote_path" ] ; then
-				if lb_istrue $remote_sudo ; then
-					cmd+=(--rsync-path "sudo $rsync_remote_path")
-				else
-					cmd+=(--rsync-path "$rsync_remote_path")
-				fi
-			else
-				lb_istrue $remote_sudo && cmd+=(--rsync-path "sudo rsync")
-			fi
+			# set rsync remote path
+			local rsync_remote_command=$(get_rsync_remote_command)
+			[ -n "$rsync_remote_command" ] && cmd+=(--rsync-path "$rsync_remote_command")
 		fi
 
 		# if it is a directory, add '/' at the end of the path

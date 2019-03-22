@@ -7,7 +7,7 @@
 #  Copyright (c) 2017-2019 Jean Prunneaux
 #
 
-# Index of functions
+# Index
 #
 #   Global functions
 #     remove_end_slash
@@ -56,6 +56,7 @@
 #     release_lock
 #   rsync functions
 #     prepare_rsync
+#     get_rsync_remote_command
 #     rsync_result
 #   Backup steps
 #     test_backup
@@ -1763,6 +1764,12 @@ prepare_rsync() {
 		lb_istrue $files_progress && rsync_cmd+=(--progress)
 	fi
 
+	# remote destination
+	if lb_istrue $remote_destination ; then
+		local rsync_remote_command=$(get_rsync_remote_command)
+		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
+	fi
+
 	if [ "$1" != copy ] ; then
 		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
@@ -1788,6 +1795,28 @@ prepare_rsync() {
 			rsync_cmd+=(--delete)
 			;;
 	esac
+}
+
+
+# Generate rsync remote command
+# Usage: get_rsync_remote_command
+# Dependencies: $rsync_remote_path, $remote_destination, $remote_sudo
+# Return: Remote command
+get_rsync_remote_command() {
+
+	# custom remote command
+	if [ -n "$rsync_remote_path" ] ; then
+		lb_istrue $remote_sudo && echo -n 'sudo '
+		echo "$rsync_remote_path"
+	else
+		# other command
+		if lb_istrue $remote_destination ; then
+			lb_istrue $remote_sudo && echo -n 'sudo '
+			echo time2backup-server
+		else
+			lb_istrue $remote_sudo && echo 'sudo rsync'
+		fi
+	fi
 }
 
 
