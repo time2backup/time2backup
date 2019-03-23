@@ -1878,9 +1878,6 @@ t2b_copy() {
 				reference=$2
 				shift
 				;;
-			--force-hardlinks)
-				hard_links=true
-				;;
 			-h|--help)
 				print_help
 				return 0
@@ -1907,6 +1904,9 @@ t2b_copy() {
 		lb_error "This command is disabled for remote destinations."
 		return 255
 	fi
+
+	# force using hard links
+	hard_links=true
 
 	# test backup destination
 	prepare_destination || return 4
@@ -1946,7 +1946,7 @@ t2b_copy() {
 	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
 
 	# confirm action
-	$force_mode || lb_yesno "Proceed to copy?" || return 0
+	$force_mode || lb_yesno "Proceed to copy? You must have a destination compatible with hard links." || return 0
 
 	# prepare rsync command
 	prepare_rsync copy

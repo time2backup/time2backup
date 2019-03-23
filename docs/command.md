@@ -60,12 +60,14 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 
 ### Options
 ```
--p, --progress   Display backup progress for each file (overrides configuration)
--u, --unmount    Unmount destination after backup (overrides configuration)
--s, --shutdown   Shutdown after backup (overrides configuration)
--r, --recurrent  Perform a recurrent backup (used in cron jobs)
---force-unlock   Force to backup if a lock is stuck (use with caution)
--h, --help       Print help
+-p, --progress      Display backup progress for each file (overrides configuration)
+-c, --comment TEXT  Add a comment in backup meta data (infofile)
+-u, --unmount       Unmount destination after backup (overrides configuration)
+-s, --shutdown      Shutdown after backup (overrides configuration)
+-r, --recurrent     Perform a recurrent backup (used in cron jobs)
+--force-unlock      Force to backup if a lock is stuck (use with caution)
+-q, --quiet         Quiet mode; do not print transfer details
+-h, --help          Print help
 ```
 
 ### Exit codes
@@ -112,6 +114,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
 -p, --progress   Display restore progress for each file (overrides configuration)
 -f, --force      Force restore; do not display confirmation
+-q, --quiet      Quiet mode; do not print transfer details
 -h, --help       Print help
 ```
 
@@ -167,7 +170,8 @@ Note: If no path is specified, it will open the root backup folder.
 ### Options
 ```
 -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)
--a, --all        Explore all versions"
+-l, --latest     Explore only latest version
+-a, --all        Explore all versions
 -h, --help       Print help
 ```
 
@@ -245,9 +249,9 @@ time2backup [GLOBAL_OPTIONS] mv [OPTIONS] PATH DESTINATION
 
 ### Options
 ```
--l, --latest  Move only the latest backup version"
--f, --force   Force move; do not display confirmation"
--q, --quiet   Quiet mode"
+-l, --latest  Move only the latest backup version
+-f, --force   Force move; do not display confirmation
+-q, --quiet   Quiet mode
 -h, --help    Print help
 ```
 
@@ -272,7 +276,7 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 
 ### Options
 ```
--l, --keep-latest  Keep the latest backup version of the file(s)"
+-l, --keep-latest  Keep the latest backup version of the file(s)
 -f, --force        Force clean; do not display confirmation
 -q, --quiet        Quiet mode
 -h, --help         Print help

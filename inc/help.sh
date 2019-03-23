@@ -11,7 +11,7 @@
 # Usage: print_help [global]
 print_help() {
 	echo
-	echo "Usage: $lb_current_script_name [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
+	echo "Usage: time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	echo
 	echo "Global options:"
 	echo "  -C, --console              Execute time2backup in console mode (no dialog windows)"
@@ -38,119 +38,132 @@ print_help() {
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
 		echo
-		echo "Run '$lb_current_script_name COMMAND --help' for more information on a command."
+		echo "Run 'time2backup COMMAND --help' for more information on a command."
 		return 0
 	fi
 
 	case $command in
 		backup)
-			echo "Command usage: $command [OPTIONS] [PATH...]"
-			echo
+			print_help_usage "[PATH...]"
+
 			echo "Backup your files"
-			echo
-			echo "Options:"
-			echo "  -p, --progress   Display backup progress for each file (overrides configuration)"
-			echo "  -u, --unmount    Unmount destination after backup (overrides configuration)"
-			echo "  -s, --shutdown   Shutdown after backup (overrides configuration)"
-			echo "  -r, --recurrent  Perform a recurrent backup (used in cron jobs)"
-			echo "  --force-unlock   Force to backup if a lock is stuck (use with caution)"
-			echo "  -h, --help       Print help"
+
+			print_help_options
+			echo "  -p, --progress      Display backup progress for each file (overrides configuration)"
+			echo "  -c, --comment TEXT  Add a comment in backup meta data (infofile)"
+			echo "  -u, --unmount       Unmount destination after backup (overrides configuration)"
+			echo "  -s, --shutdown      Shutdown after backup (overrides configuration)"
+			echo "  -r, --recurrent     Perform a recurrent backup (used in cron jobs)"
+			echo "  --force-unlock      Force to backup if a lock is stuck (use with caution)"
+			echo "  -q, --quiet         Quiet mode; do not print transfer details"
+			echo "  -h, --help          Print help"
 			;;
+
 		restore)
-			echo "Command usage: $command [OPTIONS] [PATH]"
-			echo
+			print_help_usage "[PATH]"
+
 			echo "Restore a file or directory"
 			echo "Warning: This feature does not auto-detect renamed or moved files."
 			echo "         To restore a moved/deleted file, please enter an absolute path."
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -d, --date DATE  Restore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
 			echo "  -l, --latest     Restore the last available backup"
 			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
 			echo "  -p, --progress   Display restore progress for each file (overrides configuration)"
 			echo "  -f, --force      Force restore; do not display confirmation"
+			echo "  -q, --quiet      Quiet mode; do not print transfer details"
 			echo "  -h, --help       Print help"
 			;;
+
 		history)
-			echo "Command usage: $command [OPTIONS] PATH"
-			echo
+			print_help_usage PATH
+
 			echo "Get backup history of a file or directory"
 			echo "Warning: This feature does not detect old renamed/moved files yet."
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -a, --all    Print all versions, including duplicates"
 			echo "  -q, --quiet  Quiet mode; print only backup dates"
 			echo "  -h, --help   Print help"
 			;;
+
 		explore)
-			echo "Command usage: $command [OPTIONS] [PATH]"
-			echo
+			print_help_usage "[PATH]"
+
 			echo "Open file browser to explore backed up files"
 			echo "If no path is specified, it will open the root backup folder."
 			echo "Warning: This feature does not detect old renamed/moved files yet."
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -d, --date DATE  Explore file at backup DATE (use format YYYY-MM-DD-HHMMSS)"
+			echo "  -l, --latest     Explore only latest version"
 			echo "  -a, --all        Explore all versions"
 			echo "  -h, --help       Print help"
 			;;
+
 		status)
-			echo "Command usage: $command [OPTIONS]"
-			echo
+			print_help_usage
+
 			echo "Check if a backup is currently running"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"
 			;;
+
 		stop)
-			echo "Command usage: $command [OPTIONS]"
-			echo
+			print_help_usage
+
 			echo "Cancel a running backup"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -f, --force  Do not print confirmation before stop"
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"
 			;;
+
 		mv)
-			echo "Command usage: $command [OPTIONS] PATH DESTINATION"
-			echo
+			print_help_usage PATH DESTINATION
+
 			echo "Move last backup file path"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -l, --latest  Move only the latest backup version"
 			echo "  -f, --force   Force move; do not display confirmation"
 			echo "  -q, --quiet   Quiet mode"
 			echo "  -h, --help    Print help"
 			;;
+
 		clean)
-			echo "Command usage: $command [OPTIONS] PATH"
-			echo
+			print_help_usage PATH
+
 			echo "Delete backup versions of files"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -l, --keep-latest  Keep the latest backup version of the file(s)"
 			echo "  -f, --force        Force clean; do not display confirmation"
 			echo "  -q, --quiet        Quiet mode"
 			echo "  -h, --help         Print help"
 			;;
+
 		copy)
-				echo "Command usage: $command [OPTIONS] PATH"
-				echo
-				echo "Copy backups to another folder or host"
-				echo
-				echo "Options:"
-				echo "  -l, --latest      Copy only the latest backup"
-				echo "  --reference DATE  Specify a backup date reference for a quick copy"
-				echo "  -h, --help        Print help"
-				;;
+			print_help_usage PATH
+
+			echo "Copy backups to another folder or host"
+
+			print_help_options
+			echo "  -l, --latest      Copy only the latest backup"
+			echo "  --reference DATE  Specify a backup date reference for a quick copy"
+			echo "  -h, --help        Print help"
+			;;
+
 		config)
-			echo "Command usage: $command [OPTIONS]"
-			echo
+			print_help_usage
+
 			echo "Edit configuration"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -g, --general     Edit general configuration"
 			echo "  -s, --sources     Edit sources file (sources to backup)"
 			echo "  -x, --excludes    Edit excludes file (patterns to ignore)"
@@ -163,23 +176,41 @@ print_help() {
 			echo "  -e, --editor BIN  Use specified editor (e.g. vim, nano, ...)"
 			echo "  -h, --help        Print help"
 			;;
+
 		install)
-			echo "Command usage: $command [OPTIONS]"
-			echo
+			print_help_usage
+
 			echo "Install time2backup"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -h, --help  Print help"
 			;;
+
 		uninstall)
-			echo "Command usage: $command [OPTIONS]"
-			echo
+			print_help_usage
+
 			echo "Uninstall time2backup"
-			echo
-			echo "Options:"
+
+			print_help_options
 			echo "  -y, --yes           Do not prompt confirmation to uninstall"
 			echo "  -x, --delete-files  Delete time2backup files"
 			echo "  -h, --help          Print help"
 			;;
 	esac
+}
+
+
+# Print help usage
+# Usage: print_help_usage [ARG...]
+print_help_usage() {
+	echo "Command usage: $command [OPTIONS] $*"
+	echo
+}
+
+
+# Print options text
+# Usage: print_help_options
+print_help_options() {
+	echo
+	echo "Options:"
 }
