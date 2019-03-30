@@ -1939,6 +1939,12 @@ estimate_backup_time() {
 # Usage: run_before
 # Dependencies: $disable_custom_commands, $exec_before, $exec_before_block
 run_before() {
+
+	# nothing to do: quit
+	[ ${#exec_before[@]} == 0 ] && return 0
+
+	lb_display --log "Running before command..."
+
 	local result
 
 	# if disabled, inform user and exit
@@ -1947,6 +1953,8 @@ run_before() {
 		false # bad command to go into the if $? != 0
 	else
 		# run command/script
+		lb_debug "Run ${exec_before[*]}"
+
 		"${exec_before[@]}"
 	fi
 
@@ -1970,6 +1978,12 @@ Before script failed (exit code: $result)
 # Usage: run_after
 # Dependencies: $disable_custom_commands, $exec_after, $exec_after_block
 run_after() {
+
+	# nothing to do: quit
+	[ ${#exec_after[@]} == 0 ] && return 0
+
+	lb_display --log "Running after command..."
+
 	local result
 
 	# if disabled, inform user and exit
@@ -1978,6 +1992,8 @@ run_after() {
 		false # bad command to go into the if $? != 0
 	else
 		# run command/script
+		lb_debug "Run ${exec_after[*]}"
+
 		"${exec_after[@]}"
 	fi
 

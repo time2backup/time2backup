@@ -188,7 +188,7 @@ t2b_backup() {
 	fi # recurrent backups
 
 	# execute before backup command/script
-	[ ${#exec_before[@]} -gt 0 ] && run_before
+	run_before
 
 	# prepare destination (mount and verify writable)
 	prepare_destination
@@ -524,12 +524,7 @@ hard_links = $hard_links" > "$infofile"
 		# into the backup source
 		# e.g. to backup /media directory, we must exclude /user/device/path/to/backups
 		exclude_backup_dir=$(auto_exclude "$abs_src")
-		if [ $? == 0 ] ; then
-			# if there is something to exclude, do it
-			if [ -n "$exclude_backup_dir" ] ; then
-				cmd+=(--exclude "$exclude_backup_dir")
-			fi
-		else
+		if [ $? != 0 ] ; then
 			errors+=("$src (exclude error)")
 			lb_exitcode=11
 
@@ -539,6 +534,9 @@ hard_links = $hard_links" > "$infofile"
 			# continue to next source
 			continue
 		fi
+
+		# if there is something to exclude, do it
+		[ -n "$exclude_backup_dir" ] && cmd+=(--exclude "$exclude_backup_dir")
 
 		# search in source if exclude conf file is set
 		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from="$abs_src"/.rsyncignore)
@@ -601,9 +599,8 @@ hard_links = $hard_links" > "$infofile"
 
 		# display start notification
 		notification_started_backup=$tr_backup_in_progress
-		if [ ${#sources[@]} -gt 1 ] ; then
-			notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
-		fi
+		# ... with nb/total if more than one source
+		[ ${#sources[@]} -gt 1 ] && notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
 
 		# get estimated time
 		estimated_time=$(estimate_backup_time "$last_backup_info" "$src" $total_size)
@@ -620,7 +617,7 @@ hard_links = $hard_links" > "$infofile"
 			notification_started_backup+="\n$info_estimated_time"
 		fi
 
-		# display started backup notification
+		# display start notification
 		notify "$notification_started_backup"
 
 		# real backup: execute rsync command, print result into terminal and logfile
@@ -682,9 +679,9 @@ hard_links = $hard_links" > "$infofile"
 		fi
 	fi
 
-	# if backup succeeded (all OK or even if warnings)
 	case $lb_exitcode in
 		0|5|15)
+			# backup succeeded (all OK or warnings)
 			lb_debug --log "Save backup timestamp"
 
 			# create latest backup directory link
@@ -749,8 +746,8 @@ Errors:
 		lb_display --log "$report_details"
 	fi
 
-	# execute custom after backup script
-	[ ${#exec_after[@]} -gt 0 ] && run_after
+	# execute after backup command/script
+	run_after
 
 	clean_exit
 }
