@@ -1766,8 +1766,8 @@ prepare_rsync() {
 		lb_istrue $files_progress && rsync_cmd+=(--progress)
 	fi
 
-	# remote destination
-	if lb_istrue $remote_destination ; then
+	# remote path
+	if lb_istrue $remote_source || lb_istrue $remote_destination ; then
 		local rsync_remote_command=$(get_rsync_remote_command)
 		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
 	fi

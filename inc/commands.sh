@@ -30,7 +30,7 @@ t2b_backup() {
 
 	# default values and options
 	recurrent_backup=false
-	local sources=() source_ssh=false force_unlock=false
+	local sources=() force_unlock=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -281,9 +281,11 @@ hard_links = $hard_links" > "$infofile"
 	# do not use for ... in ... syntax
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
+		# reset variables
 		src=${sources[s]}
 		total_size=""
 		estimated_time=""
+		remote_source=false
 
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
@@ -305,7 +307,7 @@ hard_links = $hard_links" > "$infofile"
 					continue
 				fi
 
-				source_ssh=true
+				remote_source=true
 
 				# get full backup path
 				path_dest=$(get_backup_path "$src")
@@ -542,7 +544,7 @@ hard_links = $hard_links" > "$infofile"
 		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from="$abs_src"/.rsyncignore)
 
 		# if remote source
-		if $source_ssh ; then
+		if lb_istrue $remote_source ; then
 			# enables network compression
 			lb_istrue $network_compression && cmd+=(-z)
 
@@ -1865,6 +1867,10 @@ t2b_copy() {
 			-l|--latest)
 				only_latest=true
 				;;
+			-s|--ssh)
+				# tell rsync we will use remote command
+				remote_source=true
+				;;
 			--reference)
 				if ! check_backup_date "$(lb_getopt "$@")" ; then
 					print_help
@@ -1894,7 +1900,7 @@ t2b_copy() {
 		return 1
 	fi
 
-	# TODO: enable for remote destinations
+	# Disable command for remote destinations
 	if lb_istrue $remote_destination ; then
 		lb_error "This command is disabled for remote destinations."
 		return 255
