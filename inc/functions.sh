@@ -363,11 +363,11 @@ test_space_available() {
 	# transform space size from KB to bytes
 	space_available=$(($space_available * 1024))
 
-	lb_debug --log "Space available on disk (in bytes): $space_available"
+	lb_debug "Space available on disk (in bytes): $space_available"
 
 	# if space is not enough, error
 	if [ $space_available -lt $1 ] ; then
-		lb_debug --log "Not enough space on device! Needed (in bytes): $1/$space_available"
+		lb_debug "Not enough space on device! Needed (in bytes): $1/$space_available"
 		return 1
 	fi
 }
@@ -664,11 +664,11 @@ delete_backup() {
 	[ -z "$1" ] && return 1
 
 	# delete log file
-	lb_debug --log "Removing log file time2backup_$1.log..."
+	lb_debug "Removing log file time2backup_$1.log..."
 	rm -f "$logs_directory/time2backup_$1.log" 2>> "$logfile"
 
 	# delete backup directory
-	lb_debug --log "Removing $destination/$1..."
+	lb_debug "Removing $destination/$1..."
 	rm -rf "$destination/$1" 2>> "$logfile"
 
 	if [ $? != 0 ] ; then
@@ -700,7 +700,7 @@ rotate_backups() {
 	[ $nb_backups -le $nb_keep ] && return 0
 
 	lb_display --log "Cleaning old backups..."
-	lb_debug --log "Clean to keep $nb_keep backups on $nb_backups"
+	lb_debug "Clean to keep $nb_keep backups on $nb_backups"
 
 	notify "$tr_notify_rotate_backup"
 
@@ -835,7 +835,7 @@ prepare_destination() {
 				;;
 			2)
 				# filesystem does not support hard links
-				lb_debug --log "Destination does not support hard links. Continue in trash mode."
+				lb_debug "Destination does not support hard links. Continue in trash mode."
 				hard_links=false
 				;;
 			*)
@@ -930,20 +930,20 @@ clean_empty_backup() {
 	[ -d "$destination/$1" ] || return 0
 
 	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
-		lb_debug --log "Clean empty backup: $1/$2"
+		lb_debug "Clean empty backup: $1/$2"
 		$(cd "$destination" 2> /dev/null && rmdir -p "$1/$2" 2> /dev/null)
 	fi
 
 	if $delete_infofile && \
 	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
-		lb_debug --log "Clean info file of backup $1"
+		lb_debug "Clean info file of backup $1"
 		rm -f "$destination/$1/backup.info" &> /dev/null
 	fi
 
 	# if not empty, do nothing
 	lb_is_dir_empty "$destination/$1" || return 0
 
-	lb_debug --log "Clean empty backup: $1"
+	lb_debug "Clean empty backup: $1"
 
 	# delete and prevent loosing context
 	$(cd "$destination" 2> /dev/null && rmdir "$1" 2> /dev/null)
@@ -997,7 +997,7 @@ try_sudo() {
 
 	# if failed, retry in sudo
 	if [ $? != 0 ] ; then
-		lb_debug --log "...Failed! Try with sudo..."
+		lb_debug "...Failed! Try with sudo..."
 		sudo "$@"
 	fi
 }
@@ -1591,7 +1591,7 @@ mount_destination() {
 	# test if UUID exists (disk plugged)
 	ls /dev/disk/by-uuid/ 2> /dev/null | grep -q "$backup_disk_uuid"
 	if [ $? != 0 ] ; then
-		lb_debug --log "Disk not available."
+		lb_debug "Disk not available."
 		return 2
 	fi
 
@@ -1656,7 +1656,7 @@ unmount_destination() {
 		return 2
 	fi
 
-	lb_debug --log "Delete mount point..."
+	lb_debug "Delete mount point..."
 	try_sudo rmdir "$destination_mountpoint"
 	if [ $? != 0 ] ; then
 		lb_display --log "...Failed!"
@@ -1871,13 +1871,13 @@ test_backup() {
 	# option dry-run makes a simulation for rsync
 	# then we get the last line with the total amount of bytes to be copied
 	# which is in format 999,999,999 so then we delete the commas
-	lb_debug --log "Testing rsync in dry-run mode: ${test_cmd[*]}..."
+	lb_debug "Testing rsync in dry-run mode: ${test_cmd[*]}..."
 
 	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
-		lb_debug --log "rsync test failed."
+		lb_debug "rsync test failed."
 		return 1
 	fi
 
@@ -1896,7 +1896,7 @@ test_backup() {
 	# add a security margin of 1MB for logs and future backups
 	total_size=$(($total_size + 1000000))
 
-	lb_debug --log "Backup total size (in bytes): $total_size"
+	lb_debug "Backup total size (in bytes): $total_size"
 	echo "size = $total_size" >> "$infofile"
 
 	# force exit code to 0
@@ -1968,7 +1968,7 @@ Before script failed (exit code: $result)
 
 	# option exit if error
 	if lb_istrue $exec_before_block ; then
-		lb_debug --log "Before script exited with error."
+		lb_debug "Before script exited with error."
 		clean_exit
 	fi
 }
@@ -2008,7 +2008,7 @@ After script failed (exit code: $result)
 
 	# option exit if error
 	if lb_istrue $exec_after_block ; then
-		lb_debug --log "After script exited with error."
+		lb_debug "After script exited with error."
 		clean_exit
 	fi
 }
@@ -2018,7 +2018,7 @@ After script failed (exit code: $result)
 # Usage: create_latest_link
 # Dependencies: $destination, $backup_date
 create_latest_link() {
-	lb_debug --log "Create latest link..."
+	lb_debug "Create latest link..."
 
 	# create a new link
 	# in a sub-context to avoid confusion and do not care of output
@@ -2088,7 +2088,7 @@ clean_exit() {
 	# set exit code if specified
 	[ -n "$1" ] && lb_exitcode=$1
 
-	lb_debug --log "Clean exit"
+	lb_debug "Clean exit"
 
 	clean_empty_backup -i $backup_date "$path_dest"
 
@@ -2219,7 +2219,7 @@ $(report_duration)
 $tr_email_report_regards
 time2backup"
 
-	lb_debug --log "Sending email report..."
+	lb_debug "Sending email report..."
 
 	# send email without managing errors and without blocking script
 	lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &

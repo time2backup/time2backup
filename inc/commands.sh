@@ -375,7 +375,7 @@ hard_links = $hard_links" > "$infofile"
 
 				# test if source exists
 				if ! [ -e "$abs_src" ] ; then
-					lb_error "Source $src does not exists!"
+					lb_error --log "Source $src does not exists!"
 					errors+=("$src (does not exists)")
 					lb_exitcode=10
 
@@ -405,7 +405,7 @@ hard_links = $hard_links" > "$infofile"
 
 			# find the last backup of this source
 			last_clean_backup=$(get_backup_history -n -l "$src")
-			lb_debug --log "Last backup used for link/trash: $last_clean_backup"
+			lb_debug "Last backup used for link/trash: $last_clean_backup"
 
 			if [ -n "$last_clean_backup" ] ; then
 
@@ -595,7 +595,7 @@ hard_links = $hard_links" > "$infofile"
 		fi # end of free space tests
 
 		lb_display --log "\nRunning backup..."
-		lb_debug --log "Executing: ${cmd[*]}\n"
+		lb_debug "Run ${cmd[*]}\n"
 
 		# display start notification
 		notification_started_backup=$tr_backup_in_progress
@@ -680,10 +680,8 @@ hard_links = $hard_links" > "$infofile"
 	fi
 
 	case $lb_exitcode in
+		# backup succeeded (all OK or warnings)
 		0|5|15)
-			# backup succeeded (all OK or warnings)
-			lb_debug --log "Save backup timestamp"
-
 			# create latest backup directory link
 			create_latest_link
 
@@ -1097,7 +1095,7 @@ t2b_restore() {
 
 			notify "$tr_notify_prepare_restore"
 			echo "Preparing restore..."
-			lb_debug "${cmd[*]}"
+			lb_debug "Run ${cmd[*]}"
 
 			# test rsync to check newer files
 			"${cmd[@]}" | grep -q "^deleting "
@@ -1137,7 +1135,7 @@ t2b_restore() {
 	fi
 
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
-	lb_debug --log "Executing: ${cmd[*]}\n"
+	lb_debug "Run ${cmd[*]}\n"
 
 	# execute rsync command, print result into terminal and errors in logfile
 	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -1985,13 +1983,13 @@ t2b_copy() {
 		# add source and destination in rsync command
 		cmd+=("$destination/$src/" "$copy_destination/$src")
 
-		lb_debug Running ${cmd[*]}
+		lb_debug "Run ${cmd[*]}"
 
 		"${cmd[@]}"
 		lb_result
 		result=$?
 
-		lb_debug Result: $result
+		lb_debug "Result: $result"
 
 		if [ $result != 0 ] ; then
 			if rsync_result $result ; then
