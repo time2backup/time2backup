@@ -28,6 +28,9 @@
 # Usage: t2b_backup [OPTIONS] [PATH...]
 t2b_backup() {
 
+	# force set to false to print in infofile
+	recurrent_backup=false
+
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -110,7 +113,7 @@ t2b_backup() {
 	last_backup_timestamp=$(cat "$last_backup_file" 2> /dev/null | grep -Eo "^[1-9][0-9]*$")
 
 	# if recurrent, check frequency
-	if $recurrent_backup ; then
+	if lb_istrue $recurrent_backup ; then
 
 		# if disabled in default configuration
 		if ! lb_istrue $enable_recurrent ; then
@@ -176,7 +179,7 @@ t2b_backup() {
 	case $? in
 		1)
 			# destination not reachable: display error if not recurrent backup
-			$recurrent_backup || lbg_error "$tr_backup_unreachable\n$tr_verify_media"
+			lb_istrue $recurrent_backup || lbg_error "$tr_backup_unreachable\n$tr_verify_media"
 			return 6
 			;;
 		2)
@@ -201,7 +204,7 @@ t2b_backup() {
 			lb_display_error "$tr_backup_already_running"
 
 			# display window error
-			if ! $recurrent_backup && ! lb_istrue $console_mode ; then
+			if ! lb_istrue $recurrent_backup && ! lb_istrue $console_mode ; then
 				lbg_error "$tr_backup_already_running"
 			fi
 			clean_exit 8
@@ -1840,13 +1843,21 @@ t2b_clean() {
 t2b_copy() {
 
 	# default option values
-	local only_latest=false reference
+	local only_latest=false reference limit=0
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-l|--latest)
 				only_latest=true
+				;;
+			--limit)
+				limit=$(lb_getopt "$@")
+				if ! lb_is_integer "$limit" || [ $limit -lt 1 ] ; then
+					print_help
+					return 1
+				fi
+				shift
 				;;
 			-s|--ssh)
 				# tell rsync we will use remote command
@@ -1928,18 +1939,24 @@ t2b_copy() {
 	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
 
 	# confirm action
-	$force_mode || lb_yesno "Proceed to copy? You must have a destination compatible with hard links." || return 0
+	lb_yesno "Proceed to copy? You must have a destination compatible with hard links." || return 0
 
 	# prepare rsync command
 	prepare_rsync copy
 
+	local total=${#backups[@]}
+	if [ $limit -gt 0 ] ; then
+		total=$limit
+		limit=$((${#backups[@]} - $limit))
+	fi
+
 	local b d src cmd first=true result errors=()
-	for ((b=${#backups[@]}-1; b>=0; b--)) ; do
+	for ((b=${#backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${backups[b]}
 
 		lb_print
-		lb_print "Synchronise $src... ($((${#backups[@]} - $b))/${#backups[@]})"
+		lb_print "Synchronise $src... ($((${#backups[@]} - $b))/$total)"
 
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")

@@ -710,25 +710,31 @@ delete_backup() {
 
 
 # Clean old backups
-# Usage: rotate_backups
+# Usage: rotate_backups [LIMIT]
 # Dependencies: $clean_keep, $keep_limit, $tr_*
 # Exit codes:
 #   0: rotate OK
-#   1: rm error
+#   1: usage error
 #   2: nothing rotated
+#   3: delete error
 rotate_backups() {
 
+	local limit=$keep_limit
+
+	# limit specified
+	[ -n "$1" ] && limit=$1
+
 	# if unlimited, do not rotate
-	[ "$keep_limit" == -1 ] && return 0
+	[ "$limit" == -1 ] && return 0
 
 	# get all backups
 	local all_backups=($(get_backups)) b to_clean=()
 	local nb_backups=${#all_backups[@]}
 
 	# clean based on number of backups
-	if lb_is_integer $keep_limit ; then
+	if lb_is_integer $limit ; then
 		# always keep nb + 1 (do not delete latest backup)
-		local nb_keep=$(($keep_limit + 1))
+		local nb_keep=$(($limit + 1))
 
 		# if limit not reached, do nothing
 		[ $nb_backups -le $nb_keep ] && return 0
@@ -740,7 +746,7 @@ rotate_backups() {
 
 	else
 		# clean based on time periods
-		local t time_limit=$(($current_timestamp - $(period2seconds $keep_limit)))
+		local t time_limit=$(($current_timestamp - $(period2seconds $limit)))
 
 		for b in "${all_backups[@]}" ; do
 			# do not delete the only backup
@@ -756,7 +762,7 @@ rotate_backups() {
 			# time limit reached: stop iterate
 			[ $t -ge $time_limit ] && break
 
-			lb_debug "Clean old backup $b because < $keep_limit"
+			lb_debug "Clean old backup $b because < $limit"
 
 			# add backup to list to clean
 			to_clean+=("$b")
@@ -773,15 +779,15 @@ rotate_backups() {
 	notify "$tr_notify_rotate_backup"
 
 	# remove backups from older to newer
+	local result=0
 	for b in "${to_clean[@]}" ; do
-		delete_backup "$b"
+		delete_backup "$b" || result=3
 	done
 
 	# line jump
 	lb_display --log
 
-	# don't care of other errors
-	return 0
+	return $result
 }
 
 
@@ -868,7 +874,7 @@ prepare_destination() {
 	mkdir -p "$destination" &> /dev/null
 	if [ $? != 0 ] ; then
 		# if mkdir failed, exit
-		if $recurrent_backup ; then
+		if lb_istrue $recurrent_backup ; then
 			# don't popup in recurrent mode
 			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
 		else
@@ -882,7 +888,7 @@ prepare_destination() {
 	# create the info file if not exists (don't care of errors)
 	touch "$destination"/.time2backup &> /dev/null
 	if [ $? != 0 ] ; then
-		if $recurrent_backup ; then
+		if lb_istrue $recurrent_backup ; then
 			# don't popup in recurrent mode
 			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		else
@@ -1786,7 +1792,7 @@ release_lock() {
 	if [ $? != 0 ] ; then
 		lb_display_critical --log "$tr_error_unlock"
 		# display error if not recurrent
-		$recurrent_backup || lbg_error "$tr_error_unlock"
+		lb_istrue $recurrent_backup || lbg_error "$tr_error_unlock"
 		return 1
 	fi
 }

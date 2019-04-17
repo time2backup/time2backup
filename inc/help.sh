@@ -154,6 +154,8 @@ print_help() {
 
 			print_help_options
 			echo "  -l, --latest      Copy only the latest backup"
+			echo "  --limit N         Limit copy to N latest backups"
+			echo "  -s, --ssh         Copy to a remote destination"
 			echo "  --reference DATE  Specify a backup date reference for a quick copy"
 			echo "  -h, --help        Print help"
 			;;
