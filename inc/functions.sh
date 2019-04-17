@@ -900,22 +900,11 @@ prepare_destination() {
 
 	# check if destination supports hard links
 	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
-		test_hardlinks "$destination"
-		case $? in
-			0)
-				# OK
-				;;
-			2)
-				# filesystem does not support hard links
-				lb_debug "Destination does not support hard links. Continue in trash mode."
-				hard_links=false
-				;;
-			*)
-				# filesystem not found
-				lb_warning --log "Destination filesystem not found. Continue in trash mode."
-				hard_links=false
-				;;
-		esac
+		if ! test_hardlinks "$destination" ; then
+			# filesystem does not support hard links
+			lb_debug "Destination does not support hard links. Continue in trash mode."
+			hard_links=false
+		fi
 	fi
 }
 
