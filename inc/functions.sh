@@ -695,15 +695,15 @@ delete_backup() {
 	[ -z "$1" ] && return 1
 
 	# delete log file
-	lb_debug "Removing log file time2backup_$1.log..."
-	rm -f "$logs_directory/time2backup_$1.log" 2>> "$logfile"
+	lb_debug "Deleting log file time2backup_$1.log..."
+	rm -f "$logs_directory/time2backup_$1.log" || \
+		lb_display_error --log "Failed to delete $logs_directory/time2backup_$1.log. Please delete this file manually."
 
 	# delete backup directory
-	lb_debug "Removing $destination/$1..."
-	rm -rf "$destination/$1" 2>> "$logfile"
-
+	lb_debug "Deleting $destination/$1..."
+	rm -rf "$destination/$1"
 	if [ $? != 0 ] ; then
-		lb_display_error --log "Failed to clean backup $1! Please delete this folder manually."
+		lb_display_error --log "Failed to delete backup $1! Please delete this folder manually."
 		return 2
 	fi
 }
@@ -759,7 +759,7 @@ rotate_backups() {
 			lb_debug "Clean old backup $b because < $keep_limit"
 
 			# add backup to list to clean
-			to_clean+=($b)
+			to_clean+=("$b")
 
 			# decrement nb of current backups
 			nb_backups=$(($nb_backups - 1))
@@ -774,7 +774,7 @@ rotate_backups() {
 
 	# remove backups from older to newer
 	for b in "${to_clean[@]}" ; do
-		delete_backup "$b" || lb_display_error "$tr_error_clean_backups"
+		delete_backup "$b"
 	done
 
 	# line jump

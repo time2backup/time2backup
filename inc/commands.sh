@@ -28,10 +28,6 @@
 # Usage: t2b_backup [OPTIONS] [PATH...]
 t2b_backup() {
 
-	# default values and options
-	recurrent_backup=false
-	local sources=() force_unlock=false
-
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -75,6 +71,8 @@ t2b_backup() {
 		esac
 		shift # load next argument
 	done
+
+	local sources=()
 
 	# set specified source(s)
 	if [ $# -gt 0 ] ; then
@@ -195,7 +193,7 @@ t2b_backup() {
 		lb_debug "Lock found: $existing_lock"
 
 		# force mode: delete old lock
-		if $force_unlock ; then
+		if lb_istrue $force_unlock ; then
 			lb_info "Force mode: deleting lock $existing_lock"
 			release_lock || clean_exit 8
 		else
