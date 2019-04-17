@@ -1739,13 +1739,21 @@ t2b_mv() {
 t2b_clean() {
 
 	# default option values
-	local keep_latest=false force_mode=false
+	local keep=0 force_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-l|--keep-latest)
-				keep_latest=true
+				keep=1
+				;;
+			-k|--keep)
+				keep=$(lb_getopt "$@")
+				if ! lb_is_integer "$keep" || [ $keep -lt 1 ] ; then
+					print_help
+					return 1
+				fi
+				shift
 				;;
 			-f|--force)
 				force_mode=true
@@ -1805,26 +1813,22 @@ t2b_clean() {
 		return 6
 	fi
 
-	if $keep_latest && [ ${#file_history[@]} == 1 ] ; then
-		lb_istrue $quiet_mode || echo "1 backup found, nothing to do"
-		return 0
-	fi
-
 	lb_istrue $quiet_mode || echo "${#file_history[@]} backup(s) found for '$src'"
 
+	if [ ${#file_history[@]} -le $keep ] ; then
+		lb_istrue $quiet_mode || echo "Nothing to clean"
+		return 0
+	fi
+	
 	# confirm action
 	$force_mode || lb_yesno "Proceed cleaning?" || return 0
 
-	local b result=0 first=true
-	for b in "${file_history[@]}" ; do
+	local b result=0
+	for ((i=$keep; i<${#file_history[@]}; i++)) ; do
+	
+		b=${file_history[i]}
 
-		# if keep the latest, ignore this first entry
-		if $first && $keep_latest ; then
-			first=false
-			continue
-		fi
-
-		lb_istrue $quiet_mode || echo "Deleting backup $b..."
+		lb_istrue $quiet_mode || echo "Deleting backup $b ($(($i + 1 - $keep))/$((${#file_history[@]} - $keep)))..."
 
 		# delete file(s)
 		rm -rf "$destination/$b/$path_src"

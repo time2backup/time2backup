@@ -142,6 +142,7 @@ print_help() {
 
 			print_help_options
 			echo "  -l, --keep-latest  Keep the latest backup version of the file(s)"
+			echo "  -k, --keep N       Keep the N latest backups of the file(s)"
 			echo "  -f, --force        Force clean; do not display confirmation"
 			echo "  -q, --quiet        Quiet mode"
 			echo "  -h, --help         Print help"

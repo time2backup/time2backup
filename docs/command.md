@@ -277,6 +277,7 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 ### Options
 ```
 -l, --keep-latest  Keep the latest backup version of the file(s)
+-k, --keep N       Keep the N latest backups of the file(s)
 -f, --force        Force clean; do not display confirmation
 -q, --quiet        Quiet mode
 -h, --help         Print help
