@@ -45,6 +45,9 @@ t2b_backup() {
 				fi
 				shift
 				;;
+			--resume)
+				resume_last=true
+				;;
 			-u|--unmount)
 				unmount=true
 				;;
@@ -393,6 +396,7 @@ hard_links = $hard_links" > "$infofile"
 			last_clean_backup=$(get_backup_history -n -l "$src")
 			lb_debug "Last backup used for link/trash: $last_clean_backup"
 
+			# if an old backup exists
 			if [ -n "$last_clean_backup" ] ; then
 
 				# default behaviour: mkdir
@@ -403,17 +407,25 @@ hard_links = $hard_links" > "$infofile"
 					mv_dest=true
 				fi
 
-				# load last backup info
-				last_backup_info=$destination/$last_clean_backup/backup.info
+				# check if need to resume from last backup
+				if lb_istrue $hard_links ; then
+					# reset resume option
+					resume=$resume_last
 
-				# check status of the last backup
-				# (only if infofile exists and in hard links mode)
-				if lb_istrue $hard_links && [ -f "$last_backup_info" ] ; then
-					# if last backup failed or was cancelled
-					rsync_result $(get_infofile_value "$last_backup_info" "$src" rsync_result)
+					# check status of the last backup
+					if ! lb_istrue $resume ; then
+						# (only if infofile exists and in hard links mode)
+						last_backup_info=$(get_infofile_path $last_clean_backup)
+						if [ -n "$last_backup_info" ] ; then
+							# if last backup failed or was cancelled, resume
+							rsync_result $(get_infofile_value "$last_backup_info" "$src" rsync_result)
+							[ $? == 2 ] && resume=true
+						fi
+					fi
 
-					if [ $? == 2 ] ; then
-						lb_debug "Resume from failed backup: $last_clean_backup"
+					# resume from the last backup
+					if lb_istrue $resume ; then
+						lb_debug "Resume from backup: $last_clean_backup"
 
 						# search again for the last clean backup before that
 						for b in $(get_backup_history -n "$src" | head -2) ; do
@@ -433,8 +445,8 @@ hard_links = $hard_links" > "$infofile"
 					mv "$destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
 					prepare_dest=$?
 
-					# clean old directory if empty, but keep the infofile
-					clean_empty_backup $last_clean_backup "$(dirname "$path_dest")"
+					# clean old directory
+					clean_empty_backup -i $last_clean_backup "$(dirname "$path_dest")"
 
 					# change last clean backup for hard links
 					if lb_istrue $hard_links ; then
@@ -589,7 +601,7 @@ hard_links = $hard_links" > "$infofile"
 		[ ${#sources[@]} -gt 1 ] && notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
 
 		# get estimated time
-		estimated_time=$(estimate_backup_time "$last_backup_info" "$src" $total_size)
+		estimated_time=$(estimate_backup_time "$(get_infofile_path $last_clean_backup)" "$src" $total_size)
 		if [ -n "$estimated_time" ] ; then
 			# convert into minutes
 			estimated_time=$(($estimated_time / 60 + 1))
@@ -1819,13 +1831,13 @@ t2b_clean() {
 		lb_istrue $quiet_mode || echo "Nothing to clean"
 		return 0
 	fi
-	
+
 	# confirm action
 	$force_mode || lb_yesno "Proceed cleaning?" || return 0
 
 	local b result=0
 	for ((i=$keep; i<${#file_history[@]}; i++)) ; do
-	
+
 		b=${file_history[i]}
 
 		lb_istrue $quiet_mode || echo "Deleting backup $b ($(($i + 1 - $keep))/$((${#file_history[@]} - $keep)))..."

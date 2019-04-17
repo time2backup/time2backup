@@ -51,6 +51,7 @@ print_help() {
 			print_help_options
 			echo "  -p, --progress      Display backup progress for each file (overrides configuration)"
 			echo "  -c, --comment TEXT  Add a comment in backup meta data (infofile)"
+			echo "  --resume            Resume from the last backup (useful for hard links)"
 			echo "  -u, --unmount       Unmount destination after backup (overrides configuration)"
 			echo "  -s, --shutdown      Shutdown after backup (overrides configuration)"
 			echo "  -r, --recurrent     Perform a recurrent backup (used in cron jobs)"

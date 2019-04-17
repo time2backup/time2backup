@@ -62,6 +62,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 ```
 -p, --progress      Display backup progress for each file (overrides configuration)
 -c, --comment TEXT  Add a comment in backup meta data (infofile)
+--resume            Resume from the last backup (useful for hard links)
 -u, --unmount       Unmount destination after backup (overrides configuration)
 -s, --shutdown      Shutdown after backup (overrides configuration)
 -r, --recurrent     Perform a recurrent backup (used in cron jobs)

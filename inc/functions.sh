@@ -47,6 +47,7 @@
 #     create_logfile
 #     delete_logfile
 #   Infofile functions
+#     get_infofile_path
 #     find_infofile_section
 #     get_infofile_value
 #   Mount functions
@@ -1552,6 +1553,24 @@ delete_logfile() {
 #
 #  Infofile functions
 #
+
+# Get infofile path
+# Usage: get_infofile_path BACKUP_DATE
+# Dependencies: $destination
+# Return: infofile path
+# Exit codes:
+#   0: infofile found
+#   1: infofile not found
+get_infofile_path() {
+	local f=$destination/$1/backup.info
+
+	# test if file exists
+	[ -f "$f" ] || return 1
+
+	# return path
+	echo "$f"
+}
+
 
 # Find section that matches a path in an infofile
 # Usage: find_infofile_section INFO_FILE PATH
