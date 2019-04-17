@@ -129,7 +129,7 @@ get_common_path() {
 	local -i i=0
 
 	# if a character changes in the 2 paths,
-	while [ "${directory1:0:i}" == "${directory2:0:i}" ] ; do
+	while [ "${directory1:i:1}" == "${directory2:i:1}" ] ; do
 		i+=1
 	done
 
@@ -1089,23 +1089,6 @@ upgrade_config() {
 		esac
 		lb_debug "Upgrading config v$old_config_version -> v$version"
 	fi
-
-	# specific changes per version
-
-	# e.g. a parameter that needs to be renamed
-	# (nothing for now)
-	#case $old_config_version in
-	#	1.0.*)
-	#		lb_edit "s/^old_param=/new_param=/" "$config_file"
-	#		;;
-	#esac
-	#
-	#if [ $? != 0 ] ; then
-	#	lb_display_error "Your configuration file is not compatible with this version. Please reconfigure manually."
-	#	return 1
-	#fi
-
-	# replace config by new one
 
 	# save old config file
 	local old_config=$config_file.v$old_config_version
