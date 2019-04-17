@@ -10,6 +10,8 @@
 # Index
 #
 #   Global functions
+#     test_period
+#     period2seconds
 #     remove_end_slash
 #     check_backup_date
 #     get_common_path
@@ -22,7 +24,7 @@
 #     set_verbose_log_levels
 #     test_hardlinks
 #     test_space_available
-#     get_backup_fulldate
+#     get_backup_date
 #     get_backup_history
 #     get_backup_path
 #     get_backups
@@ -80,6 +82,25 @@
 #
 #  Global functions
 #
+
+# Test if a string is a period
+# Usage: test_period PERIOD
+# Exit codes:
+#   0: period is valid
+#   1: not valid syntax
+test_period() {
+	echo "$*" | grep -Eq "^[1-9][0-9]*(m|h|d)$"
+}
+
+
+# Convert a period in seconds
+# Usage: period2seconds N(m|h|d)
+# Return: seconds
+period2seconds() {
+	# convert minutes then to seconds
+	echo $(($(echo "$*" | sed 's/m//; s/h/\*60/; s/d/\*1440/') * 60))
+}
+
 
 # Remove the last / of a path
 # Usage: remove_end_slash PATH
@@ -374,17 +395,27 @@ test_space_available() {
 
 
 # Get readable backup date
-# Usage: get_backup_fulldate YYYY-MM-DD-HHMMSS
+# Usage: get_backup_date [OPTIONS] YYYY-MM-DD-HHMMSS
+# Options:
+#   -t  Get timestamp instead of date
 # Dependencies: $tr_readable_date
 # Return: backup datetime (format YYYY-MM-DD HH:MM:SS)
 # e.g. 2016-12-31-233059 -> 2016-12-31 23:30:59
 # Exit codes:
 #   0: OK
 #   1: format error
-get_backup_fulldate() {
+get_backup_date() {
 
-	# test backup format (YYYY-MM-DD-HHMMSS)
-	check_backup_date "$1" || return 1
+	local format=$tr_readable_date
+
+	# get timestamp option
+	if [ "$1" == '-t' ] ; then
+		format='%s'
+		shift
+	fi
+
+	# test backup format
+	check_backup_date "$*" || return 1
 
 	# get date details
 	local byear=${1:0:4} bmonth=${1:5:2} bday=${1:8:2} \
@@ -392,9 +423,9 @@ get_backup_fulldate() {
 
 	# return date formatted for languages
 	if [ "$lb_current_os" == macOS ] ; then
-		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
+		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
 	else
-		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$tr_readable_date"
+		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
 	fi
 }
 
@@ -684,10 +715,11 @@ delete_backup() {
 # Exit codes:
 #   0: rotate OK
 #   1: rm error
+#   2: nothing rotated
 rotate_backups() {
 
 	# if unlimited, do not rotate
-	[ $keep_limit -lt 0 ] && return 0
+	[ "$keep_limit" == -1 ] && return 0
 
 	# always keep nb + 1 (do not delete current backup)
 	local nb_keep=$(($keep_limit + 1))
@@ -722,12 +754,12 @@ rotate_backups() {
 
 # Print report of duration from start of script to now
 # Usage: report_duration
-# Dependencies: $start_timestamp, $tr_report_duration
+# Dependencies: $current_timestamp, $tr_report_duration
 # Return: complete report with elapsed time in HH:MM:SS
 report_duration() {
 
 	# calculate duration
-	local duration=$(($(date +%s) - $start_timestamp))
+	local duration=$(($(date +%s) - $current_timestamp))
 
 	# print report
 	echo "$tr_report_duration $(($duration/3600)):$(printf "%02d" $(($duration/60%60))):$(printf "%02d" $(($duration%60)))"
@@ -1187,24 +1219,21 @@ load_config() {
 		fi
 	fi
 
-	# test integer values in config file
-	local test_integer=(keep_limit clean_keep)
-
-	for v in "${test_integer[@]}" ; do
-		if ! lb_is_integer ${!v} ; then
-			lb_error "$v must be an integer!"
-			return 2
-		fi
-	done
-
 	# other specific tests
 
-	if [ $keep_limit -lt -1 ] ; then
-		lb_error "keep_limit should be a positive integer, or -1 for unlimited"
-		return 2
+	if lb_is_integer $keep_limit ; then
+		if [ $keep_limit -lt -1 ] ; then
+			lb_error "keep_limit should be a positive integer, or -1 for unlimited"
+			return 2
+		fi
+	else
+		if ! test_period "$keep_limit" ; then
+			lb_error "keep_limit should be an integer or a valid period"
+			return 2
+		fi
 	fi
 
-	if [ $clean_keep -lt 0 ] ; then
+	if ! lb_is_integer $clean_keep || [ $clean_keep -lt 0 ] ; then
 		lb_error "clean_keep should be a positive integer"
 		return 2
 	fi
@@ -2436,9 +2465,9 @@ config_wizard() {
 								frequency=7d
 								;;
 							monthly)
-								frequency=30d
+								frequency=31d
 								;;
-							"")
+							'')
 								# default is 24h
 								frequency=24h
 								;;
@@ -2446,8 +2475,7 @@ config_wizard() {
 
 						# display dialog to enter custom frequency
 						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
-							echo $lbg_input_text | grep -Eq "^[1-9][0-9]*(m|h|d)"
-							if [ $? == 0 ] ; then
+							if test_period $lbg_input_text ; then
 								lb_set_config "$config_file" frequency $lbg_input_text
 							else
 								lbg_error "$tr_frequency_syntax_error\n$tr_please_retry"

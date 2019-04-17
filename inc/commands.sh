@@ -96,11 +96,10 @@ t2b_backup() {
 	fi
 
 	# get current date
-	start_timestamp=$(date +%s)
-	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $start_timestamp)
+	current_date=$(lb_timestamp2date -f '%Y-%m-%d at %H:%M:%S' $current_timestamp)
 
 	# set backup directory with current date (format: YYYY-MM-DD-HHMMSS)
-	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $start_timestamp)
+	backup_date=$(lb_timestamp2date -f '%Y-%m-%d-%H%M%S' $current_timestamp)
 
 	# get last backup file
 	last_backup_file=$config_directory/.lastbackup
@@ -138,44 +137,28 @@ t2b_backup() {
 			# convert frequency in seconds
 			case $frequency in
 				hourly)
-					seconds_offset=3600
+					frequency=1h
 					;;
 				""|daily)
-					seconds_offset=86400
+					frequency=1d
 					;;
 				weekly)
-					seconds_offset=604800
+					frequency=7d
 					;;
 				monthly)
-					seconds_offset=18144000
-					;;
-				*)
-					# custom
-					case ${frequency:${#frequency}-1} in
-						m)
-							fqunit=60
-							;;
-						h)
-							fqunit=3600
-							;;
-						*)
-							fqunit=86400
-							;;
-					esac
-
-					fqnum=$(echo $frequency | grep -Eo "^[0-9]*")
-
-					# set offset
-					seconds_offset=$(( $fqnum * $fqunit))
+					frequency=31d
 					;;
 			esac
 
+			# convert to seconds offset
+			seconds_offset=$(period2seconds $frequency)
+
 			# test if delay is passed
-			test_timestamp=$(($start_timestamp - $last_backup_timestamp))
+			test_timestamp=$(($current_timestamp - $last_backup_timestamp))
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $start_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
+					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
 					lb_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
@@ -1004,7 +987,7 @@ t2b_restore() {
 		history_dates=(${file_history[@]})
 
 		for ((i=0; i<${#file_history[@]}; i++)) ; do
-			history_dates[i]=$(get_backup_fulldate "${file_history[i]}")
+			history_dates[i]=$(get_backup_date "${file_history[i]}")
 		done
 
 		# choose backup date
@@ -1114,7 +1097,7 @@ t2b_restore() {
 
 	# confirm restore
 	if ! $force_mode ; then
-		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_fulldate $backup_date)")\n$tr_confirm_restore_2" ; then
+		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_date $backup_date)")\n$tr_confirm_restore_2" ; then
 			notify "$tr_restore_cancelled"
 			return 0
 		fi
@@ -1412,7 +1395,7 @@ t2b_explore() {
 				history_dates=(${path_history[@]})
 
 				for ((i=0; i<${#path_history[@]}; i++)) ; do
-					history_dates[i]=$(get_backup_fulldate "${path_history[i]}")
+					history_dates[i]=$(get_backup_date "${path_history[i]}")
 				done
 
 				# choose backup date
