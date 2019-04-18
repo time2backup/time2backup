@@ -1471,7 +1471,7 @@ t2b_status() {
 	done
 
 	# test backup destination
-	if ! prepare_destination &> /dev/null ; then
+	if ! [ -d "$destination" ] ; then
 		lb_istrue $quiet_mode || echo "backup destination not reachable"
 		return 4
 	fi

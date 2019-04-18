@@ -138,6 +138,7 @@ while [ $# -gt 0 ] ; do
 				print_help global
 				exit 1
 			fi
+			destination=$force_destination
 			shift
 			;;
 		-c|--config)
@@ -214,7 +215,7 @@ set_verbose_log_levels
 
 # validate commands
 case $command in
-	""|backup|restore|history|explore|status|stop|mv|clean|copy|config)
+	""|backup|restore|history|explore|mv|clean|copy|config)
 		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in
@@ -226,6 +227,15 @@ case $command in
 		done
 		;;
 
+	status|stop)
+		# if destination specified, do not load config
+		if [ -n "$destination" ] ; then
+			# run commands then exit
+			t2b_$command "$@"
+			exit $?
+		fi
+		;;
+		
 	install|uninstall)
 		# run commands not depending on configuration then exit
 		t2b_$command "$@"

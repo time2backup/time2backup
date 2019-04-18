@@ -1743,7 +1743,7 @@ current_lock() {
 	lb_istrue $remote_destination && return 1
 
 	# get lock file
-	local current_lock_file=$(ls "$destination/.lock_"* 2> /dev/null)
+	local current_lock_file=$(ls "$destination"/.lock_* 2> /dev/null)
 
 	# no lock
 	[ -z "$current_lock_file" ] && return 1
