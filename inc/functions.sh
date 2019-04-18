@@ -735,15 +735,15 @@ rotate_backups() {
 	# clean based on number of backups
 	if lb_is_integer $limit ; then
 		# always keep nb + 1 (do not delete latest backup)
-		local nb_keep=$(($limit + 1))
+		limit=$(($limit + 1))
 
 		# if limit not reached, do nothing
-		[ $nb_backups -le $nb_keep ] && return 0
+		[ $nb_backups -le $limit ] && return 0
 
-		lb_debug "Clean to keep $nb_keep backups on $nb_backups"
+		lb_debug "Clean to keep $limit backups on $nb_backups"
 
 		# get old backups until max - nb to keep
-		to_clean=(${all_backups[@]:0:$(($nb_backups - $nb_keep))})
+		to_clean=(${all_backups[@]:0:$(($nb_backups - $limit))})
 
 	else
 		# clean based on time periods

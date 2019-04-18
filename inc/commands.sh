@@ -17,6 +17,7 @@
 #     t2b_config
 #     t2b_mv
 #     t2b_clean
+#     t2b_rotate
 #     t2b_status
 #     t2b_stop
 #     t2b_export
@@ -1840,6 +1841,68 @@ t2b_clean() {
 	done
 
 	return $result
+}
+
+
+# Rotate backups manually
+# Usage: t2b_rotate [OPTIONS] [LIMIT]
+t2b_rotate() {
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-f|--force)
+				force_mode=true
+				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
+	local keep=$keep_limit
+
+	# test if number or period has a valid syntax
+	if [ $# -gt 0 ] ; then
+		if lb_is_integer "$1" ; then
+			if [ $1 -lt 0 ] ; then
+				print_help
+				return 1
+			fi
+		else
+			if ! test_period "$1" ; then
+				print_help
+				return 2
+			fi
+		fi
+
+		keep=$1
+	fi
+
+	# prepare backup destination
+	prepare_destination || return 4
+
+	lb_istrue $quiet_mode || echo "You are about to rotate to keep $keep backup versions."
+	lb_istrue $force_mode || lb_yesno "Continue?" || return 0
+
+	rotate_backups $keep || return 5
 }
 
 

@@ -34,6 +34,7 @@ print_help() {
 		echo "   config     Edit configuration"
 		echo "   mv         Move/rename a backup file/directory"
 		echo "   clean      Clean files in backups"
+		echo "   rotate     Force rotate backups"
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
 		echo "   export     Export backups to another folder or host"
@@ -147,6 +148,17 @@ print_help() {
 			echo "  -f, --force        Force clean; do not display confirmation"
 			echo "  -q, --quiet        Quiet mode"
 			echo "  -h, --help         Print help"
+			;;
+
+		rotate)
+			print_help_usage [LIMIT]
+
+			echo "Force rotate backups"
+
+			print_help_options
+			echo "  -f, --force  Force clean; do not display confirmation"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
 			;;
 
 		status)

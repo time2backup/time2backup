@@ -215,7 +215,7 @@ set_verbose_log_levels
 
 # validate commands
 case $command in
-	""|backup|restore|history|explore|config|mv|clean|export)
+	""|backup|restore|history|explore|config|mv|clean|rotate|export)
 		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in
@@ -235,7 +235,7 @@ case $command in
 			exit $?
 		fi
 		;;
-		
+
 	install|uninstall)
 		# run commands not depending on configuration then exit
 		t2b_$command "$@"

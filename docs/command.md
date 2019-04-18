@@ -6,11 +6,12 @@
 * [restore](#restore)
 * [history](#history)
 * [explore](#explore)
-* [status](#status)
-* [stop](#stop)
+* [config](#config)
 * [mv](#mv)
 * [clean](#clean)
-* [config](#config)
+* [rotate](#rotate)
+* [status](#status)
+* [stop](#stop)
 * [install](#install)
 * [uninstall](#uninstall)
 
@@ -45,6 +46,7 @@ explore    Open the file browser at a date
 config     Edit configuration
 mv         Move/rename a backup file/directory
 clean      Clean files in backups
+rotate     Force rotate backups
 status     Check if a backup is currently running
 stop       Cancel a running backup
 export     Export backups to another folder or host
@@ -280,6 +282,30 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 - 5: No backup found for the path
 - 6: Cannot determine the backup path of source path or destination
 - 7: Error while deleting files
+
+---------------------------------------------------------------
+<a name="rotate"></a>
+## rotate
+Force rotate backups.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] rotate [OPTIONS] [LIMIT]
+```
+
+### Options
+```
+-f, --force  Force clean; do not display confirmation
+-q, --quiet  Quiet mode
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: Rotate finished
+- 1: Usage error
+- 3: Config error
+- 4: Backup device is not reachable
+- 5: Rotate failed
 
 ---------------------------------------------------------------
 <a name="status"></a>
