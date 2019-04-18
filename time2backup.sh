@@ -104,8 +104,23 @@ lb_getargs "$@" && set -- "${lb_getargs[@]}"
 # get global options
 while [ $# -gt 0 ] ; do
 	case $1 in
-		-C|--console)
-			console_mode=true
+		-c|--config)
+			# custom config path
+			config_directory=$(lb_getopt "$@")
+			if [ -z "$config_directory" ] ; then
+				print_help global
+				exit 1
+			fi
+			shift
+			;;
+		-d|--destination)
+			force_destination=$(lb_getopt "$@")
+			if [ -z "$force_destination" ] ; then
+				print_help global
+				exit 1
+			fi
+			destination=$force_destination
+			shift
 			;;
 		-u|--user)
 			# run as a custom user
@@ -132,23 +147,8 @@ while [ $# -gt 0 ] ; do
 			fi
 			shift
 			;;
-		-d|--destination)
-			force_destination=$(lb_getopt "$@")
-			if [ -z "$force_destination" ] ; then
-				print_help global
-				exit 1
-			fi
-			destination=$force_destination
-			shift
-			;;
-		-c|--config)
-			# custom config path
-			config_directory=$(lb_getopt "$@")
-			if [ -z "$config_directory" ] ; then
-				print_help global
-				exit 1
-			fi
-			shift
+		-C|--console)
+			console_mode=true
 			;;
 		-D|--debug)
 			debug_mode=true
@@ -215,7 +215,7 @@ set_verbose_log_levels
 
 # validate commands
 case $command in
-	""|backup|restore|history|explore|mv|clean|export|config)
+	""|backup|restore|history|explore|config|mv|clean|export)
 		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in

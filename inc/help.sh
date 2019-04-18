@@ -14,11 +14,12 @@ print_help() {
 	echo "Usage: time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]"
 	echo
 	echo "Global options:"
-	echo "  -C, --console              Execute time2backup in console mode (no dialog windows)"
+	echo "  -c, --config CONFIG_DIR    Load and save config in the specified directory"
+	echo "  -d, --destination PATH     Set a custom destination path (overrides configuration)"
+	echo "  -u, --user USER            Set a custom user to run backup (useful if sudo)"
 	echo "  -l, --log-level LEVEL      Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
 	echo "  -v, --verbose-level LEVEL  Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)"
-	echo "  -d, --destination PATH     Set a custom destination path (overrides configuration)"
-	echo "  -c, --config CONFIG_DIR    Load and save config in the specified directory"
+	echo "  -C, --console              Execute time2backup in console mode (no dialog windows)"
 	echo "  -D, --debug                Run in debug mode (all messages printed and logged)"
 	echo "  -V, --version              Print version and quit"
 	echo "  -h, --help                 Print help"
@@ -27,14 +28,15 @@ print_help() {
 	if [ "$1" == global ] ; then
 		echo "Commands:"
 		echo "   backup     Backup your files"
-		echo "   restore    Restore a backup of a file or directory"
-		echo "   history    Displays backup history of a file or directory"
+		echo "   restore    Restore a backup of a file/directory"
+		echo "   history    Displays backup history of a file/directory"
 		echo "   explore    Open the file browser at a date"
+		echo "   config     Edit configuration"
+		echo "   mv         Move/rename a backup file/directory"
+		echo "   clean      Clean files in backups"
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
-		echo "   clean      Clean files in backups"
 		echo "   export     Export backups to another folder or host"
-		echo "   config     Edit configuration"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
 		echo
@@ -103,31 +105,29 @@ print_help() {
 			echo "  -h, --help       Print help"
 			;;
 
-		status)
+		config)
 			print_help_usage
 
-			echo "Check if a backup is currently running"
+			echo "Edit configuration"
 
 			print_help_options
-			echo "  -q, --quiet  Quiet mode"
-			echo "  -h, --help   Print help"
-			;;
-
-		stop)
-			print_help_usage
-
-			echo "Cancel a running backup"
-
-			print_help_options
-			echo "  -f, --force  Do not print confirmation before stop"
-			echo "  -q, --quiet  Quiet mode"
-			echo "  -h, --help   Print help"
+			echo "  -g, --general     Edit general configuration"
+			echo "  -s, --sources     Edit sources file (sources to backup)"
+			echo "  -x, --excludes    Edit excludes file (patterns to ignore)"
+			echo "  -i, --includes    Edit includes file (patterns to include)"
+			echo "  -l, --show        Show configuration; do not edit"
+			echo "                    display configuration without comments"
+			echo "  -t, --test        Test configuration; do not edit"
+			echo "  -w, --wizard      Display configuration wizard instead of edit"
+			echo "  -r, --reset       Reset configuration file"
+			echo "  -e, --editor BIN  Use specified editor (e.g. vim, nano, ...)"
+			echo "  -h, --help        Print help"
 			;;
 
 		mv)
 			print_help_usage PATH DESTINATION
 
-			echo "Move last backup file path"
+			echo "Move/rename a backup file/directory"
 
 			print_help_options
 			echo "  -l, --latest  Move only the latest backup version"
@@ -149,6 +149,27 @@ print_help() {
 			echo "  -h, --help         Print help"
 			;;
 
+		status)
+			print_help_usage
+
+			echo "Check if a backup is currently running"
+
+			print_help_options
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
+			;;
+
+		stop)
+			print_help_usage
+
+			echo "Cancel a running backup"
+
+			print_help_options
+			echo "  -f, --force  Do not print confirmation before stop"
+			echo "  -q, --quiet  Quiet mode"
+			echo "  -h, --help   Print help"
+			;;
+
 		export)
 			print_help_usage PATH
 
@@ -159,25 +180,6 @@ print_help() {
 			echo "  --limit N         Limit export to N latest backups"
 			echo "  -s, --ssh         Export to a remote destination"
 			echo "  --reference DATE  Specify a backup date reference for a quicker export"
-			echo "  -h, --help        Print help"
-			;;
-
-		config)
-			print_help_usage
-
-			echo "Edit configuration"
-
-			print_help_options
-			echo "  -g, --general     Edit general configuration"
-			echo "  -s, --sources     Edit sources file (sources to backup)"
-			echo "  -x, --excludes    Edit excludes file (patterns to ignore)"
-			echo "  -i, --includes    Edit includes file (patterns to include)"
-			echo "  -l, --show        Show configuration; do not edit"
-			echo "                    display configuration without comments"
-			echo "  -t, --test        Test configuration; do not edit"
-			echo "  -w, --wizard      Display configuration wizard instead of edit"
-			echo "  -r, --reset       Reset configuration file"
-			echo "  -e, --editor BIN  Use specified editor (e.g. vim, nano, ...)"
 			echo "  -h, --help        Print help"
 			;;
 

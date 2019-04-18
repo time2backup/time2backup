@@ -25,11 +25,12 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 
 ### Global options
 ```
--C, --console              Execute time2backup in console mode (no dialog windows)
+-c, --config CONFIG_DIR    Load and save config in the specified directory
+-d, --destination PATH     Set a custom destination path (overrides configuration)
+-u, --user USER            Set a custom user to run backup (useful if sudo)
 -l, --log-level LEVEL      Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
 -v, --verbose-level LEVEL  Set a verbose and log level (ERROR|WARNING|INFO|DEBUG)
--d, --destination PATH     Set a custom destination path (overrides configuration)
--c, --config CONFIG_DIR    Load and save config in the specified directory
+-C, --console              Execute time2backup in console mode (no dialog windows)
 -D, --debug                Run in debug mode (all messages printed and logged)
 -V, --version              Print version and quit
 -h, --help                 Print help
@@ -38,12 +39,15 @@ time2backup [GLOBAL_OPTIONS] COMMAND [OPTIONS] [ARG...]
 ### Commands
 ```
 backup     Backup your files
-restore    Restore a backup of a file or directory
-history    Displays backup history of a file or directory
+restore    Restore a backup of a file/directory
+history    Displays backup history of a file/directory
 explore    Open the file browser at a date
+config     Edit configuration
+mv         Move/rename a backup file/directory
+clean      Clean files in backups
 status     Check if a backup is currently running
 stop       Cancel a running backup
-config     Edit configuration
+export     Export backups to another folder or host
 install    Install time2backup
 uninstall  Uninstall time2backup
 ```
@@ -186,54 +190,38 @@ Note: If no path is specified, it will open the root backup folder.
 - 7: No backup found at this date
 
 ---------------------------------------------------------------
-<a name="status"></a>
-## status
-Check if a backup is currently running.
+<a name="config"></a>
+## config
+Configure time2backup.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] status [OPTIONS]
+time2backup [GLOBAL_OPTIONS] config [OPTIONS]
 ```
 
 ### Options
 ```
--q, --quiet  Quiet mode
--h, --help   Print help
+-g, --general     Edit general configuration
+-s, --sources     Edit sources file (sources to backup)
+-x, --excludes    Edit excludes file (patterns to ignore)
+-i, --includes    Edit includes file (patterns to include)
+-l, --show        Show configuration; do not edit
+                  display configuration without comments
+-t, --test        Test configuration; do not edit
+-w, --wizard      Display configuration wizard instead of edit
+-r, --reset       Reset configuration file
+-e, --editor BIN  Use specified editor (e.g. vim, nano, ...)
+-h, --help        Print help
 ```
 
 ### Exit codes
-- 0: No backup currently running
+- 0: Config OK
 - 1: Usage error
-- 3: Config error
-- 4: Backup device not reachable
-- 5: A backup is currently running
-- 6: A backup lock exists, but no time2backup instance is running
-
----------------------------------------------------------------
-<a name="stop"></a>
-## stop
-Cancel a running backup.
-
-### Usage
-```bash
-time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
-```
-
-### Options
-```
--f, --force  Do not print confirmation before stop
--q, --quiet  Quiet mode
--h, --help   Print help
-```
-
-### Exit codes
-- 0: Backup stopped
-- 1: Usage error
-- 3: Config error
-- 4: Backup device not reachable
-- 5: Failed to stop process
-- 6: Cannot get status of backup
-- 7: No rsync process found
+- 3: Configuration errors
+- 4: Error when apply config
+- 5: Failed to open/save configuration
+- 6: No editor found to open configuration file
+- 7: Unknown error
 
 ---------------------------------------------------------------
 <a name="mv"></a>
@@ -294,38 +282,81 @@ time2backup [GLOBAL_OPTIONS] clean [OPTIONS] PATH
 - 7: Error while deleting files
 
 ---------------------------------------------------------------
-<a name="config"></a>
-## config
-Configure time2backup.
+<a name="status"></a>
+## status
+Check if a backup is currently running.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] config [OPTIONS]
+time2backup [GLOBAL_OPTIONS] status [OPTIONS]
 ```
 
 ### Options
 ```
--g, --general     Edit general configuration
--s, --sources     Edit sources file (sources to backup)
--x, --excludes    Edit excludes file (patterns to ignore)
--i, --includes    Edit includes file (patterns to include)
--l, --show        Show configuration; do not edit
-                  display configuration without comments
--t, --test        Test configuration; do not edit
--w, --wizard      Display configuration wizard instead of edit
--r, --reset       Reset configuration file
--e, --editor BIN  Use specified editor (e.g. vim, nano, ...)
+-q, --quiet  Quiet mode
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: No backup currently running
+- 1: Usage error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: A backup is currently running
+- 6: A backup lock exists, but no time2backup instance is running
+
+---------------------------------------------------------------
+<a name="stop"></a>
+## stop
+Cancel a running backup.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
+```
+
+### Options
+```
+-f, --force  Do not print confirmation before stop
+-q, --quiet  Quiet mode
+-h, --help   Print help
+```
+
+### Exit codes
+- 0: Backup stopped
+- 1: Usage error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: Failed to stop process
+- 6: Cannot get status of backup
+- 7: No rsync process found
+
+---------------------------------------------------------------
+<a name="export"></a>
+## export
+Export backups to another folder or host.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] export [OPTIONS] PATH
+```
+
+### Options
+```
+-l, --latest      Export only the latest backup
+--limit N         Limit export to N latest backups
+-s, --ssh         Export to a remote destination
+--reference DATE  Specify a backup date reference for a quicker export
 -h, --help        Print help
 ```
 
 ### Exit codes
-- 0: Config OK
+- 0: Export succeeded
 - 1: Usage error
-- 3: Configuration errors
-- 4: Error when apply config
-- 5: Failed to open/save configuration
-- 6: No editor found to open configuration file
-- 7: Unknown error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: No backups available
+- 6: Failed to export some files
 
 ---------------------------------------------------------------
 <a name="install"></a>

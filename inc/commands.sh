@@ -14,12 +14,12 @@
 #     t2b_restore
 #     t2b_history
 #     t2b_explore
-#     t2b_status
-#     t2b_stop
+#     t2b_config
 #     t2b_mv
 #     t2b_clean
+#     t2b_status
+#     t2b_stop
 #     t2b_export
-#     t2b_config
 #     t2b_install
 #     t2b_uninstall
 
@@ -1445,15 +1445,49 @@ t2b_explore() {
 }
 
 
-# Check if a backup is currently running
-# Usage: t2b_status [OPTIONS]
-t2b_status() {
+# Configure time2backup
+# Usage: t2b_config [OPTIONS]
+t2b_config() {
+
+	# default values
+	file=""
+	local op_config cmd_opts
 
 	# get options
+	# following other options to open_config() function
 	while [ $# -gt 0 ] ; do
 		case $1 in
-			-q|--quiet)
-				quiet_mode=true
+			-g|--general)
+				file=$config_file
+				;;
+			-x|--excludes)
+				file=$config_excludes
+				;;
+			-i|--includes)
+				file=$config_includes
+				;;
+			-s|--sources)
+				file=$config_sources
+				;;
+			-l|--show)
+				op_config=show
+				;;
+			-t|--test)
+				op_config=test
+				;;
+			-w|--wizard)
+				op_config=wizard
+				;;
+			-r|--reset)
+				op_config=reset
+				;;
+			-e|--editor)
+				if [ -z "$(lb_getopt "$@")" ] ; then
+					print_help
+					return 1
+				fi
+				cmd_opts="-e $2 "
+				shift
 				;;
 			-h|--help)
 				print_help
@@ -1470,145 +1504,100 @@ t2b_status() {
 		shift # load next argument
 	done
 
-	# test backup destination
-	if ! [ -d "$destination" ] ; then
-		lb_istrue $quiet_mode || echo "backup destination not reachable"
-		return 4
+	# if config file not defined, ask user to choose which file to edit
+	if [ -z "$file" ] ; then
+
+		if [ -z "$op_config" ] ; then
+			lbg_choose_option -d 1 -l "$tr_choose_config_file" \
+				"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" \
+				"$tr_includes_config" "$tr_run_config_wizard" || return 0
+
+			case $lbg_choose_option in
+				1)
+					file=$config_file
+					;;
+				2)
+					file=$config_sources
+					;;
+				3)
+					file=$config_excludes
+					;;
+				4)
+					file=$config_includes
+					;;
+				5)
+					op_config=wizard
+					;;
+				*)
+					# bad choice
+					return 1
+					;;
+			esac
+		fi
 	fi
 
-	# if no backup lock exists, exit
-	if ! current_lock &> /dev/null ; then
-		lb_istrue $quiet_mode || echo "backup is not running"
-		return 0
-	fi
-
-	# get process PID
-	local pid
-	pid=$(current_lock -p)
-
-	lb_debug "File lock contains: $pid"
-
-	if ! lb_is_integer "$pid" ; then
-		lb_istrue $quiet_mode || echo "Cannot retrieve process PID! Please search it manually."
-		return 7
-	fi
-
-	# search if time2backup is running
-	if ps -f $pid &> /dev/null ; then
-		lb_istrue $quiet_mode || echo "backup is running with PID $pid"
-		return 5
-	else
-		# if no time2backup process found,
-		lb_istrue $quiet_mode || echo "backup lock is here, but no backup is currently running"
-		return 6
-	fi
-}
-
-
-# Stop a running backup
-# Usage: t2b_stop [OPTIONS]
-t2b_stop() {
-
-	# default options and values
-	local force_mode=false pid_killed=false
-
-	# get options
-	while [ $# -gt 0 ] ; do
-		case $1 in
-			-f|--force)
-				force_mode=true
-				;;
-			-q|--quiet)
-				quiet_mode=true
-				;;
-			-h|--help)
-				print_help
-				return 0
-				;;
-			-*)
-				print_help
-				return 1
-				;;
-			*)
-				break
-				;;
-		esac
-		shift # load next argument
-	done
-
-	# check status of backup
-	t2b_status &> /dev/null
-
-	# if no backup is running or error, cannot stop
-	case $? in
-		0)
-			lb_istrue $quiet_mode || echo "backup is not running"
-			return 0
+	# operations to do on config
+	case $op_config in
+		wizard)
+			# run config wizard
+			config_wizard
 			;;
-		5)
-			# backup is running: continue
+
+		show)
+			# if not set, file config is general config
+			[ -z "$file" ] && file=$config_file
+
+			# get sources is a special case to print list without comments
+			# read sources.conf file line by line
+			while read -r line ; do
+				lb_is_comment $line || echo "$line"
+			done < "$file"
+
+			[ $? != 0 ] && return 5
 			;;
-		1)
-			lb_istrue $quiet_mode || echo "Unknown error"
-			return 6
+
+		test)
+			echo "Testing configuration..."
+			load_config
+			lb_result
 			;;
-		4)
-			lb_istrue $quiet_mode || echo "backup destination not reachable"
-			return 4
+
+		reset)
+			# reset config file
+			lb_yesno "$tr_confirm_reset_config" && \
+				cat "$lb_current_script_directory"/config/time2backup.example.conf > "$config_file"
 			;;
+
 		*)
-			lb_istrue $quiet_mode || echo "Cannot retrieve information about process"
-			return 7
+			# edit configuration
+			echo "Opening configuration file..."
+			open_config $cmd_opts"$file"
+
+			# after config,
+			case $? in
+				0)
+					# config ok: reload it
+					load_config || return 3
+
+					# apply config
+					apply_config || return 4
+					;;
+				3)
+					# errors in config
+					return 5
+					;;
+				4)
+					return 6
+					;;
+				*)
+					return 7
+					;;
+			esac
 			;;
 	esac
 
-	local t2b_pid
-
-	# get time2backup PID
-	t2b_pid=$(current_lock -p)
-	if ! lb_is_integer $t2b_pid ; then
-		lb_istrue $quiet_mode || lb_error "PID not found"
-		return 7
-	fi
-
-	lb_debug "time2backup PID found: $t2b_pid"
-
-	# prompt confirmation
-	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $t2b_pid)?" || return 0
-
-	# send kill signal to time2backup
-	if kill $t2b_pid ; then
-
-		local rsync_pid
-
-		# search for a current rsync command
-		rsync_pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
-
-		if lb_is_integer $rsync_pid ; then
-			lb_debug "Found rsync PID: $rsync_pid"
-
-			# send the kill signal to rsync
-			kill $rsync_pid || lb_warning "Failed to kill rsync PID $rsync_pid"
-		fi
-
-		# wait 30 sec max until time2backup is really stopped
-		local i
-		for i in $(seq 1 20) ; do
-			if t2b_status &> /dev/null ; then
-				break
-			fi
-			sleep 1
-		done
-	fi
-
-	# recheck
-	if t2b_status &> /dev/null ; then
-		lb_istrue $quiet_mode || echo "time2backup was successfully stopped"
-		return 0
-	else
-		lb_istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
-		return 5
-	fi
+	# config is not OK
+	[ $? != 0 ] && return 3
 }
 
 
@@ -1854,6 +1843,173 @@ t2b_clean() {
 }
 
 
+# Check if a backup is currently running
+# Usage: t2b_status [OPTIONS]
+t2b_status() {
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# test backup destination
+	if ! [ -d "$destination" ] ; then
+		lb_istrue $quiet_mode || echo "backup destination not reachable"
+		return 4
+	fi
+
+	# if no backup lock exists, exit
+	if ! current_lock &> /dev/null ; then
+		lb_istrue $quiet_mode || echo "backup is not running"
+		return 0
+	fi
+
+	# get process PID
+	local pid
+	pid=$(current_lock -p)
+
+	lb_debug "File lock contains: $pid"
+
+	if ! lb_is_integer "$pid" ; then
+		lb_istrue $quiet_mode || echo "Cannot retrieve process PID! Please search it manually."
+		return 7
+	fi
+
+	# search if time2backup is running
+	if ps -f $pid &> /dev/null ; then
+		lb_istrue $quiet_mode || echo "backup is running with PID $pid"
+		return 5
+	else
+		# if no time2backup process found,
+		lb_istrue $quiet_mode || echo "backup lock is here, but no backup is currently running"
+		return 6
+	fi
+}
+
+
+# Stop a running backup
+# Usage: t2b_stop [OPTIONS]
+t2b_stop() {
+
+	# default options and values
+	local force_mode=false pid_killed=false
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-f|--force)
+				force_mode=true
+				;;
+			-q|--quiet)
+				quiet_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# check status of backup
+	t2b_status &> /dev/null
+
+	# if no backup is running or error, cannot stop
+	case $? in
+		0)
+			lb_istrue $quiet_mode || echo "backup is not running"
+			return 0
+			;;
+		5)
+			# backup is running: continue
+			;;
+		1)
+			lb_istrue $quiet_mode || echo "Unknown error"
+			return 6
+			;;
+		4)
+			lb_istrue $quiet_mode || echo "backup destination not reachable"
+			return 4
+			;;
+		*)
+			lb_istrue $quiet_mode || echo "Cannot retrieve information about process"
+			return 7
+			;;
+	esac
+
+	local t2b_pid
+
+	# get time2backup PID
+	t2b_pid=$(current_lock -p)
+	if ! lb_is_integer $t2b_pid ; then
+		lb_istrue $quiet_mode || lb_error "PID not found"
+		return 7
+	fi
+
+	lb_debug "time2backup PID found: $t2b_pid"
+
+	# prompt confirmation
+	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $t2b_pid)?" || return 0
+
+	# send kill signal to time2backup
+	if kill $t2b_pid ; then
+
+		local rsync_pid
+
+		# search for a current rsync command
+		rsync_pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
+
+		if lb_is_integer $rsync_pid ; then
+			lb_debug "Found rsync PID: $rsync_pid"
+
+			# send the kill signal to rsync
+			kill $rsync_pid || lb_warning "Failed to kill rsync PID $rsync_pid"
+		fi
+
+		# wait 30 sec max until time2backup is really stopped
+		local i
+		for i in $(seq 1 20) ; do
+			if t2b_status &> /dev/null ; then
+				break
+			fi
+			sleep 1
+		done
+	fi
+
+	# recheck
+	if t2b_status &> /dev/null ; then
+		lb_istrue $quiet_mode || echo "time2backup was successfully stopped"
+		return 0
+	else
+		lb_istrue $quiet_mode || echo "Still running! Could not stop time2backup process. You may retry in sudo."
+		return 5
+	fi
+}
+
+
 # Export backups
 # Usage: t2b_export [OPTIONS] PATH
 t2b_export() {
@@ -2039,162 +2195,6 @@ t2b_export() {
 
 		return 6
 	fi
-}
-
-
-# Configure time2backup
-# Usage: t2b_config [OPTIONS]
-t2b_config() {
-
-	# default values
-	file=""
-	local op_config cmd_opts
-
-	# get options
-	# following other options to open_config() function
-	while [ $# -gt 0 ] ; do
-		case $1 in
-			-g|--general)
-				file=$config_file
-				;;
-			-x|--excludes)
-				file=$config_excludes
-				;;
-			-i|--includes)
-				file=$config_includes
-				;;
-			-s|--sources)
-				file=$config_sources
-				;;
-			-l|--show)
-				op_config=show
-				;;
-			-t|--test)
-				op_config=test
-				;;
-			-w|--wizard)
-				op_config=wizard
-				;;
-			-r|--reset)
-				op_config=reset
-				;;
-			-e|--editor)
-				if [ -z "$(lb_getopt "$@")" ] ; then
-					print_help
-					return 1
-				fi
-				cmd_opts="-e $2 "
-				shift
-				;;
-			-h|--help)
-				print_help
-				return 0
-				;;
-			-*)
-				print_help
-				return 1
-				;;
-			*)
-				break
-				;;
-		esac
-		shift # load next argument
-	done
-
-	# if config file not defined, ask user to choose which file to edit
-	if [ -z "$file" ] ; then
-
-		if [ -z "$op_config" ] ; then
-			lbg_choose_option -d 1 -l "$tr_choose_config_file" \
-				"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" \
-				"$tr_includes_config" "$tr_run_config_wizard" || return 0
-
-			case $lbg_choose_option in
-				1)
-					file=$config_file
-					;;
-				2)
-					file=$config_sources
-					;;
-				3)
-					file=$config_excludes
-					;;
-				4)
-					file=$config_includes
-					;;
-				5)
-					op_config=wizard
-					;;
-				*)
-					# bad choice
-					return 1
-					;;
-			esac
-		fi
-	fi
-
-	# operations to do on config
-	case $op_config in
-		wizard)
-			# run config wizard
-			config_wizard
-			;;
-
-		show)
-			# if not set, file config is general config
-			[ -z "$file" ] && file=$config_file
-
-			# get sources is a special case to print list without comments
-			# read sources.conf file line by line
-			while read -r line ; do
-				lb_is_comment $line || echo "$line"
-			done < "$file"
-
-			[ $? != 0 ] && return 5
-			;;
-
-		test)
-			echo "Testing configuration..."
-			load_config
-			lb_result
-			;;
-
-		reset)
-			# reset config file
-			lb_yesno "$tr_confirm_reset_config" && \
-				cat "$lb_current_script_directory"/config/time2backup.example.conf > "$config_file"
-			;;
-
-		*)
-			# edit configuration
-			echo "Opening configuration file..."
-			open_config $cmd_opts"$file"
-
-			# after config,
-			case $? in
-				0)
-					# config ok: reload it
-					load_config || return 3
-
-					# apply config
-					apply_config || return 4
-					;;
-				3)
-					# errors in config
-					return 5
-					;;
-				4)
-					return 6
-					;;
-				*)
-					return 7
-					;;
-			esac
-			;;
-	esac
-
-	# config is not OK
-	[ $? != 0 ] && return 3
 }
 
 
