@@ -215,7 +215,7 @@ set_verbose_log_levels
 
 # validate commands
 case $command in
-	""|backup|restore|history|explore|mv|clean|copy|config)
+	""|backup|restore|history|explore|mv|clean|export|config)
 		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in

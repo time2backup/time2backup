@@ -1811,7 +1811,7 @@ release_lock() {
 #
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
-# Usage: prepare_rsync backup|restore|copy
+# Usage: prepare_rsync backup|restore|export
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
 
@@ -1831,7 +1831,7 @@ prepare_rsync() {
 		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
 	fi
 
-	if [ "$1" != copy ] ; then
+	if [ "$1" != export ] ; then
 		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
 		# includes & excludes
@@ -1852,7 +1852,7 @@ prepare_rsync() {
 			# add max size if specified
 			[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
 			;;
-		copy)
+		export)
 			rsync_cmd+=(--delete)
 			;;
 	esac

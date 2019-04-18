@@ -18,7 +18,7 @@
 #     t2b_stop
 #     t2b_mv
 #     t2b_clean
-#     t2b_copy
+#     t2b_export
 #     t2b_config
 #     t2b_install
 #     t2b_uninstall
@@ -1854,9 +1854,9 @@ t2b_clean() {
 }
 
 
-# Copy backups
-# Usage: t2b_copy [OPTIONS] PATH
-t2b_copy() {
+# Export backups
+# Usage: t2b_export [OPTIONS] PATH
+t2b_export() {
 
 	# default option values
 	local only_latest=false reference limit=0
@@ -1923,9 +1923,9 @@ t2b_copy() {
 	# get destination path
 	if [ "$lb_current_os" == Windows ] ; then
 		# get UNIX format for Windows paths
-		copy_destination=$(cygpath "$1")
+		export_destination=$(cygpath "$1")
 	else
-		copy_destination=$1
+		export_destination=$1
 	fi
 
 	local -a backups existing_copies
@@ -1939,15 +1939,15 @@ t2b_copy() {
 
 	# no backup found
 	if [ ${#backups[@]} == 0 ] ; then
-		lb_error "No backups to copy."
+		lb_error "No backups to export."
 		return 0
 	fi
 
 	# search for a backup reference
 	if [ -z "$reference" ] ; then
-		existing_copies=($(get_backups "$copy_destination"))
+		existing_copies=($(get_backups "$export_destination"))
 		if [ $? != 0 ] ; then
-			lb_warning "Destination copy not found. Copy may take more time."
+			lb_warning "Export path not found. Export may take more time."
 			lb_info "Please use the reference option to make it faster."
 		fi
 	fi
@@ -1955,10 +1955,10 @@ t2b_copy() {
 	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
 
 	# confirm action
-	lb_yesno "Proceed to copy? You must have a destination compatible with hard links." || return 0
+	lb_yesno "Proceed to export? You must have a destination compatible with hard links." || return 0
 
 	# prepare rsync command
-	prepare_rsync copy
+	prepare_rsync export
 
 	local total=${#backups[@]}
 	if [ $limit -gt 0 ] ; then
@@ -2001,7 +2001,7 @@ t2b_copy() {
 		fi
 
 		# add source and destination in rsync command
-		cmd+=("$destination/$src/" "$copy_destination/$src")
+		cmd+=("$destination/$src/" "$export_destination/$src")
 
 		lb_debug "Run ${cmd[*]}"
 
@@ -2013,9 +2013,9 @@ t2b_copy() {
 
 		if [ $result != 0 ] ; then
 			if rsync_result $result ; then
-				errors+=("Partial copy $src (exit code: $result)")
+				errors+=("Partial export $src (exit code: $result)")
 			else
-				errors+=("Failed to copy $src (exit code: $result)")
+				errors+=("Failed to export $src (exit code: $result)")
 			fi
 		fi
 
@@ -2029,9 +2029,9 @@ t2b_copy() {
 	# print report
 	lb_print
 	if [ ${#errors[@]} == 0 ] ; then
-		lb_print "Copy finished"
+		lb_print "Export finished"
 	else
-		lb_print "Some errors occurred when copy:"
+		lb_print "Some errors occurred while export:"
 		local e
 		for e in "${errors[@]}" ; do
 			lb_print "   - $e"
@@ -2162,7 +2162,7 @@ t2b_config() {
 		reset)
 			# reset config file
 			lb_yesno "$tr_confirm_reset_config" && \
-				cat "$lb_current_script_directory/config/time2backup.example.conf" > "$config_file"
+				cat "$lb_current_script_directory"/config/time2backup.example.conf > "$config_file"
 			;;
 
 		*)
@@ -2235,14 +2235,14 @@ GenericName[fr]=Sauvegarde de fichiers
 Comment[fr]=Sauvegardez et restaurez vos données
 Type=Application
 Exec=$(lb_realpath "$lb_current_script") $*
-Icon=$(lb_realpath "$lb_current_script_directory/resources/icon.png")
+Icon=$(lb_realpath "$lb_current_script_directory"/resources/icon.png)
 Terminal=false
 Categories=System;Utility;Filesystem;
 EOF
 
 		# copy desktop file to /usr/share/applications
-		if [ -d "/usr/share/applications" ] ; then
-			cp -f "$desktop_file" "/usr/share/applications/" &> /dev/null
+		if [ -d /usr/share/applications ] ; then
+			cp -f "$desktop_file" /usr/share/applications/ &> /dev/null
 			if [ $? != 0 ] ; then
 				echo
 				echo "Cannot create application link. It's not critical, but you may not have the icon on your system."
@@ -2276,7 +2276,7 @@ EOF
 	fi
 
 	# copy bash completion script
-	cp "$lb_current_script_directory/resources/t2b_completion" /etc/bash_completion.d/time2backup
+	cp "$lb_current_script_directory"/resources/t2b_completion /etc/bash_completion.d/time2backup
 	if [ $? != 0 ] ; then
 		echo
 		echo "Cannot install bash completion script. It's not critical, but you can retry in sudo."
@@ -2286,7 +2286,7 @@ EOF
 	fi
 
 	# make completion working in the current session (does not need to create a new one)
-	. "$lb_current_script_directory/resources/t2b_completion"
+	. "$lb_current_script_directory"/resources/t2b_completion
 
 	echo "time2backup is installed"
 

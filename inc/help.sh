@@ -33,7 +33,7 @@ print_help() {
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
 		echo "   clean      Clean files in backups"
-		echo "   copy       Copy backups to another folder or host"
+		echo "   export     Export backups to another folder or host"
 		echo "   config     Edit configuration"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
@@ -149,16 +149,16 @@ print_help() {
 			echo "  -h, --help         Print help"
 			;;
 
-		copy)
+		export)
 			print_help_usage PATH
 
-			echo "Copy backups to another folder or host"
+			echo "Export backups to another folder or host"
 
 			print_help_options
-			echo "  -l, --latest      Copy only the latest backup"
-			echo "  --limit N         Limit copy to N latest backups"
-			echo "  -s, --ssh         Copy to a remote destination"
-			echo "  --reference DATE  Specify a backup date reference for a quick copy"
+			echo "  -l, --latest      Export only the latest backup"
+			echo "  --limit N         Limit export to N latest backups"
+			echo "  -s, --ssh         Export to a remote destination"
+			echo "  --reference DATE  Specify a backup date reference for a quicker export"
 			echo "  -h, --help        Print help"
 			;;
 
