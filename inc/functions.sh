@@ -729,7 +729,7 @@ rotate_backups() {
 	[ "$limit" == -1 ] && return 0
 
 	# get all backups
-	local all_backups=($(get_backups)) b to_clean=()
+	local all_backups=($(get_backups)) b to_rotate=()
 	local nb_backups=${#all_backups[@]}
 
 	# clean based on number of backups
@@ -743,7 +743,7 @@ rotate_backups() {
 		lb_debug "Clean to keep $limit backups on $nb_backups"
 
 		# get old backups until max - nb to keep
-		to_clean=(${all_backups[@]:0:$(($nb_backups - $limit))})
+		to_rotate=(${all_backups[@]:0:$(($nb_backups - $limit))})
 
 	else
 		# clean based on time periods
@@ -766,7 +766,7 @@ rotate_backups() {
 			lb_debug "Clean old backup $b because < $limit"
 
 			# add backup to list to clean
-			to_clean+=("$b")
+			to_rotate+=("$b")
 
 			# decrement nb of current backups
 			nb_backups=$(($nb_backups - 1))
@@ -774,14 +774,17 @@ rotate_backups() {
 	fi
 
 	# nothing to clean: quit
-	[ ${#to_clean[@]} == 0 ] && return 0
+	if [ ${#to_rotate[@]} == 0 ] ; then
+		lb_debug "Nothing to rotate"
+		return 0
+	fi
 
 	lb_display --log "Cleaning old backups..."
 	notify "$tr_notify_rotate_backup"
 
 	# remove backups from older to newer
 	local result=0
-	for b in "${to_clean[@]}" ; do
+	for b in "${to_rotate[@]}" ; do
 		delete_backup "$b" || result=3
 	done
 
