@@ -2106,6 +2106,9 @@ t2b_export() {
 				reference=$2
 				shift
 				;;
+			-f|--force)
+				force_mode=true
+				;;
 			-h|--help)
 				print_help
 				return 0
@@ -2174,7 +2177,7 @@ t2b_export() {
 	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
 
 	# confirm action
-	lb_yesno "Proceed to export? You must have a destination compatible with hard links." || return 0
+	lb_istrue $force_mode || lb_yesno "Proceed to export?" || return 0
 
 	# prepare rsync command
 	prepare_rsync export

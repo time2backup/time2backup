@@ -373,6 +373,7 @@ time2backup [GLOBAL_OPTIONS] export [OPTIONS] PATH
 --limit N         Limit export to N latest backups
 -s, --ssh         Export to a remote destination
 --reference DATE  Specify a backup date reference for a quicker export
+-f, --force       Do not print confirmation before export
 -h, --help        Print help
 ```
 

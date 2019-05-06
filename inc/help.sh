@@ -192,6 +192,7 @@ print_help() {
 			echo "  --limit N         Limit export to N latest backups"
 			echo "  -s, --ssh         Export to a remote destination"
 			echo "  --reference DATE  Specify a backup date reference for a quicker export"
+			echo "  -f, --force       Do not print confirmation before export"
 			echo "  -h, --help        Print help"
 			;;
 
