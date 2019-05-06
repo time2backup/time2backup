@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.0 (2019-05-06)
+### New features
+- New portable version available: run `./t2b-portable.sh`
+- New `rotate` command to rotate backups manually
+- New `export` command to copy backups to another folder/host
+- New `--keep` option to `clean` command to keep the N latest backups
+- The `keep_limit` config value can now be set as a period of minutes, hours or days
+- New config entry to execute remote rsync with sudo
+
+### Changes
+- Improve status/stop commands with PID written in backup lock file
+- Various messages display improvements
+- libbash.sh upgraded to version 1.12.1
+- Various code improvements for a better organization
+- Improvements in documentation and help
+
+### Bugfixes
+- Fix a bug that could empty the log file
+- Various bugfixes
+
 ## 1.4.0 (2018-09-12)
 ### New features
 - New `--latest` option to `restore` command to restore the latest version of the path
