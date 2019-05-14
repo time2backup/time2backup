@@ -18,6 +18,7 @@
 #     get_relative_path
 #     get_protocol
 #     url2host
+#     url2path
 #     url2ssh
 #     file_for_windows
 #     notify
@@ -239,7 +240,7 @@ get_protocol() {
 }
 
 
-# Transform URLs to SSh hosts
+# Transform URLs to SSH hosts
 # e.g. ssh://user@host/path/to/file -> user@host
 # Usage: url2host URL
 # Return: host
@@ -249,20 +250,28 @@ url2host() {
 
 
 # Transform URLs to SSH path
-# e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
-# Usage: url2ssh URL
-# Return: ssh path
-url2ssh() {
+# e.g. ssh://user@host/path/to/file -> /path/to/file
+# Usage: url2path URL
+# Return: path
+url2path() {
 
 	# get ssh host
-	local ssh_host
-	ssh_host=$(url2host "$1")
+	local ssh_host=$(url2host "$1")
 
 	# prepare prefix to ignore
 	local ssh_prefix=ssh://$ssh_host
 
 	# return path without prefix with bugfix for path with spaces
-	echo "$ssh_host:${1#$ssh_prefix}" | sed 's/ /\\ /g'
+	echo "${1#$ssh_prefix}" | sed 's/ /\\ /g'
+}
+
+
+# Transform URLs to SSH complete
+# e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
+# Usage: url2ssh URL
+# Return: complete path
+url2ssh() {
+	echo "$(url2host "$1"):$(url2path "$1")"
 }
 
 
@@ -653,33 +662,29 @@ get_backup_path() {
 
 
 # Get all backup dates
-# Usage: get_backups [OPTIONS] [PATH]
-# Options:
-#   -l  Get only latest backup
-# Dependencies: $destination, $backup_date_format
+# Usage: get_backups [PATH]
+# Dependencies: $destination, $backup_date_format, $ssh_options
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
 #   1: error for the path
 get_backups() {
 	# default options
-	local latest=false path=$destination
-
-	# get latest option
-	if [ "$1" == "-l" ] ; then
-		latest=true
-		shift
-	fi
+	local path=$destination
 
 	# get specified path option
-	[ -n "$1" ] && path=$1
+	[ -n "$1" ] && path=$*
 
-	# return content of path (only the backup folders)
-	if $latest ; then
-		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$" | tail -1
-	else
-		ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
-	fi
+	case $(get_protocol "$path") in
+		ssh)
+			ssh "${ssh_options[@]}" "$(url2host "$path")" "ls \"$(url2path "$path")\"" 2> /dev/null | grep -E "^$backup_date_format$"
+			;;
+		*)
+			# return content of path (only the backup folders)
+			ls "$path" 2> /dev/null | grep -E "^$backup_date_format$"
+			;;
+	esac
+
 
 	# return error only if ls command failed
 	return ${PIPESTATUS[0]}

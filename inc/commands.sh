@@ -2074,13 +2074,13 @@ t2b_stop() {
 t2b_export() {
 
 	# default option values
-	local only_latest=false reference limit=0
+	local reference limit=0
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-l|--latest)
-				only_latest=true
+				limit=1
 				;;
 			--limit)
 				limit=$(lb_getopt "$@")
@@ -2089,10 +2089,6 @@ t2b_export() {
 					return 1
 				fi
 				shift
-				;;
-			-s|--ssh)
-				# tell rsync we will use remote command
-				remote_source=true
 				;;
 			--reference)
 				if ! check_backup_date "$(lb_getopt "$@")" ; then
@@ -2138,22 +2134,10 @@ t2b_export() {
 	# test backup destination
 	prepare_destination || return 4
 
-	# get destination path
-	if [ "$lb_current_os" == Windows ] ; then
-		# get UNIX format for Windows paths
-		export_destination=$(cygpath "$1")
-	else
-		export_destination=$1
-	fi
-
-	local -a backups existing_copies
+	local -a backups existing_backups
 
 	# get available backups
-	if $only_latest ; then
-		backups=($(get_backups -l))
-	else
-		backups=($(get_backups))
-	fi
+	backups=($(get_backups))
 
 	# no backup found
 	if [ ${#backups[@]} == 0 ] ; then
@@ -2161,16 +2145,54 @@ t2b_export() {
 		return 0
 	fi
 
-	# search for a backup reference
-	if [ -z "$reference" ] ; then
-		existing_copies=($(get_backups "$export_destination"))
-		if [ $? != 0 ] ; then
-			lb_warning "Export path not found. Export may take more time."
-			lb_info "Please use the reference option to make it faster."
+	# prepare export destination
+	case $(get_protocol "$1") in
+		ssh)
+			export_destination=$(url2ssh "$*")
+			remote_source=true
+
+			# search for a backup reference
+			[ -z "$reference" ] && existing_backups=($(get_backups "$*"))
+			;;
+
+		*)
+			# get destination path
+			if [ "$lb_current_os" == Windows ] ; then
+				# get UNIX format for Windows paths
+				export_destination=$(cygpath "$*")
+			else
+				export_destination=$*
+			fi
+
+			if [ -d "$export_destination" ] ; then
+				# search for a backup reference
+				[ -z "$reference" ] && existing_backups=($(get_backups "$export_destination"))
+			else
+				# create if not exists
+				mkdir -p "$export_destination"
+				if [ $? != 0 ] ; then
+					lb_error "Cannot create folder $export_destination."
+					lb_error "Please check your access rights."
+					return 6
+				fi
+			fi
+			;;
+	esac
+
+	lb_debug "Existing backups: ${backups[*]}"
+	lb_debug "Existing backups found: ${existing_backups[*]}"
+
+	local total=${#backups[@]}
+	if [ $limit -gt 0 ] ; then
+		if [ $limit -lt $total ] ; then
+			total=$limit
+			limit=$((${#backups[@]} - $limit))
+		else
+			limit=0
 		fi
 	fi
 
-	lb_istrue $quiet_mode || lb_display "${#backups[@]} backups found"
+	lb_istrue $quiet_mode || lb_display "$total backups to export"
 
 	# confirm action
 	lb_istrue $force_mode || lb_yesno "Proceed to export?" || return 0
@@ -2178,13 +2200,7 @@ t2b_export() {
 	# prepare rsync command
 	prepare_rsync export
 
-	local total=${#backups[@]}
-	if [ $limit -gt 0 ] ; then
-		total=$limit
-		limit=$((${#backups[@]} - $limit))
-	fi
-
-	local b d src cmd first=true result errors=()
+	local b d src cmd first=true result error errors=()
 	for ((b=${#backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${backups[b]}
@@ -2195,53 +2211,59 @@ t2b_export() {
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")
 
-		# defines hard links
-		if lb_istrue $hard_links ; then
-			# if reference link not set
-			if [ -z "$reference" ] ; then
-
-				# search the last existing distant backup
-				if [ ${#existing_copies[@]} -gt 0 ] ; then
-					for ((d=${#existing_copies[@]}-1; d>=0; d--)) ; do
-						# avoid reference to be equal to the current item
-						if [ "${existing_copies[d]}" != "$src" ] ; then
-							reference=${existing_copies[d]}
-							break
-						fi
-					done
+		# if reference link not set, search the last existing distant backup
+		if [ -z "$reference" ] && [ ${#existing_backups[@]} -gt 0 ] ; then
+			for ((d=${#existing_backups[@]}-1; d>=0; d--)) ; do
+				# avoid reference to be equal to the current item
+				if [ "${existing_backups[d]}" != "$src" ] ; then
+					reference=${existing_backups[d]}
+					break
 				fi
-			fi
+			done
+		fi
 
-			# add link and avoid to use the same backup date
-			if [ -n "$reference" ] && [ "$reference" != "$src" ] ; then
-				cmd+=(--link-dest ../"$reference")
-			fi
+		# add link and avoid to use the same backup date
+		if [ -n "$reference" ] && [ "$reference" != "$src" ] ; then
+			cmd+=(--link-dest ../"$reference")
 		fi
 
 		# add source and destination in rsync command
 		cmd+=("$destination/$src/" "$export_destination/$src")
 
-		lb_debug "Run ${cmd[*]}"
+		while true ; do
+			lb_debug "Run ${cmd[*]}"
 
-		"${cmd[@]}"
-		lb_result
-		result=$?
+			"${cmd[@]}"
+			lb_result
+			result=$?
 
-		lb_debug "Result: $result"
+			lb_debug "Result: $result"
 
-		if [ $result != 0 ] ; then
-			if rsync_result $result ; then
-				errors+=("Partial export $src (exit code: $result)")
-			else
-				errors+=("Failed to export $src (exit code: $result)")
+			if [ $result != 0 ] ; then
+				if rsync_result $result ; then
+					error="Partial export $src (exit code: $result)"
+				else
+					error="Failed to export $src (exit code: $result)"
+				fi
+
+				lb_display_error "$error"
+
+				# ask for retry export; or else quit loop
+				lb_istrue $force_mode || lb_yesno -y "Retry?" || continue
 			fi
+
+			break
+		done
+
+		if [ $result == 0 ] ; then
+			# change reference
+			$first && reference=$src
+		else
+			# append error message to report
+			errors+=("$error")
 		fi
 
-		# change reference
-		if $first && rsync_result $result ; then
-			reference=$src
-			first=false
-		fi
+		first=false
 	done
 
 	# print report
