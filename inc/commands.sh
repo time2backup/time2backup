@@ -2205,14 +2205,16 @@ t2b_import() {
 		cmd=("${rsync_cmd[@]}")
 
 		# if reference link not set, search the last existing distant backup
-		if [ -z "$reference" ] && [ ${#backups[@]} -gt 0 ] ; then
-			for ((d=${#backups[@]}-1; d>=0; d--)) ; do
-				# avoid reference to be equal to the current item
-				if [ "${backups[d]}" != "$src" ] ; then
-					reference=${backups[d]}
-					break
-				fi
-			done
+		if [ ${#backups[@]} -gt 0 ] ; then
+			if [ -z "$reference" ] || [ "$reference" == "$src" ] ; then
+				for ((d=${#backups[@]}-1; d>=0; d--)) ; do
+					# avoid reference to be equal to the current item
+					if [ "${backups[d]}" != "$src" ] ; then
+						reference=${backups[d]}
+						break
+					fi
+				done
+			fi
 		fi
 
 		# add link and avoid to use the same backup date
@@ -2221,7 +2223,7 @@ t2b_import() {
 		fi
 
 		# add source and destination in rsync command
-		cmd+=( "$import_source/$src/" "$destination/$src")
+		cmd+=("$import_source/$src/" "$destination/$src")
 
 		while true ; do
 			lb_debug "Run ${cmd[*]}"
@@ -2250,11 +2252,13 @@ t2b_import() {
 
 		if [ $result == 0 ] ; then
 			# set reference
-			[ -z "$reference" ] && reference=$src
+			$first && reference=$src
 		else
 			# append error message to report
 			errors+=("$error")
 		fi
+
+		first=false
 	done
 
 	# print report
@@ -2412,14 +2416,16 @@ t2b_export() {
 		cmd=("${rsync_cmd[@]}")
 
 		# if reference link not set, search the last existing distant backup
-		if [ -z "$reference" ] && [ ${#existing_backups[@]} -gt 0 ] ; then
-			for ((d=${#existing_backups[@]}-1; d>=0; d--)) ; do
-				# avoid reference to be equal to the current item
-				if [ "${existing_backups[d]}" != "$src" ] ; then
-					reference=${existing_backups[d]}
-					break
-				fi
-			done
+		if [ ${#existing_backups[@]} -gt 0 ] ; then
+			if [ -z "$reference" ] || [ "$reference" == "$src" ] ; then
+				for ((d=${#existing_backups[@]}-1; d>=0; d--)) ; do
+					# avoid reference to be equal to the current item
+					if [ "${existing_backups[d]}" != "$src" ] ; then
+						reference=${existing_backups[d]}
+						break
+					fi
+				done
+			fi
 		fi
 
 		# add link and avoid to use the same backup date
