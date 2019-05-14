@@ -283,8 +283,7 @@ hard_links = $hard_links" > "$infofile"
 		src_timestamp=$(date +%s)
 
 		# get source path
-		protocol=$(get_protocol "$src")
-		case $protocol in
+		case $(get_protocol "$src") in
 			ssh)
 				# test if we don't have double remotes
 				# (rsync does not support ssh to ssh copy)
@@ -306,9 +305,6 @@ hard_links = $hard_links" > "$infofile"
 
 			*)
 				# file or directory
-
-				# remove file:// prefix
-				[ "${src:0:7}" == "file://" ] && src=${src:7}
 
 				# replace ~ by user home directory
 				if [ "${src:0:1}" == "~" ] ; then

@@ -17,6 +17,7 @@
 #     get_common_path
 #     get_relative_path
 #     get_protocol
+#     url2host
 #     url2ssh
 #     file_for_windows
 #     notify
@@ -228,29 +229,34 @@ get_protocol() {
 	protocol=$(echo $1 | cut -d: -f1)
 
 	case $protocol in
-		ssh|t2b)
-			# double check protocol
-			if echo "$*" | grep -Eq "^$protocol://" ; then
-				echo $protocol
-				return 0
-			fi
+		ssh)
+			echo $protocol
+			;;
+		*)
+			echo files
 			;;
 	esac
+}
 
-	# if not found or error of protocol, it is regular files
-	echo files
+
+# Transform URLs to SSh hosts
+# e.g. ssh://user@host/path/to/file -> user@host
+# Usage: url2host URL
+# Return: host
+url2host() {
+	echo "$1" | awk -F '/' '{print $3}'
 }
 
 
 # Transform URLs to SSH path
 # e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
 # Usage: url2ssh URL
-# Return: path
+# Return: ssh path
 url2ssh() {
 
 	# get ssh host
 	local ssh_host
-	ssh_host=$(echo "$1" | awk -F '/' '{print $3}')
+	ssh_host=$(url2host "$1")
 
 	# prepare prefix to ignore
 	local ssh_prefix=ssh://$ssh_host
@@ -610,7 +616,7 @@ get_backup_path() {
 
 			# get ssh user@host
 			local ssh_host ssh_hostname
-			ssh_host=$(echo "$path" | awk -F '/' '{print $3}')
+			ssh_host=$(url2host "$path")
 			ssh_hostname=$(echo "$ssh_host" | cut -d@ -f2)
 
 			# get ssh path
@@ -624,9 +630,6 @@ get_backup_path() {
 	esac
 
 	# if file or directory (relative path)
-
-	# remove file:// prefix
-	[ "${path:0:7}" == "file://" ] && path=${path:7}
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$path" ] ; then
@@ -821,7 +824,7 @@ prepare_destination() {
 	lb_debug "Testing destination on: $destination..."
 
 	case $(get_protocol "$destination") in
-		ssh|t2b)
+		ssh)
 			remote_destination=true
 			# do not test if there is enough space on distant device
 			test_destination=false
@@ -1271,9 +1274,6 @@ load_config() {
 	fi
 
 	# init some variables
-
-	# remove file:// prefix if any
-	[ "${destination:0:7}" == "file://" ] && destination=${destination:7}
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
