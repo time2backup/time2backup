@@ -10,7 +10,7 @@
 #  Version 1.5.0 (2019-05-06)
 #
 
-declare -r version=1.5.0
+declare -r version=1.6.0-beta.1
 
 
 #
@@ -215,7 +215,7 @@ set_verbose_log_levels
 
 # validate commands
 case $command in
-	""|backup|restore|history|explore|config|mv|clean|rotate|export)
+	""|backup|restore|history|explore|config|mv|clean|rotate|import|export)
 		# search for quiet mode option
 		for ((i=1; i<=$#; i++)) ; do
 			case ${!i} in

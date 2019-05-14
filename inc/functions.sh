@@ -1839,19 +1839,24 @@ prepare_rsync() {
 		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
 	fi
 
-	if [ "$1" != export ] ; then
-		lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
+	case $1 in
+		import|export)
+			rsync_cmd+=(-pog)
+			;;
 
-		# includes & excludes
-		[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
-		[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
+		*)
+			lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
-		# user defined options
-		[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
-	fi
+			# includes & excludes
+			[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
+			[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
+
+			# user defined options
+			[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
+			;;
+	esac
 
 	# command-specific options
-
 	case $1 in
 		backup)
 			# delete newer files
@@ -1860,7 +1865,8 @@ prepare_rsync() {
 			# add max size if specified
 			[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
 			;;
-		export)
+
+		import|export)
 			rsync_cmd+=(--delete)
 			;;
 	esac

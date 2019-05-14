@@ -20,6 +20,7 @@
 #     t2b_rotate
 #     t2b_status
 #     t2b_stop
+#     t2b_import
 #     t2b_export
 #     t2b_install
 #     t2b_uninstall
@@ -2069,6 +2070,209 @@ t2b_stop() {
 }
 
 
+# Import backups
+# Usage: t2b_import [OPTIONS] PATH [DATE...]
+t2b_import() {
+
+	# default option values
+	local reference limit=0
+
+	# get options
+	while [ $# -gt 0 ] ; do
+		case $1 in
+			-l|--latest)
+				limit=1
+				;;
+			--limit)
+				limit=$(lb_getopt "$@")
+				if ! lb_is_integer "$limit" || [ $limit -lt 1 ] ; then
+					print_help
+					return 1
+				fi
+				shift
+				;;
+			--reference)
+				if ! check_backup_date "$(lb_getopt "$@")" ; then
+					print_help
+					return 1
+				fi
+				reference=$2
+				shift
+				;;
+			-f|--force)
+				force_mode=true
+				;;
+			-h|--help)
+				print_help
+				return 0
+				;;
+			-*)
+				print_help
+				return 1
+				;;
+			*)
+				break
+				;;
+		esac
+		shift # load next argument
+	done
+
+	# missing arguments
+	if [ -z "$1" ] ; then
+		print_help
+		return 1
+	fi
+
+	# Disable command for remote destinations
+	if lb_istrue $remote_destination ; then
+		lb_error "This command is disabled for remote destinations."
+		return 255
+	fi
+
+	# test backup destination
+	prepare_destination || return 4
+
+	local path=$1 backups=() existing_backups=()
+	shift
+
+	while [ $# -gt 0 ] ; do
+		check_backup_date $1 && existing_backups+=($1)
+		shift
+	done
+
+	# get available backups
+	backups=($(get_backups))
+
+	# prepare export destination
+	case $(get_protocol "$path") in
+		ssh)
+			import_source=$(url2ssh "$path")
+			remote_source=true
+
+			# get backups to import
+			[ ${#existing_backups[@]} == 0 ] && existing_backups=($(get_backups "$path"))
+			;;
+
+		*)
+			# get destination path
+			if [ "$lb_current_os" == Windows ] ; then
+				# get UNIX format for Windows paths
+				import_source=$(cygpath "$path")
+			else
+				import_source=$path
+			fi
+
+			# get backups to import
+			[ ${#existing_backups[@]} == 0 ] && existing_backups=($(get_backups "$import_source"))
+			;;
+	esac
+
+	# no backup found
+	if [ ${#existing_backups[@]} == 0 ] ; then
+		lb_error "No backups to import."
+		return 0
+	fi
+
+	lb_debug "Backups to import: ${existing_backups[*]}"
+
+	local total=${#existing_backups[@]}
+	if [ $limit -gt 0 ] ; then
+		if [ $limit -lt $total ] ; then
+			total=$limit
+			limit=$((${#existing_backups[@]} - $limit))
+		else
+			limit=0
+		fi
+	fi
+
+	lb_istrue $quiet_mode || lb_display "$total backups to import"
+
+	# confirm action
+	lb_istrue $force_mode || lb_yesno "Proceed to import?" || return 0
+
+	# prepare rsync command
+	prepare_rsync import
+
+	local b d src cmd first=true result error errors=()
+	for ((b=${#existing_backups[@]}-1; b>=$limit; b--)) ; do
+
+		src=${existing_backups[b]}
+
+		lb_print
+		lb_print "Import $src... ($((${#existing_backups[@]} - $b))/$total)"
+
+		# prepare rsync command
+		cmd=("${rsync_cmd[@]}")
+
+		# if reference link not set, search the last existing distant backup
+		if [ -z "$reference" ] && [ ${#backups[@]} -gt 0 ] ; then
+			for ((d=${#backups[@]}-1; d>=0; d--)) ; do
+				# avoid reference to be equal to the current item
+				if [ "${backups[d]}" != "$src" ] ; then
+					reference=${backups[d]}
+					break
+				fi
+			done
+		fi
+
+		# add link and avoid to use the same backup date
+		if [ -n "$reference" ] && [ "$reference" != "$src" ] ; then
+			cmd+=(--link-dest ../"$reference")
+		fi
+
+		# add source and destination in rsync command
+		cmd+=( "$import_source/$src/" "$destination/$src")
+
+		while true ; do
+			lb_debug "Run ${cmd[*]}"
+
+			"${cmd[@]}"
+			lb_result
+			result=$?
+
+			lb_debug "Result: $result"
+
+			if [ $result != 0 ] ; then
+				if rsync_result $result ; then
+					error="Partial import $src (exit code: $result)"
+				else
+					error="Failed to import $src (exit code: $result)"
+				fi
+
+				lb_display_error "$error"
+
+				# ask for retry import; or else quit loop
+				lb_istrue $force_mode || lb_yesno -y "Retry?" && continue
+			fi
+
+			break
+		done
+
+		if [ $result == 0 ] ; then
+			# set reference
+			[ -z "$reference" ] && reference=$src
+		else
+			# append error message to report
+			errors+=("$error")
+		fi
+	done
+
+	# print report
+	lb_print
+	if [ ${#errors[@]} == 0 ] ; then
+		lb_print "Import finished"
+	else
+		lb_print "Some errors occurred while import:"
+		local e
+		for e in "${errors[@]}" ; do
+			lb_print "   - $e"
+		done
+
+		return 6
+	fi
+}
+
+
 # Export backups
 # Usage: t2b_export [OPTIONS] PATH
 t2b_export() {
@@ -2128,9 +2332,6 @@ t2b_export() {
 		return 255
 	fi
 
-	# force using hard links
-	hard_links=true
-
 	# test backup destination
 	prepare_destination || return 4
 
@@ -2179,8 +2380,7 @@ t2b_export() {
 			;;
 	esac
 
-	lb_debug "Existing backups: ${backups[*]}"
-	lb_debug "Existing backups found: ${existing_backups[*]}"
+	lb_debug "Existing backups: ${existing_backups[*]}"
 
 	local total=${#backups[@]}
 	if [ $limit -gt 0 ] ; then
@@ -2206,7 +2406,7 @@ t2b_export() {
 		src=${backups[b]}
 
 		lb_print
-		lb_print "Synchronise $src... ($((${#backups[@]} - $b))/$total)"
+		lb_print "Export $src... ($((${#backups[@]} - $b))/$total)"
 
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")
@@ -2249,7 +2449,7 @@ t2b_export() {
 				lb_display_error "$error"
 
 				# ask for retry export; or else quit loop
-				lb_istrue $force_mode || lb_yesno -y "Retry?" || continue
+				lb_istrue $force_mode || lb_yesno -y "Retry?" && continue
 			fi
 
 			break

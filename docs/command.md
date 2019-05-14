@@ -12,6 +12,8 @@
 * [rotate](#rotate)
 * [status](#status)
 * [stop](#stop)
+* [import](#import)
+* [export](#export)
 * [install](#install)
 * [uninstall](#uninstall)
 
@@ -49,6 +51,7 @@ clean      Clean files in backups
 rotate     Force rotate backups
 status     Check if a backup is currently running
 stop       Cancel a running backup
+import     Import backups from another folder or host
 export     Export backups to another folder or host
 install    Install time2backup
 uninstall  Uninstall time2backup
@@ -358,6 +361,36 @@ time2backup [GLOBAL_OPTIONS] stop [OPTIONS]
 - 7: No rsync process found
 
 ---------------------------------------------------------------
+<a name="import"></a>
+## import
+Import backups from another folder or host.
+
+### Usage
+```bash
+time2backup [GLOBAL_OPTIONS] import [OPTIONS] PATH [DATE...]
+```
+
+### Options
+```
+-l, --latest      Import only the latest backup
+--limit N         Limit import to N latest backups
+--reference DATE  Specify a backup date reference
+-f, --force       Do not print confirmation
+-h, --help        Print help
+
+DATE              Backup date to import
+                  (Useful if you cannot get information about existing backups)
+```
+
+### Exit codes
+- 0: Import succeeded
+- 1: Usage error
+- 3: Config error
+- 4: Backup device not reachable
+- 5: No backups available
+- 6: Failed to import some files
+
+---------------------------------------------------------------
 <a name="export"></a>
 ## export
 Export backups to another folder or host.
@@ -371,8 +404,8 @@ time2backup [GLOBAL_OPTIONS] export [OPTIONS] PATH
 ```
 -l, --latest      Export only the latest backup
 --limit N         Limit export to N latest backups
---reference DATE  Specify a backup date reference for a quicker export
--f, --force       Do not print confirmation before export
+--reference DATE  Specify a backup date reference
+-f, --force       Do not print confirmation
 -h, --help        Print help
 ```
 

@@ -37,6 +37,7 @@ print_help() {
 		echo "   rotate     Force rotate backups"
 		echo "   status     Check if a backup is currently running"
 		echo "   stop       Cancel a running backup"
+		echo "   import     Import backups from another folder or host"
 		echo "   export     Export backups to another folder or host"
 		echo "   install    Install time2backup"
 		echo "   uninstall  Uninstall time2backup"
@@ -182,6 +183,22 @@ print_help() {
 			echo "  -h, --help   Print help"
 			;;
 
+		import)
+			print_help_usage PATH [DATE...]
+
+			echo "Import backups from another folder or host"
+
+			print_help_options
+			echo "  -l, --latest      Import only the latest backup"
+			echo "  --limit N         Limit import to N latest backups"
+			echo "  --reference DATE  Specify a backup date reference"
+			echo "  -f, --force       Do not print confirmation"
+			echo "  -h, --help        Print help"
+			echo
+			echo "DATE              Backup date to import"
+			echo "                  (Useful if you cannot get information about existing backups)"
+			;;
+
 		export)
 			print_help_usage PATH
 
@@ -190,8 +207,8 @@ print_help() {
 			print_help_options
 			echo "  -l, --latest      Export only the latest backup"
 			echo "  --limit N         Limit export to N latest backups"
-			echo "  --reference DATE  Specify a backup date reference for a quicker export"
-			echo "  -f, --force       Do not print confirmation before export"
+			echo "  --reference DATE  Specify a backup date reference"
+			echo "  -f, --force       Do not print confirmation"
 			echo "  -h, --help        Print help"
 			;;
 
