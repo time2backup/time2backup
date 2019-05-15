@@ -821,7 +821,9 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $destination, $logs_directory, $config_directory, $config_file, $mount, $mounted, $backup_disk_mountpoint, $unmount_auto, $recurrent_backup, $hard_links, $force_hard_links, $tr_*
+# Dependencies: $destination, $logs_directory, $config_directory, $config_file,
+#               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
+#               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
 #   0: destination is ready
 #   1: destination not reachable
@@ -833,13 +835,11 @@ prepare_destination() {
 	case $(get_protocol "$destination") in
 		ssh)
 			remote_destination=true
-			# do not test if there is enough space on distant device
-			test_destination=false
 
 			# define the default logs path to the local config directory
 			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
 
-			# quit ok
+			# remote destination: do nothing more
 			return 0
 			;;
 		*)
@@ -1563,6 +1563,13 @@ create_infofile() {
 	# remote destination: do not create infofile
 	lb_istrue $remote_destination && return 1
 
+	# create directory
+	mkdir "$dest"
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
+		clean_exit 7
+	fi
+
 	infofile=$dest/backup.info
 	touch "$infofile"
 }
@@ -1848,7 +1855,7 @@ release_lock() {
 #
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
-# Usage: prepare_rsync backup|restore|export
+# Usage: prepare_rsync COMMAND
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
 
@@ -1870,6 +1877,7 @@ prepare_rsync() {
 
 	case $1 in
 		import|export)
+			# force preserve permissions
 			rsync_cmd+=(-pog)
 			;;
 
@@ -1886,6 +1894,7 @@ prepare_rsync() {
 	esac
 
 	# command-specific options
+
 	case $1 in
 		backup)
 			# delete newer files
@@ -1908,15 +1917,19 @@ prepare_rsync() {
 # Return: Remote command
 get_rsync_remote_command() {
 
-	# custom remote command
-	if [ -n "$rsync_remote_path" ] ; then
+	# time2backup server path
+	if lb_istrue $remote_destination ; then
 		lb_istrue $remote_sudo && echo -n 'sudo '
-		echo "$rsync_remote_path"
-	else
-		# other command
-		if lb_istrue $remote_destination ; then
-			lb_istrue $remote_sudo && echo -n 'sudo '
+		if [ -n "$t2bserver_path" ] ; then
+			echo "$t2bserver_path"
+		else
 			echo time2backup-server
+		fi
+	else
+		# rsync remote path
+		if [ -n "$rsync_remote_path" ] ; then
+			lb_istrue $remote_sudo && echo -n 'sudo '
+			echo "$rsync_remote_path"
 		else
 			lb_istrue $remote_sudo && echo 'sudo rsync'
 		fi

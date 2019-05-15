@@ -30,9 +30,6 @@
 # Usage: t2b_backup [OPTIONS] [PATH...]
 t2b_backup() {
 
-	# force set to false to print in infofile
-	recurrent_backup=false
-
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -235,18 +232,9 @@ t2b_backup() {
 	notify "$tr_notify_prepare_backup"
 	lb_display --log "Prepare backup destination..."
 
-	# create destination
-	mkdir "$dest"
-	if [ $? != 0 ] ; then
-		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
-		clean_exit 7
-	fi
-
-	# prepare rsync command
-	prepare_rsync backup
-
-	# force "false" in variable
+	# force set to false to print in infofile
 	lb_istrue $hard_links || hard_links=false
+	lb_istrue $recurrent_backup || recurrent_backup=false
 
 	# create the info file
 	if create_infofile ; then
@@ -262,6 +250,10 @@ path = $destination
 date = $backup_date
 hard_links = $hard_links" > "$infofile"
 	fi
+
+	# prepare rsync command
+	prepare_rsync backup
+	cmd=("${rsync_cmd[@]}")
 
 	# prepare results
 	local success=() warnings=() errors=()
@@ -482,9 +474,6 @@ hard_links = $hard_links" > "$infofile"
 			# continue to next source
 			continue
 		fi
-
-		# define rsync command
-		cmd=("${rsync_cmd[@]}")
 
 		# if keep_limit = 0, we don't need to use versionning
 		# if first backup, no need to add incremental options
