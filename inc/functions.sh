@@ -49,6 +49,8 @@
 #     create_logfile
 #     delete_logfile
 #   Infofile functions
+#     create_infofile
+#     append_infofile
 #     get_infofile_path
 #     find_infofile_section
 #     get_infofile_value
@@ -1551,6 +1553,36 @@ delete_logfile() {
 #  Infofile functions
 #
 
+# Create infofile
+# Usage: create_infofile
+# Dependencies: $remote_destination, $dest, $infofile
+# Exit codes:
+#   0: infofile created
+#   1: not created
+create_infofile() {
+	# remote destination: do not create infofile
+	lb_istrue $remote_destination && return 1
+
+	infofile=$dest/backup.info
+	touch "$infofile"
+}
+
+
+# Append a line to infofile
+# Usage: append_infofile
+# Dependencies: $infofile
+append_infofile() {
+	# if infofile not set, do nothing
+	[ -z "$infofile" ] && return 1
+
+	if [ "$lb_current_os" == Windows ] ; then
+		echo -e "$1 = $2\r" >> "$infofile"
+	else
+		echo "$1 = $2" >> "$infofile"
+	fi
+}
+
+
 # Get infofile path
 # Usage: get_infofile_path BACKUP_DATE
 # Dependencies: $destination
@@ -1612,10 +1644,7 @@ find_infofile_section() {
 #   2: parameter not found
 get_infofile_value() {
 	# search section
-	local infofile_section
-	infofile_section=$(find_infofile_section "$1" "$2")
-
-	# section not found: quit
+	local infofile_section=$(find_infofile_section "$1" "$2")
 	[ -z "$infofile_section" ] && return 1
 
 	# get value
@@ -1927,7 +1956,7 @@ rsync_result() {
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup
-# Dependencies: $logfile, $infofile, $cmd, $total_size
+# Dependencies: $logfile, $cmd, $total_size
 # Return: size of the backup (in bytes)
 # Exit codes:
 #   0: OK
@@ -1968,9 +1997,6 @@ test_backup() {
 
 	# add a security margin of 1MB for logs and future backups
 	total_size=$(($total_size + 1000000))
-
-	lb_debug "Backup total size (in bytes): $total_size"
-	echo "size = $total_size" >> "$infofile"
 
 	# force exit code to 0
 	return 0

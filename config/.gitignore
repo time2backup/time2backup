@@ -4,4 +4,4 @@ includes.conf
 excludes.conf
 sources.conf
 time2backup.conf
-*~
+logs

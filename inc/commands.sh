@@ -249,8 +249,8 @@ t2b_backup() {
 	lb_istrue $hard_links || hard_links=false
 
 	# create the info file
-	infofile=$dest/backup.info
-	echo "[time2backup]
+	if create_infofile ; then
+		echo "[time2backup]
 version = $version
 os = $lb_current_os
 hostname = $lb_current_hostname
@@ -261,6 +261,7 @@ comment = $backup_comment
 path = $destination
 date = $backup_date
 hard_links = $hard_links" > "$infofile"
+	fi
 
 	# prepare results
 	local success=() warnings=() errors=()
@@ -376,7 +377,7 @@ hard_links = $hard_links" > "$infofile"
 		esac
 
 		# write source section to info file
-		echo -e "\n[src$(($s + 1))]\npath = $src" >> "$infofile"
+		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
 
 		# set final destination with is a representation of system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
@@ -495,7 +496,7 @@ hard_links = $hard_links" > "$infofile"
 				if [ -e "$linkdest" ] ; then
 					cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
 
-					echo "trash = $last_clean_backup" >> "$infofile"
+					append_infofile trash $last_clean_backup
 				fi
 			else
 				# backups with a "trash" folder that contains older revisions
@@ -509,12 +510,12 @@ hard_links = $hard_links" > "$infofile"
 				# move last destination
 				cmd+=(-b --backup-dir "$trash")
 
-				echo "trash = $last_clean_backup" >> "$infofile"
+				append_infofile trash $last_clean_backup
 			fi
 		fi
 
 		# set a bad result to detect cancelled or interrupted backups
-		echo "rsync_result = -1" >> "$infofile"
+		append_infofile rsync_result -1
 
 		# of course, we exclude the backup destination itself if it is included
 		# into the backup source
@@ -574,6 +575,9 @@ hard_links = $hard_links" > "$infofile"
 				continue
 			fi
 
+			lb_debug "Backup total size (in bytes): $total_size"
+			append_infofile size $total_size
+
 			# if not enough space on disk to backup, cancel
 			if ! test_free_space ; then
 				lb_display_error --log "Not enough space on device to backup. Abording."
@@ -623,7 +627,7 @@ hard_links = $hard_links" > "$infofile"
 		res=${PIPESTATUS[0]}
 
 		# save rsync result in info file and delete temporary file
-		lb_set_config "$infofile" rsync_result $res
+		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result $res
 
 		if [ $res == 0 ] ; then
 			# backup succeeded
@@ -646,7 +650,7 @@ hard_links = $hard_links" > "$infofile"
 		clean_empty_backup -i $last_clean_backup "$path_dest"
 
 		# save duration
-		echo "duration = $(( $(date +%s) - $src_timestamp ))" >> "$infofile"
+		append_infofile duration $(( $(date +%s) - $src_timestamp ))
 
 		# clean directory WITHOUT infofile
 		clean_empty_backup $backup_date "$path_dest"
