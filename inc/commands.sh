@@ -509,8 +509,10 @@ hard_links = $hard_links" > "$infofile"
 				# create trash
 				mkdir -p "$trash"
 
-				# move last destination
-				cmd+=(-b --backup-dir "$trash")
+				# set trash path
+				# Note: use absolute path to avoid trash to be inside backup destination
+				#       if destination variable is a relative path
+				cmd+=(-b --backup-dir "$(lb_abspath "$trash")")
 
 				echo "trash = $last_clean_backup" >> "$infofile"
 			fi
