@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 (2019-06-03)
+- Fix bug in trash mode when using relative backup destination path
+- libbash.sh upgraded to version 1.12.2
+
 ## 1.5.0 (2019-05-06)
 ### New features
 - New portable version available: run `./t2b-portable.sh`
