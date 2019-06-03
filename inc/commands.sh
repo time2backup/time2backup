@@ -778,6 +778,9 @@ t2b_restore() {
 			-p|--progress)
 				files_progress=true
 				;;
+			-t|--test)
+				test_mode=true
+				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1119,6 +1122,9 @@ t2b_restore() {
 
 	# delete new files
 	$delete_newer_files && cmd+=(--delete)
+
+	# test mode
+	lb_istrue $test_mode && cmd+=(--dry-run)
 
 	cmd+=("$src" "$dest")
 

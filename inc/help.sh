@@ -77,6 +77,7 @@ print_help() {
 			echo "  -l, --latest     Restore the last available backup"
 			echo "  --delete-new     Delete newer files if exists for directories (restore exactly the same version)"
 			echo "  -p, --progress   Display restore progress for each file (overrides configuration)"
+			echo "  -t, --test       Test mode; do not restore files"
 			echo "  -f, --force      Force restore; do not display confirmation"
 			echo "  -q, --quiet      Quiet mode; do not print transfer details"
 			echo "  -h, --help       Print help"

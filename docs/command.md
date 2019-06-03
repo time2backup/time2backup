@@ -125,6 +125,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 -l, --latest     Restore the last available backup
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
 -p, --progress   Display restore progress for each file (overrides configuration)
+-t, --test       Test mode; do not restore files
 -f, --force      Force restore; do not display confirmation
 -q, --quiet      Quiet mode; do not print transfer details
 -h, --help       Print help
