@@ -56,6 +56,10 @@ t2b_backup() {
 			-r|--recurrent)
 				recurrent_backup=true
 				;;
+			-t|--test)
+				test_mode=true
+				test_destination=false
+				;;
 			--force-lock|--force-unlock)
 				force_unlock=true
 				;;
@@ -540,6 +544,9 @@ hard_links = $hard_links" > "$infofile"
 			[ -n "$rsync_remote_command" ] && cmd+=(--rsync-path "$rsync_remote_command")
 		fi
 
+		# test mode
+		lb_istrue $test_mode && cmd+=(--dry-run)
+
 		# if it is a directory, add '/' at the end of the path
 		[ -d "$abs_src" ] && abs_src=$(remove_end_slash "$abs_src")/
 
@@ -646,7 +653,7 @@ hard_links = $hard_links" > "$infofile"
 
 	done # end of backup sources
 
-	# do not consider as cancelled backup
+	# if cancel, do not consider as cancelled backup
 	catch_kills clean_exit
 
 	lb_display --log "\n********************************************\n"
@@ -664,7 +671,7 @@ hard_links = $hard_links" > "$infofile"
 		# and do not rotate backups
 		if ! [ -d "$dest" ] ; then
 			errors+=("Nothing was backed up.")
-			lb_exitcode=14
+			lb_exitcode=22
 		fi
 	fi
 

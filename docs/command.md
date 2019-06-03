@@ -75,6 +75,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 -u, --unmount       Unmount destination after backup (overrides configuration)
 -s, --shutdown      Shutdown after backup (overrides configuration)
 -r, --recurrent     Perform a recurrent backup (used in cron jobs)
+-t, --test          Test mode; do not backup files
 --force-unlock      Force to backup if a lock is stuck (use with caution)
 -q, --quiet         Quiet mode; do not print transfer details
 -h, --help          Print help
@@ -102,6 +103,7 @@ time2backup [GLOBAL_OPTIONS] backup [OPTIONS] [PATH...]
 - 19: Shutdown error
 - 20: Recurrent backups disabled
 - 21: Recurrent backups: cannot get/save last backup timestamp
+- 22: Nothing was backed up
 
 ---------------------------------------------------------------
 <a name="restore"></a>
