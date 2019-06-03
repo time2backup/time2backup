@@ -1003,9 +1003,15 @@ clean_empty_backup() {
 	# if backup does not exists, quit
 	[ -d "$destination/$1" ] || return 0
 
-	if [ -n "$2" ] && lb_is_dir_empty "$destination/$1/$2" ; then
-		lb_debug "Clean empty backup: $1/$2"
-		$(cd "$destination" 2> /dev/null && rmdir -p "$1/$2" 2> /dev/null)
+	if [ -n "$2" ] ; then
+		local d=$2
+		# destination path does not exists: get parent
+		[ -d "$destination/$1/$d" ] || d=$(dirname "$2")
+
+		if lb_is_dir_empty "$destination/$1/$d" ; then
+			lb_debug "Clean empty backup: $1/$d"
+			$(cd "$destination" 2> /dev/null && rmdir -p "$1/$d" 2> /dev/null)
+		fi
 	fi
 
 	if $delete_infofile && \
