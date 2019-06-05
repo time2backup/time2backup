@@ -257,7 +257,6 @@ hard_links = $hard_links" > "$infofile"
 
 	# prepare rsync command
 	prepare_rsync backup
-	cmd=("${rsync_cmd[@]}")
 
 	# prepare results
 	local success=() warnings=() errors=()
@@ -268,6 +267,7 @@ hard_links = $hard_links" > "$infofile"
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
 		# reset variables
+		cmd=("${rsync_cmd[@]}")
 		src=${sources[s]}
 		total_size=""
 		estimated_time=""
