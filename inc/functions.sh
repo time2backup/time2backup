@@ -489,9 +489,7 @@ get_backup_history() {
 	[ $# == 0 ] && return 1
 
 	# if remote destination, disable
-	if lb_istrue $remote_destination ; then
-		return 1
-	fi
+	lb_istrue $remote_destination && return 1
 
 	# get all backups
 	local all_backups=($(get_backups))
@@ -687,7 +685,6 @@ get_backups() {
 			;;
 	esac
 
-
 	# return error only if ls command failed
 	return ${PIPESTATUS[0]}
 }
@@ -821,7 +818,7 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $destination, $logs_directory, $config_directory, $config_file,
+# Dependencies: $destination, $logs_directory, $config_file,
 #               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
 #               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
@@ -830,23 +827,10 @@ report_duration() {
 #   2: destination not writable
 prepare_destination() {
 
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
 	lb_debug "Testing destination on: $destination..."
-
-	case $(get_protocol "$destination") in
-		ssh)
-			remote_destination=true
-
-			# define the default logs path to the local config directory
-			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
-
-			# remote destination: do nothing more
-			return 0
-			;;
-		*)
-			# define the default logs path
-			[ -z "$logs_directory" ] && logs_directory=$destination/logs
-			;;
-	esac
 
 	# subdirectories removed since 1.3.0
 	local new_destination=$destination/backups/$lb_current_hostname
@@ -1221,7 +1205,8 @@ upgrade_config() {
 
 # Load configuration file
 # Usage: load_config
-# Dependencies: $config_sources, $config_file, $command, $quiet_mode, $tr_*, $force_destination, $destination, $keep_limit
+# Dependencies: $config_sources, $config_directory, $config_file, $command, $quiet_mode,
+#               $force_destination, $destination, $logs_directory, $keep_limit, $tr_*
 # Exit codes:
 #   0: OK
 #   1: cannot open config
@@ -1257,15 +1242,32 @@ load_config() {
 		return 2
 	fi
 
-	# convert destination path for Windows systems
-	if [ "$lb_current_os" == Windows ] ; then
-		destination=$(cygpath "$destination")
+	case $(get_protocol "$destination") in
+		ssh)
+			# remote destination
+			remote_destination=true
 
-		if [ $? != 0 ] ; then
-			lb_error "Error in Windows destination path!"
-			return 2
-		fi
-	fi
+			# define the default logs path to the local config directory
+			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
+			;;
+
+		*)
+			# normal destination
+
+			# convert destination path for Windows systems
+			if [ "$lb_current_os" == Windows ] ; then
+				destination=$(cygpath "$destination")
+
+				if [ $? != 0 ] ; then
+					lb_error "Error in Windows destination path!"
+					return 2
+				fi
+			fi
+
+			# define the default logs path
+			[ -z "$logs_directory" ] && logs_directory=$destination/logs
+			;;
+	esac
 
 	# other specific tests
 
@@ -2197,7 +2199,7 @@ uncatch_kills() {
 
 # Clean things before exit
 # Usage: clean_exit [EXIT_CODE]
-# Dependencies: $dest, $finaldest, $unmount, $keep_logs, $logfile, $logs_directory, $shutdown, $tr_*
+# Dependencies: $dest, $finaldest, $unmount, $keep_logs, $logfile, $shutdown, $tr_*
 clean_exit() {
 
 	# clear all traps to avoid infinite loop if following commands takes some time
