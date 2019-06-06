@@ -1802,7 +1802,7 @@ current_lock() {
 
 	if [ "$1" == "-p" ] ; then
 		# return PID (option)
-		cat "$current_lock_file" 2> /dev/null
+		lb_get_config "$current_lock_file" pid
 	else
 		# return date of lock
 		basename "$current_lock_file" | sed 's/^.lock_//'
@@ -1824,7 +1824,7 @@ create_lock() {
 	lb_debug "Create lock..."
 
 	# create lock file with process PID inside
-	echo $$ > "$destination/.lock_$backup_date"
+	touch "$destination/.lock_$backup_date" && lb_set_config "$destination/.lock_$backup_date" pid $$
 }
 
 
