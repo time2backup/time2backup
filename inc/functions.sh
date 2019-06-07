@@ -883,9 +883,7 @@ prepare_destination() {
 
 	# test if destination is writable
 	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	# create the info file if not exists (don't care of errors)
-	touch "$destination"/.time2backup &> /dev/null
-	if [ $? != 0 ] ; then
+	if ! [ -w "$destination" ] ; then
 		if lb_istrue $recurrent_backup ; then
 			# don't popup in recurrent mode
 			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
