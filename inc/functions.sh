@@ -1781,8 +1781,9 @@ unmount_destination() {
 #
 
 # Return date of the current lock (if exists)
-# Usage: current_lock [-p]
+# Usage: current_lock [OPTION]
 # Options:
+#   -f  Get the lock file path
 #   -p  Get the process PID instead of lock date
 # Dependencies: $remote_destination, $destination
 # Return: date of lock, empty if no lock
@@ -1800,13 +1801,23 @@ current_lock() {
 	# no lock
 	[ -z "$current_lock_file" ] && return 1
 
-	if [ "$1" == "-p" ] ; then
-		# return PID (option)
-		lb_get_config "$current_lock_file" pid
-	else
-		# return date of lock
-		basename "$current_lock_file" | sed 's/^.lock_//'
-	fi
+	case $1 in
+		-f)
+			# return lock file path
+			echo "$current_lock_file"
+			;;
+		-p)
+			# return PID
+			lb_get_config "$current_lock_file" pid
+			;;
+		*)
+			# return date of lock
+			basename "$current_lock_file" | sed 's/^.lock_//'
+			;;
+	esac
+
+	# always return ok
+	return 0
 }
 
 
