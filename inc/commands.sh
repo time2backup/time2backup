@@ -947,9 +947,12 @@ t2b_restore() {
 		# detect directory mode if path ends with / (useful for deleted directories)
 		[ "${file:${#file}-1}" == "/" ] && directory_mode=true
 
-		# get UNIX format for Windows paths
-		if [ "$(get_protocol "$file")" == files ] && [ "$lb_current_os" == Windows ] ; then
-			file=$(cygpath "$file")
+		# remote path
+		if [ "$(get_protocol "$file")" == ssh ] ; then
+			remote_source=true
+		else
+			# get UNIX format for Windows paths
+			[ "$lb_current_os" == Windows ] && file=$(cygpath "$file")
 
 			# directory: add a slash at the end of path (without duplicate it)
 			$directory_mode && file=$(remove_end_slash "$file")/
