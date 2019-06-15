@@ -65,6 +65,9 @@
 #     prepare_rsync
 #     get_rsync_remote_command
 #     rsync_result
+#   Remote functions
+#     prepare_remote_destination
+#     read_remote_config
 #   Backup steps
 #     test_backup
 #     estimate_backup_time
@@ -827,8 +830,11 @@ report_duration() {
 #   2: destination not writable
 prepare_destination() {
 
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# remote destination
+	if lb_istrue $remote_destination ; then
+		prepare_remote_destination
+		return $?
+	fi
 
 	lb_debug "Testing destination on: $destination..."
 
@@ -1976,6 +1982,37 @@ rsync_result() {
 			return 2
 			;;
 	esac
+}
+
+
+#
+#  Remote backups
+#
+
+# Usage: prepare_remote_destination
+prepare_remote_destination() {
+
+	local response
+
+	# TODO
+
+	#
+	# response=$(ssh $remote_host time2backup-server -options prepare backup $current_timestamp) || return $?
+
+	# get response
+	# token=$(read_remote_config token "$response")
+
+	return 0
+}
+
+
+# Usage: read_remote_config PARAM FILE_CONTENT
+read_remote_config() {
+	local param=$1
+	shift
+
+	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//"
+	return ${PIPESTATUS[1]}
 }
 
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.0
+### New features
+- New `import` command to copy backups from another folder/host
+- New `--test` option to `backup` and `restore` commands
+
+### Changes
+- Remove support for URLs like `file://`
+- Improve in `export` command
+- Improve cleaning empty backups
+
+### Bugfixes
+- Fix a bug that prevent calling remote rsync path when restoring remote source
+
 ## 1.5.1 (2019-06-03)
 - Fix bug in trash mode when using relative backup destination path
 - libbash.sh upgraded to version 1.12.2
