@@ -821,7 +821,7 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $destination, $logs_directory, $config_file,
+# Dependencies: $destination, $config_file,
 #               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
 #               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
@@ -1930,11 +1930,19 @@ get_rsync_remote_command() {
 
 	# time2backup server path
 	if lb_istrue $remote_destination ; then
+		
 		lb_istrue $remote_sudo && echo -n 'sudo '
+		
 		if [ -n "$t2bserver_path" ] ; then
-			echo "$t2bserver_path"
+			echo -n "$t2bserver_path"
 		else
-			echo time2backup-server
+			echo -n time2backup-server
+		fi
+		
+		if [ -n "$t2bserver_token" ] ; then
+			echo "-t $t2bserver_token"
+		else
+			[ -n "$t2bserver_pwd" ] && echo "-p $t2bserver_pwd"
 		fi
 	else
 		# rsync remote path
@@ -2233,7 +2241,7 @@ uncatch_kills() {
 
 # Clean things before exit
 # Usage: clean_exit [EXIT_CODE]
-# Dependencies: $dest, $finaldest, $unmount, $keep_logs, $logfile, $shutdown, $tr_*
+# Dependencies: $path_dest, $unmount, $keep_logs, $logfile, $shutdown, $tr_*
 clean_exit() {
 
 	# clear all traps to avoid infinite loop if following commands takes some time
