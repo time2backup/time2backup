@@ -6,9 +6,9 @@
 - New `--test` option to `backup` and `restore` commands
 
 ### Changes
-- Remove support for URLs like `file://`
 - Improve in `export` command
 - Improve cleaning empty backups
+- Remove support for URLs like `file://`
 
 ### Bugfixes
 - Fix a bug that prevent calling remote rsync path when restoring remote source

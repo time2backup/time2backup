@@ -874,8 +874,8 @@ prepare_destination() {
 		unmount=true
 	fi
 
-	# create destination if not exists
-	mkdir -p "$destination" &> /dev/null
+	# create destination if not exists & test if is writable
+	mkdir -p "$destination" &> /dev/null && [ -w "$destination" ]
 	if [ $? != 0 ] ; then
 		# if mkdir failed, exit
 		if lb_istrue $recurrent_backup ; then
@@ -883,18 +883,6 @@ prepare_destination() {
 			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
 		else
 			lbg_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
-		fi
-		return 2
-	fi
-
-	# test if destination is writable
-	# must keep this test because if directory exists, the previous mkdir -p command returns no error
-	if ! [ -w "$destination" ] ; then
-		if lb_istrue $recurrent_backup ; then
-			# don't popup in recurrent mode
-			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
-		else
-			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		fi
 		return 2
 	fi
@@ -1936,7 +1924,7 @@ prepare_rsync() {
 
 # Generate rsync remote command
 # Usage: get_rsync_remote_command
-# Dependencies: $rsync_remote_path, $remote_destination, $remote_sudo
+# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo, $t2bserver_path
 # Return: Remote command
 get_rsync_remote_command() {
 
