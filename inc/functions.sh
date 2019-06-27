@@ -832,8 +832,14 @@ prepare_destination() {
 
 	# remote destination
 	if lb_istrue $remote_destination ; then
-		prepare_remote_destination
-		return $?
+		lb_debug "Connect to remote server..."
+
+		if prepare_remote_destination ; then
+			return 0
+		else
+			lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
+			return 1
+		fi
 	fi
 
 	lb_debug "Testing destination on: $destination..."
@@ -1231,6 +1237,7 @@ load_config() {
 		ssh)
 			# remote destination
 			remote_destination=true
+			remote_server=$(url2host "$destination")
 
 			# define the default logs path to the local config directory
 			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
@@ -1873,8 +1880,8 @@ prepare_rsync() {
 		lb_istrue $files_progress && rsync_cmd+=(--progress)
 	fi
 
-	# remote path
-	if lb_istrue $remote_source || lb_istrue $remote_destination ; then
+	# remote rsync path
+	if lb_istrue $remote_source ; then
 		local rsync_remote_command=$(get_rsync_remote_command)
 		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
 	fi
@@ -1979,17 +1986,58 @@ rsync_result() {
 #
 
 # Usage: prepare_remote_destination
+# Dependencies: $command, $destination, $ssh_options, $remote_sudo, $t2bserver_path
+#               $t2bserver_pwd
 prepare_remote_destination() {
 
-	local response
+	local response cmd=(ssh "${ssh_options[@]}" $remote_server)
 
-	# TODO
+	# server in sudo mode
+	lb_istrue $remote_sudo && cmd+=(sudo)
 
-	#
-	# response=$(ssh $remote_host time2backup-server -options prepare backup $current_timestamp) || return $?
+	# server command path
+	if [ -n "$t2bserver_path" ] ; then
+		cmd+=("$t2bserver_path")
+	else
+		cmd+=(time2backup-server)
+	fi
 
-	# get response
-	# token=$(read_remote_config token "$response")
+	# server password
+	[ -n "$t2bserver_pwd" ] && cmd+=(-p "$t2bserver_pwd")
+
+	cmd+=(prepare $command)
+
+	case $command in
+		backup)
+			cmd+=($backup_date "${sources[@]}")
+			;;
+	esac
+
+	# run distant command
+	response=$("${cmd[@]}" 2>> "$logfile") || return $?
+
+	# get infos from server response
+
+	# get remote backup path
+	local remote_backup_path=$(read_remote_config destination "$response")
+	[ -z "$remote_backup_path" ] && return 1
+
+	destination=$remote_backup_path
+
+	if lb_istrue $(read_remote_config hard_links "$response") ; then
+		hard_links=true
+	else
+		hard_links=false
+	fi
+
+	t2bserver_token=$(read_remote_config token "$response")
+
+	# get remote links infos
+	local s
+	remote_trash=()
+	for ((s=1; s<=${#sources[@]}; s++)) ; do
+		remote_trash+=($(read_remote_config src$s "$response"))
+	done
 
 	return 0
 }
