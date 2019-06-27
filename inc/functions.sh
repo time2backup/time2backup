@@ -1022,20 +1022,13 @@ auto_exclude() {
 	# get common path of the backup directory and source
 	# e.g. /media
 	local common_path
-	common_path=$(get_common_path "$destination" "$1")
-
-	if [ $? != 0 ] ; then
-		lb_error "Cannot exclude directory backup from $1!"
-		return 1
-	fi
+	common_path=$(get_common_path "$destination" "$1") || return 1
 
 	# get relative exclude directory
 	# e.g. /user/device/path/to/backups
 	local exclude_path=${destination#$common_path}
 
-	if [ "${exclude_path:0:1}" != "/" ] ; then
-		exclude_path=/$exclude_path
-	fi
+	[ "${exclude_path:0:1}" != "/" ] && exclude_path=/$exclude_path
 
 	# return path to exclude
 	echo "$exclude_path"
@@ -1555,7 +1548,7 @@ delete_logfile() {
 
 # Create infofile
 # Usage: create_infofile
-# Dependencies: $remote_destination, $dest, $infofile
+# Dependencies: $remote_destination, $destination, $backup_date, $infofile
 # Exit codes:
 #   0: infofile created
 #   1: not created
@@ -1564,13 +1557,13 @@ create_infofile() {
 	lb_istrue $remote_destination && return 1
 
 	# create directory
-	mkdir "$dest"
+	mkdir -p "$destination/$backup_date"
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 7
 	fi
 
-	infofile=$dest/backup.info
+	infofile=$destination/$backup_date/backup.info
 	touch "$infofile"
 }
 
@@ -1930,15 +1923,15 @@ get_rsync_remote_command() {
 
 	# time2backup server path
 	if lb_istrue $remote_destination ; then
-		
+
 		lb_istrue $remote_sudo && echo -n 'sudo '
-		
+
 		if [ -n "$t2bserver_path" ] ; then
 			echo -n "$t2bserver_path"
 		else
 			echo -n time2backup-server
 		fi
-		
+
 		if [ -n "$t2bserver_token" ] ; then
 			echo "-t $t2bserver_token"
 		else

@@ -229,10 +229,6 @@ t2b_backup() {
 	create_logfile "$logfile" || clean_exit 9
 
 	lb_display --log "Backup started on $current_date\n"
-
-	# set new backup directory
-	dest=$destination/$backup_date
-
 	notify "$tr_notify_prepare_backup"
 	lb_display --log "Prepare backup destination..."
 
@@ -375,9 +371,9 @@ hard_links = $hard_links" > "$infofile"
 		# write source section to info file
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
 
-		# set final destination with is a representation of system tree
+		# set final destination with is a representation of the system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
-		finaldest=$dest/$path_dest
+		finaldest=$destination/$backup_date/$path_dest
 
 		# create parent destination folder
 		mkdir -p "$(dirname "$finaldest")"
@@ -479,23 +475,22 @@ hard_links = $hard_links" > "$infofile"
 			continue
 		fi
 
-		# if keep_limit = 0, we don't need to use versionning
-		# if first backup, no need to add incremental options
+		# If keep_limit = 0 (mirror mode), we don't need to use versionning.
+		# If first backup, no need to add incremental options.
 		if [ $keep_limit != 0 ] && [ -n "$last_clean_backup" ] ; then
+
+			append_infofile trash $last_clean_backup
+
 			# if destination supports hard links, use incremental with hard links system
 			if lb_istrue $hard_links ; then
 				# revision folder
 				linkdest=$(get_relative_path "$finaldest" "$destination")
-				if [ -e "$linkdest" ] ; then
-					cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
-
-					append_infofile trash $last_clean_backup
-				fi
+				[ -n "$linkdest" ] && cmd+=(--link-dest="$linkdest/$last_clean_backup/$path_dest")
 			else
 				# backups with a "trash" folder that contains older revisions
 				# be careful that trash must be set to parent directory
 				# or it will create something like dest/src/src
-				trash=$destination/$last_clean_backup/$path_dest
+				local trash=$destination/$last_clean_backup/$path_dest
 
 				# create trash
 				mkdir -p "$trash"
@@ -504,8 +499,6 @@ hard_links = $hard_links" > "$infofile"
 				# Note: use absolute path to avoid trash to be inside backup destination
 				#       if destination variable is a relative path
 				cmd+=(-b --backup-dir "$(lb_abspath "$trash")")
-
-				append_infofile trash $last_clean_backup
 			fi
 		fi
 
@@ -671,7 +664,7 @@ hard_links = $hard_links" > "$infofile"
 
 		# if nothing was backed up, consider it as a critical error
 		# and do not rotate backups
-		if ! [ -d "$dest" ] ; then
+		if ! [ -d "$destination/$backup_date" ] ; then
 			errors+=("Nothing was backed up.")
 			lb_exitcode=22
 		fi
