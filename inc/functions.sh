@@ -197,27 +197,23 @@ get_relative_path() {
 	# usage error
 	[ $# -lt 2 ] && return 1
 
-	local dir1=$1 dir2=$2 common_path
+	# avoid comparison errors with double slashes or else
+	local relative_path=./ dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
 	# get absolute paths
 	[ "${dir1:0:1}" == "/" ] || dir1=$(lb_abspath "$dir1") || return 2
 	[ "${dir2:0:1}" == "/" ] || dir2=$(lb_abspath "$dir2") || return 2
 
-	# get common path
-	common_path=$(get_common_path "$dir1" "$dir2") || return 2
-
-	# go into the first path
-	cd "$dir1" 2> /dev/null || return 3
-
-	local relative_path=./
-
 	# loop to find common path
-	while [ "$(pwd)" != "$common_path" ] ; do
+	while [ "$dir1" != "$(dirname "$dir2")" ] && [ "$dir1" != "$dir2" ] ; do
 		# go to upper directory
-		cd .. 2> /dev/null || return 3
+		dir1=$(dirname "$dir1")
 
 		# append double dots to relative path
 		relative_path+=../
+
+		# avoid infinite loop for root directory
+		[ "$dir1" == / ] && break
 	done
 
 	# print relative path
