@@ -136,8 +136,8 @@ check_backup_date() {
 
 # Get common path of 2 paths
 # e.g. get_common_path /home/user/my/first/path /home/user/my/second/path
-# will return /home/user/my/
-# Usage: get_common_path PATH_1 PATH_2
+# will return /home/user/my
+# Usage: get_common_path PATH PATH
 # Return: absolute path of the common directory
 # Exit codes:
 #   0: OK
@@ -148,32 +148,33 @@ get_common_path() {
 	# usage error
 	[ $# -lt 2 ] && return 1
 
-	local directory1 directory2 path
+	# get path and convert them to avoid multiple slashes
+	local path dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
 	# get absolute paths
-	directory1=$(lb_abspath "$1") || return 2
-	directory2=$(lb_abspath "$2") || return 2
+	[ "${dir1:0:1}" == "/" ] || dir1=$(lb_abspath "$dir1") || return 2
+	[ "${dir2:0:1}" == "/" ] || dir2=$(lb_abspath "$dir2") || return 2
 
 	# compare characters of paths one by one
 	local -i i=0
 
 	# if a character changes in the 2 paths,
-	while [ "${directory1:i:1}" == "${directory2:i:1}" ] ; do
+	while [ "${dir1:i:1}" == "${dir2:i:1}" ] ; do
 		i+=1
 	done
 
-	path=${directory1:0:i}
+	path=${dir1:0:i}
+
+	# special case of /
+	if [ "$path" == "/" ] ; then
+		echo /
+		return 0
+	fi
 
 	# if it's a directory, return it
 	if [ -d "$path" ] ; then
-		# special case of /
-		if [ "$path" == "/" ] ; then
-			echo /
-		else
-			# other directory
-			# return path without the last /
-			remove_end_slash "$path"
-		fi
+		# return path without the last /
+		remove_end_slash "$path"
 	else
 		# if it's not a directory, return parent directory
 		dirname "$path"
@@ -183,8 +184,7 @@ get_common_path() {
 
 # Get relative path to reach second path from a first one
 # e.g. get_relative_path /home/user/my/first/path /home/user/my/second/path
-# will return ../../second/path
-# Be careful to call it with $() to avoid loosing context
+# will return ../../
 # Usage: $(get_relative_path SOURCE_PATH DESTINATION_PATH)
 # Return: relative path
 # Exit codes:
@@ -197,17 +197,17 @@ get_relative_path() {
 	# usage error
 	[ $# -lt 2 ] && return 1
 
-	local src dest common_path
+	local dir1=$1 dir2=$2 common_path
 
 	# get absolute paths
-	src=$(lb_abspath "$1") || return 2
-	dest=$(lb_abspath "$2") || return 2
+	[ "${dir1:0:1}" == "/" ] || dir1=$(lb_abspath "$dir1") || return 2
+	[ "${dir2:0:1}" == "/" ] || dir2=$(lb_abspath "$dir2") || return 2
 
 	# get common path
-	common_path=$(get_common_path "$src" "$dest") || return 2
+	common_path=$(get_common_path "$dir1" "$dir2") || return 2
 
 	# go into the first path
-	cd "$src" 2> /dev/null || return 3
+	cd "$dir1" 2> /dev/null || return 3
 
 	local relative_path=./
 
