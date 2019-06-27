@@ -1927,8 +1927,6 @@ get_rsync_remote_command() {
 	# time2backup server path
 	if lb_istrue $remote_destination ; then
 
-		lb_istrue $remote_sudo && echo -n 'sudo '
-
 		if [ -n "$t2bserver_path" ] ; then
 			echo -n "$t2bserver_path"
 		else
