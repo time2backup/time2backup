@@ -69,8 +69,7 @@ tr_frequency_syntax_error="Syntax error in your custom frequency."
 tr_errors_in_config="There are errors in your configuration. Please correct it in configuration files."
 tr_ask_edit_config="Do you want to edit the configuration files?"
 tr_cannot_install_cronjobs="Cannot activate recurrent backups.\nPlease set it manually in your crontab."
-tr_ask_backup_now="Do you want to run a backup now?"
-tr_info_time2backup_ready="time2backup is ready!"
+tr_ask_backup_now="time2backup is ready! Do you want to run a backup now?"
 
 # Backup
 tr_nothing_to_backup="Nothing to backup!"

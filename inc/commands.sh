@@ -254,6 +254,9 @@ hard_links = $hard_links" > "$infofile"
 	# prepare rsync command
 	prepare_rsync backup
 
+	# remote server command
+	lb_istrue $remote_destination && server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
+
 	# prepare results
 	local success=() warnings=() errors=()
 
@@ -386,23 +389,31 @@ hard_links = $hard_links" > "$infofile"
 		# search in source if exclude conf file is set
 		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from "$abs_src"/.rsyncignore)
 
-		# if remote source
-		if lb_istrue $remote_source ; then
+		# remote options
+		if lb_istrue $remote_source || lb_istrue $remote_destination ; then
 			# enables network compression
 			lb_istrue $network_compression && cmd+=(-z)
 
 			# add ssh options
 			[ -n "$ssh_options" ] && cmd+=(-e "$ssh_options")
+		fi
 
-			# set rsync remote path
+		# set rsync remote path for remote sources
+		if lb_istrue $remote_source ; then
 			local rsync_remote_command=$(get_rsync_remote_command)
 			[ -n "$rsync_remote_command" ] && cmd+=(--rsync-path "$rsync_remote_command")
 		fi
 
 		# remote server path
 		if lb_istrue $remote_destination ; then
-			local rsync_remote_command=$(get_rsync_remote_command)
-			[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command backup --t2b-date $backup_date --t2b-src \"$abs_src\"")
+			local server_options="--t2b-src \"$abs_src\""
+
+			# last source: ask to end backup
+			if [ $(($s + 1)) == ${#sources[@]} ] ; then
+				server_options+=" --t2b-end"
+			fi
+
+			rsync_cmd+=(--rsync-path "$server_command $server_options")
 		fi
 
 		# test mode
@@ -420,9 +431,7 @@ hard_links = $hard_links" > "$infofile"
 
 		local prepare_dest=0
 
-		if lb_istrue $remote_destination ; then
-			finaldest=$remote_server:$finaldest
-		else
+		if ! lb_istrue $remote_destination ; then
 			# create parent destination folder
 			mkdir -p "$(dirname "$finaldest")"
 			prepare_dest=$?
@@ -534,16 +543,9 @@ hard_links = $hard_links" > "$infofile"
 
 			# if destination supports hard links, use incremental with hard links system
 			if lb_istrue $hard_links ; then
-
 				# get link relative path (../../...)
-				if lb_istrue $remote_destination ; then
-					linkdest=$last_clean_backup
-				else
-					linkdest=$(get_relative_path "$finaldest" "$destination")
-					[ -n "$linkdest" ] && linkdest+=/$last_clean_backup
-				fi
-
-				[ -n "$linkdest" ] && cmd+=(--link-dest "$linkdest/$path_dest")
+				linkdest=$(get_relative_path "$finaldest" "$destination")
+				[ -n "$linkdest" ] && cmd+=(--link-dest "$linkdest/$last_clean_backup/$path_dest")
 			else
 				# backups with a "trash" folder that contains older revisions
 				# be careful that trash must be set to parent directory
@@ -562,17 +564,20 @@ hard_links = $hard_links" > "$infofile"
 			fi
 		fi
 
-		# set a bad result to detect cancelled or interrupted backups
-		append_infofile rsync_result -1
+		# remote destination: add server address
+		lb_istrue $remote_destination && finaldest=$remote_server:$finaldest
 
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
+
+		# set a bad result to detect cancelled or interrupted backups
+		append_infofile rsync_result -1
 
 		# prepare backup: testing space
 		if lb_istrue $test_destination ; then
 
 			# test rsync and space available for backup
-			if ! test_backup ; then
+			if ! test_backup "${cmd[@]}" ; then
 				lb_display --log "Error in rsync test."
 
 				# prepare report and save exit code
@@ -590,7 +595,7 @@ hard_links = $hard_links" > "$infofile"
 			append_infofile size $total_size
 
 			# if not enough space on disk to backup, cancel
-			if ! test_free_space ; then
+			if ! free_space $total_size ; then
 				lb_display_error --log "Not enough space on device to backup. Abording."
 
 				# prepare report and save exit code

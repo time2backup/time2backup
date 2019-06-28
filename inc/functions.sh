@@ -34,7 +34,7 @@
 #     rotate_backups
 #     report_duration
 #     prepare_destination
-#     test_free_space
+#     free_space
 #     clean_empty_backup
 #     auto_exclude
 #     try_sudo
@@ -817,7 +817,7 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $destination, $config_file,
+# Dependencies: $remote_destination, $destination, $config_file,
 #               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
 #               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
@@ -901,12 +901,12 @@ prepare_destination() {
 
 
 # Test free space on disk and remove old backups until it's ready
-# Usage: test_free_space
-# Dependencies: $destination, $total_size, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
+# Usage: free_space SIZE
+# Dependencies: $destination, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
 # Exit codes:
 #   0: ok
 #   1: not OK
-test_free_space() {
+free_space() {
 
 	local i all_backups=($(get_backups))
 	local nb_backups=${#all_backups[@]}
@@ -915,7 +915,7 @@ test_free_space() {
 	for ((i=0; i<=$nb_backups; i++)) ; do
 
 		# if space ok, quit loop to continue backup
-		test_space_available $total_size "$destination" && return 0
+		test_space_available $1 "$destination" && return 0
 
 		# if no clean old backups option in config, continue to be stopped after
 		lb_istrue $clean_old_backups || return 1
@@ -988,7 +988,7 @@ clean_empty_backup() {
 
 		if lb_is_dir_empty "$destination/$1/$d" ; then
 			lb_debug "Clean empty backup: $1/$d"
-			$(cd "$destination" 2> /dev/null && rmdir -p "$1/$d" 2> /dev/null)
+			dummy=$(cd "$destination" &> /dev/null && rmdir -p "$1/$d" &> /dev/null)
 		fi
 	fi
 
@@ -1004,7 +1004,7 @@ clean_empty_backup() {
 	lb_debug "Clean empty backup: $1"
 
 	# delete and prevent loosing context
-	$(cd "$destination" 2> /dev/null && rmdir "$1" 2> /dev/null)
+	dummy=$(cd "$destination" &> /dev/null && rmdir "$1" &> /dev/null)
 
 	return 0
 }
@@ -2053,8 +2053,8 @@ read_remote_config() {
 
 # Test backup command
 # rsync simulation and get total size of the files to transfer
-# Usage: test_backup
-# Dependencies: $logfile, $cmd, $total_size
+# Usage: test_backup COMMAND [ARGS...]
+# Dependencies: $logfile, $total_size
 # Return: size of the backup (in bytes)
 # Exit codes:
 #   0: OK
@@ -2063,9 +2063,12 @@ test_backup() {
 
 	lb_display --log "\nTesting backup..."
 
+	# we ignore the first argument (rsync command)
+	shift
+
 	# prepare rsync in test mode
 	# (append options to rsync command with erase of rsync path)
-	local test_cmd=("$rsync_path" --dry-run --stats "${cmd[@]:1}")
+	local test_cmd=("$rsync_path" --dry-run --stats "$@")
 
 	# rsync test
 	# option dry-run makes a simulation for rsync
@@ -2077,7 +2080,7 @@ test_backup() {
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
-		lb_debug "rsync test failed."
+		lb_debug "rsync test failed"
 		return 1
 	fi
 
@@ -2465,7 +2468,7 @@ haltpc() {
 choose_operation() {
 
 	# prepare options
-	local choices=("$tr_choose_an_operation" "$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
+	local choices=("$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
 	local commands=("" backup restore config)
 
 	# explore command: only in GUI mode
@@ -2474,11 +2477,10 @@ choose_operation() {
 		commands+=(explore)
 	fi
 
-	choices+=("$tr_quit")
 	commands+=(exit)
 
 	# display choice
-	lbg_choose_option -d 1 -l "${choices[@]}" || return 1
+	lbg_choose_option -d 1 -l "$tr_choose_an_operation" "${choices[@]}" "$tr_quit" || return 1
 
 	command=${commands[lbg_choose_option]}
 }
@@ -2698,11 +2700,7 @@ config_wizard() {
 	apply_config || lbg_warning "$tr_cannot_install_cronjobs"
 
 	# ask for the first backup
-	if ! lbg_yesno -y "$tr_ask_backup_now" ; then
-		# no backup: inform user time2backup is ready
-		lbg_info "$tr_info_time2backup_ready"
-		return 0
-	fi
+	lbg_yesno -y "$tr_ask_backup_now" || return 0
 
 	# run the first backup
 	t2b_backup
