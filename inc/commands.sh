@@ -768,20 +768,20 @@ Errors:
 
 
 # Restore a file
-# Usage: t2b_restore [OPTIONS] [PATH]
+# Usage: t2b_restore [OPTIONS] [PATH [DESTINATION]
 t2b_restore() {
 
 	# default option values
 	backup_date=latest
 	local choose_date=true force_mode=false directory_mode=false \
-	      restore_moved=false delete_newer_files=false
+	      restore_moved=false delete_newer_files=false restore_path
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-d|--date)
 				backup_date=$(lb_getopt "$@")
-				if [ -z "$backup_date" ] ; then
+				if ! check_backup_date "$backup_date" ; then
 					print_help
 					return 1
 				fi
@@ -822,6 +822,12 @@ t2b_restore() {
 		shift # load next argument
 	done
 
+	# disable if remote destination
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# test backup destination
 	prepare_destination || return 4
 
@@ -833,8 +839,11 @@ t2b_restore() {
 		return 5
 	fi
 
+	# get path from argument
+	file=$1
+
 	# if no file specified, go to interactive mode
-	if [ $# == 0 ] ; then
+	if [ ${#file} == 0 ] ; then
 
 		# choose type of file to restore (file/directory)
 		lbg_choose_option -d 1 -l "$tr_choose_restore" "$tr_restore_existing_file" "$tr_restore_moved_file" "$tr_restore_existing_directory" "$tr_restore_moved_directory"
@@ -958,35 +967,45 @@ t2b_restore() {
 			# absolute path of destination
 			file=${file:6}
 		fi
+	fi
+
+	restore_path=$file
+
+	# specified restore destination path
+	if [ -n "$2" ] ; then
+		lb_debug "Restore path destination: $2"
+		restore_path=$2
+	fi
+
+	# remote path
+	if [ "$(get_protocol "$restore_path")" == ssh ] ; then
+		remote_source=true
 	else
-		# get specified path
-		file=$*
+		# get UNIX format for Windows paths
+		if [ "$lb_current_os" == Windows ] ; then
+			file=$(cygpath "$file")
+			restore_path=$(cygpath "$restore_path")
+	 	fi
 
 		# detect directory mode if path ends with / (useful for deleted directories)
-		[ "${file:${#file}-1}" == "/" ] && directory_mode=true
+		if [ "${file:${#file}-1}" == "/" ] ; then
+			file=$(remove_end_slash "$file")/
+			directory_mode=true
+		fi
 
-		# remote path
-		if [ "$(get_protocol "$file")" == ssh ] ; then
-			remote_source=true
-		else
-			# get UNIX format for Windows paths
-			[ "$lb_current_os" == Windows ] && file=$(cygpath "$file")
-
-			# directory: add a slash at the end of path (without duplicate it)
-			$directory_mode && file=$(remove_end_slash "$file")/
+		# directory: add a slash at the end of path (without duplicate it)
+		if ! $directory_mode && [ -d "$file" ] ; then
+			directory_mode=true
 		fi
 	fi
+
+	lb_debug "Path to restore: $file"
 
 	# case of symbolic links
 	if [ -L "$file" ] ; then
 		lbg_error "$tr_cannot_restore_links"
 		return 12
 	fi
-
-	# if it is a directory, add '/' at the end of the path
-	[ -d "$file" ] && file=$(remove_end_slash "$file")/
-
-	lb_debug "Path to restore: $file"
 
 	# get backup full path
 	backup_file_path=$(get_backup_path "$file")
@@ -1078,12 +1097,12 @@ t2b_restore() {
 	fi
 
 	# prepare destination path
-	case $(get_protocol "$file") in
+	case $(get_protocol "$restore_path") in
 		ssh)
-			dest=$(url2ssh "$file")
+			dest=$(url2ssh "$restore_path")
 			;;
 		*)
-			dest=$file
+			dest=$restore_path
 			;;
 	esac
 
@@ -1106,7 +1125,7 @@ t2b_restore() {
 	fi
 
 	# search in source if exclude conf file is set
-	[ -f "$src/.rsyncignore" ] && rsync_cmd+=(--exclude-from="$src/.rsyncignore")
+	[ -f "$src/.rsyncignore" ] && rsync_cmd+=(--exclude-from "$src/.rsyncignore")
 
 	# test newer files
 	if ! $delete_newer_files ; then
@@ -1314,7 +1333,7 @@ t2b_explore() {
 		case $1 in
 			-d|--date)
 				backup_date=$(lb_getopt "$@")
-				if [ -z "$backup_date" ] ; then
+				if ! check_backup_date "$backup_date" ; then
 					print_help
 					return 1
 				fi
@@ -2121,11 +2140,11 @@ t2b_import() {
 				shift
 				;;
 			--reference)
-				if ! check_backup_date "$(lb_getopt "$@")" ; then
+				reference=$(lb_getopt "$@")
+				if ! check_backup_date "$reference" ; then
 					print_help
 					return 1
 				fi
-				reference=$2
 				shift
 				;;
 			-f|--force)
@@ -2328,11 +2347,11 @@ t2b_export() {
 				shift
 				;;
 			--reference)
-				if ! check_backup_date "$(lb_getopt "$@")" ; then
+				reference=$(lb_getopt "$@")
+				if ! check_backup_date "$reference" ; then
 					print_help
 					return 1
 				fi
-				reference=$2
 				shift
 				;;
 			-f|--force)

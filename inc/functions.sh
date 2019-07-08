@@ -644,9 +644,7 @@ get_backup_path() {
 		echo -n "/files/$(lb_abspath "$path")"
 
 		# if it is a directory, add '/' at the end of the path
-		if [ -d "$path" ] ; then
-			echo /
-		fi
+		[ -d "$path" ] && echo /
 	else
 		if [ -d "$(dirname "$path")" ] ; then
 			echo "/files/$(lb_abspath "$path")"
@@ -1150,7 +1148,7 @@ upgrade_config() {
 		return 2
 	fi
 
-	cat "$lb_current_script_directory/config/time2backup.example.conf" > "$config_file"
+	cat "$lb_current_script_directory"/config/time2backup.example.conf > "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
