@@ -1022,10 +1022,6 @@ t2b_restore() {
 		return 6
 	fi
 
-	# no hard links: do not permit restore an old version
-	# (get the last entry)
-	file_history=(${file_history[0]})
-
 	# search for dates
 	if [ "$backup_date" != latest ] ; then
 		# if date was specified but not here, error
@@ -1074,26 +1070,25 @@ t2b_restore() {
 
 	# if source is a directory
 	if [ -d "$src" ] ; then
-		# trash mode: cannot restore directories
-		if ! lb_istrue $hard_links ; then
-			lbg_error "$tr_cannot_restore_from_trash"
-			return 12
-		else
-			# enable directory mode
-			directory_mode=true
+		local warn_partial=false
+
+		# trash mode: warn when restoring old directories
+		if ! lb_istrue $hard_links && [ "$backup_date" != "${file_history[0]}" ] ; then
+			warn_partial=true
 		fi
-	fi
-
-	# warn user if incomplete backup of directory
-	if $directory_mode ; then
-
 		# if rsync result was not good (backup failed or was incomplete)
 		if [ "$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)" != 0 ] ; then
-			# warn user
-			lb_warning "$tr_warn_restore_partial"
-			# and ask user to cancel
+			warn_partial=true
+		fi
+
+		# warn user & ask to confirm
+		if $warn_partial ; then
+			lb_istrue $console_mode || lb_warning "$tr_warn_restore_partial"
 			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
 		fi
+
+		# enable directory mode
+		directory_mode=true
 	fi
 
 	# prepare destination path
@@ -1125,7 +1120,7 @@ t2b_restore() {
 	fi
 
 	# search in source if exclude conf file is set
-	[ -f "$src/.rsyncignore" ] && rsync_cmd+=(--exclude-from "$src/.rsyncignore")
+	[ -f "$src"/.rsyncignore ] && rsync_cmd+=(--exclude-from "$src"/.rsyncignore)
 
 	# test newer files
 	if ! $delete_newer_files ; then
