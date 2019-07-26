@@ -66,7 +66,7 @@ print_help() {
 			;;
 
 		restore)
-			print_help_usage "[PATH]"
+			print_help_usage "[PATH] [DESTINATION]"
 
 			echo "Restore a file or directory"
 			echo "Warning: This feature does not auto-detect renamed or moved files."
@@ -81,6 +81,9 @@ print_help() {
 			echo "  -f, --force      Force restore; do not display confirmation"
 			echo "  -q, --quiet      Quiet mode; do not print transfer details"
 			echo "  -h, --help       Print help"
+			echo
+			echo "  PATH             Path to restore (if not specified, ask in interactive)"
+			echo "  DESTINATION      Destination for restored files"
 			;;
 
 		history)

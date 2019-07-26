@@ -115,7 +115,7 @@ if you are specify path via the command line.
 
 ### Usage
 ```bash
-time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
+time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH] [DESTINATION]
 ```
 
 ### Options
@@ -129,6 +129,9 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH]
 -f, --force      Force restore; do not display confirmation
 -q, --quiet      Quiet mode; do not print transfer details
 -h, --help       Print help
+
+PATH             Path to restore (if not specified, ask in interactive)
+DESTINATION      Destination for restored files
 ```
 
 ### Exit codes

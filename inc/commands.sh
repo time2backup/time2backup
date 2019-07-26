@@ -768,7 +768,7 @@ Errors:
 
 
 # Restore a file
-# Usage: t2b_restore [OPTIONS] [PATH [DESTINATION]
+# Usage: t2b_restore [OPTIONS] [PATH] [DESTINATION]
 t2b_restore() {
 
 	# default option values
