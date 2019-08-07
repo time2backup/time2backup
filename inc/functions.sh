@@ -1143,51 +1143,25 @@ upgrade_config() {
 	fi
 
 	# save old config file
-	local old_config=$config_file.v$old_config_version
+	local new_config=$config_file.v$version
 
-	cp -p "$config_file" "$old_config"
-	if [ $? != 0 ] ; then
-		lb_display_error "Cannot save old config! Please check your access rights."
-		return 2
-	fi
-
-	cat "$lb_current_script_directory"/config/time2backup.example.conf > "$config_file"
+	cat "$lb_current_script_directory"/config/time2backup.example.conf > "$new_config"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
 	fi
 
 	# transform Windows file
-	file_for_windows "$config_file"
+	file_for_windows "$new_config"
 
-	# read old config
-	if ! lb_read_config "$old_config" ; then
+	# upgrade config & install it
+	lb_migrate_config "$config_file" "$new_config" && \
+	mv "$new_config" "$config_file" &> /dev/null
+
+	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
 	fi
-
-	local line config_param config_line
-	for line in "${lb_read_config[@]}" ; do
-		config_param=$(echo $line | cut -d= -f1 | tr -d '[[:space:]]')
-		config_line=$(echo "$line" | sed 's/\\/\\\\/g; s/\//\\\//g')
-
-		# Windows end of file
-		[ "$lb_current_os" == Windows ] && config_line+="\r"
-
-		lb_debug "Upgrade $config_line..."
-
-		lb_edit "s/^#*$config_param[[:space:]]*=.*/$config_line/" "$config_file"
-		if [ $? != 0 ] ; then
-			lb_display_error "$tr_error_upgrade_config"
-			return 2
-		fi
-	done
-
-	# delete old config
-	rm -f "$old_config" &> /dev/null
-
-	# do not care of errors
-	return 0
 }
 
 
