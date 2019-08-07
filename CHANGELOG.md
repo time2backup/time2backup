@@ -4,14 +4,20 @@
 ### New features
 - New `import` command to copy backups from another folder/host
 - New `--test` option to `backup` and `restore` commands
+- New option to restore files in another path
+- SMB destinations are now supported
 
 ### Changes
-- Improve in `export` command
-- Improve cleaning empty backups
+- Permit restore directories in trash mode
+- Improvements in `export` command
+- Improvements when cleaning empty backups
 - Remove support for URLs like `file://`
+- Configuration upgrade is now simplier and better
+- libbash.sh upgraded to version 1.13.0
 
 ### Bugfixes
-- Fix a bug that prevent calling remote rsync path when restoring remote source
+- Fixed a bug that prevent calling remote rsync path when restoring remote source
+- Fixed a bug for ssh when `ssh_options` rewrites ssh command
 
 ## 1.5.1 (2019-06-03)
 - Fix bug in trash mode when using relative backup destination path
