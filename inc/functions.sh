@@ -1243,6 +1243,19 @@ load_config() {
 		*)
 			# normal destination
 
+			# samba shares
+			if [ "${destination:0:2}" == // ] ; then
+				# test mount point
+				if [ -z "$backup_disk_mountpoint" ] ; then
+					lb_error "Destination is a SMB share but has no disk mountpoint. Please add it in configuration."
+					return 2
+				fi
+
+				# replace destination variable by mountpoint and save smb path
+				smb_destination=$destination
+				destination=$backup_disk_mountpoint
+			fi
+
 			# convert destination path for Windows systems
 			if [ "$lb_current_os" == Windows ] ; then
 				destination=$(cygpath "$destination")
@@ -1676,23 +1689,33 @@ mount_destination() {
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
-	# if UUID not set, return error
-	[ -z "$backup_disk_uuid" ] && return 5
-
 	lb_display --log "Trying to mount backup disk..."
 
-	# macOS and Windows are not supported
-	# this is not supposed to happen because macOS and Windows always mount disks
-	if [ "$lb_current_os" != Linux ] ; then
-		lb_display_error --log "Mount: $lb_current_os not supported"
-		return 4
-	fi
+	local mount_cmd=(mount)
 
-	# test if UUID exists (disk plugged)
-	ls /dev/disk/by-uuid/ 2> /dev/null | grep -q "$backup_disk_uuid"
-	if [ $? != 0 ] ; then
-		lb_debug "Disk not available."
-		return 2
+	# samba shares
+	if [ -n "$smb_destination" ] ; then
+		# IMPORTANT: delete ACL or it will fail
+		mount_cmd+=(-o noacl "$smb_destination")
+	else
+		# if UUID not set, return error
+		[ -z "$backup_disk_uuid" ] && return 5
+
+		# macOS and Windows are not supported
+		# this is not supposed to happen because macOS and Windows always mount disks
+		if [ "$lb_current_os" != Linux ] ; then
+			lb_display_error --log "Mount: $lb_current_os not supported"
+			return 4
+		fi
+
+		# test if UUID exists (disk plugged)
+		ls /dev/disk/by-uuid/ 2> /dev/null | grep -q "$backup_disk_uuid"
+		if [ $? != 0 ] ; then
+			lb_debug "Disk not available."
+			return 2
+		fi
+
+		mount_cmd+=(-U "$backup_disk_uuid")
 	fi
 
 	# create mountpoint
@@ -1709,7 +1732,7 @@ mount_destination() {
 
 	# mount disk
 	lb_display --log "Mount backup disk..."
-	try_sudo mount "/dev/disk/by-uuid/$backup_disk_uuid" "$backup_disk_mountpoint"
+	try_sudo "${mount_cmd[@]}" "$backup_disk_mountpoint"
 
 	if [ $? != 0 ] ; then
 		lb_display --log "...Failed! Delete mountpoint..."

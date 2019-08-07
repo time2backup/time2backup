@@ -43,10 +43,7 @@ if [ $? != 0 ] ; then
 fi
 
 # load translation (don't care of errors)
-source "$script_directory/locales/$lb_lang.sh" &> /dev/null
-if [ $? != 0 ] ; then
-	lb_debug "Failed to load locales for $lb_lang"
-fi
+source "$script_directory/locales/${LANG:0:2}.sh" &> /dev/null
 
 # change current script name
 lb_current_script_name=time2backup
