@@ -552,10 +552,13 @@ hard_links = $hard_links" > "$infofile"
 				# or it will create something like dest/src/src
 				local trash=$destination/$last_clean_backup/$path_dest
 
-				lb_istrue $remote_destination || trash=$(lb_abspath "$trash")
+				if ! lb_istrue $remote_destination ; then
+					# create trash
+					mkdir -p "$trash"
 
-				# create trash
-				mkdir "$trash"
+					# get absolute path of trash to avoid errors
+					trash=$(lb_abspath "$trash")
+				fi
 
 				# set trash path
 				# Note: use absolute path to avoid trash to be inside backup destination
