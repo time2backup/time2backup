@@ -1566,11 +1566,15 @@ append_infofile() {
 	# if infofile not set, do nothing
 	[ -z "$infofile" ] && return 1
 
-	if [ "$lb_current_os" == Windows ] ; then
-		echo -e "$1 = $2\r" >> "$infofile"
-	else
-		echo "$1 = $2" >> "$infofile"
-	fi
+	local param=$1
+	shift
+	local value=$*
+
+	echo "$value" | grep -q '\s' && value="\"$(echo "$value" | sed 's/"/\\\"/g')\""
+
+	[ "$lb_current_os" == Windows ] && value+="\r"
+
+	echo "$param = $value" >> "$infofile"
 }
 
 
@@ -2516,7 +2520,7 @@ config_wizard() {
 		if [ "$chosen_directory" != "$destination" ] ; then
 
 			# update destination config
-			lb_set_config "$config_file" destination "\"$chosen_directory\""
+			lb_set_config "$config_file" destination "$chosen_directory"
 			if [ $? == 0 ] ; then
 				# reset destination variable
 				destination=$chosen_directory
@@ -2542,7 +2546,7 @@ config_wizard() {
 
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
-				lb_set_config "$config_file" backup_disk_mountpoint "\"$mountpoint\"" || \
+				lb_set_config "$config_file" backup_disk_mountpoint "$mountpoint" || \
 					lb_warning "Cannot set config: backup_disk_mountpoint"
 			fi
 		else
@@ -2556,7 +2560,7 @@ config_wizard() {
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
-				lb_set_config "$config_file" backup_disk_uuid "\"$disk_uuid\"" || \
+				lb_set_config "$config_file" backup_disk_uuid "$disk_uuid" || \
 					lb_warning "Cannot set config: backup_disk_uuid"
 			fi
 		else

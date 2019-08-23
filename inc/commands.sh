@@ -245,10 +245,10 @@ hostname = $lb_current_hostname
 recurrent = $recurrent_backup
 comment = $backup_comment
 
-[destination]
-path = $destination
-date = $backup_date
-hard_links = $hard_links" > "$infofile"
+[destination]" > "$infofile"
+		append_infofile path "$destination"
+		append_infofile date $backup_date
+		append_infofile hard_links $hard_links
 	fi
 
 	# prepare rsync command
