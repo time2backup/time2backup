@@ -7,10 +7,10 @@
 #  MIT License
 #  Copyright (c) 2017-2019 Jean Prunneaux
 #
-#  Version 1.6.0 (2019-08-08)
+#  Version 1.6.0 (2019-08-23)
 #
 
-declare -r version=1.6.0-beta.3
+declare -r version=1.6.0-beta.4
 
 
 #

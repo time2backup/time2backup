@@ -13,11 +13,12 @@
 - Improvements when cleaning empty backups
 - Remove support for URLs like `file://`
 - Configuration upgrade is now simplier and better
-- libbash.sh upgraded to version 1.13.0
+- libbash.sh upgraded to version 1.13.1
 
 ### Bugfixes
 - Fixed a bug that prevent calling remote rsync path when restoring remote source
 - Fixed a bug for ssh when `ssh_options` rewrites ssh command
+- Fixed bugs for config upgrades on Windows
 
 ## 1.5.1 (2019-06-03)
 - Fix bug in trash mode when using relative backup destination path
