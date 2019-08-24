@@ -1046,12 +1046,19 @@ auto_exclude() {
 try_sudo() {
 	# run command
 	"$@"
+	local result=$?
 
 	# if failed, retry in sudo
-	if [ $? != 0 ] ; then
-		lb_debug "...Failed! Try with sudo..."
-		sudo "$@"
+	if [ $result != 0 ] ; then
+		# if sudo exists and not root
+		if lb_command_exists sudo && [ "$lb_current_user" != root ] ; then
+			lb_debug "...Failed! Try with sudo..."
+			sudo "$@"
+			result=$?
+		fi
 	fi
+
+	return $result
 }
 
 
