@@ -1507,8 +1507,13 @@ create_logfile() {
 		return 1
 	fi
 
+	local opts=()
+
+	# windows: write logs with good end of lines
+	[ "$lb_current_os" == Windows ] && opts+=(--win-format)
+
 	# create log file
-	if ! lb_set_logfile "$*" ; then
+	if ! lb_set_logfile "${opts[@]}" "$*" ; then
 		lb_display_error "Cannot create log file $*. Please verify your access rights."
 		return 2
 	fi
