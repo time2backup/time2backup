@@ -888,9 +888,9 @@ prepare_destination() {
 		# if mkdir failed, exit
 		if lb_istrue $recurrent_backup ; then
 			# don't popup in recurrent mode
-			lb_display_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		else
-			lbg_error "$tr_cannot_create_destination\n$tr_verify_access_rights"
+			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		fi
 		return 2
 	fi
@@ -1728,8 +1728,18 @@ mount_destination() {
 	# mount disk
 	lb_display --log "Mount backup disk..."
 	try_sudo "${mount_cmd[@]}" "$backup_disk_mountpoint"
+	local result=$?
 
-	if [ $? != 0 ] ; then
+	# stupid Windows does not return error even if mount fails
+	if [ $result == 0 ] && [ "$lb_current_os" == Windows ] ; then
+		# test if mountpoint is writable; if not, unmount and return error
+		if ! [ -w "$backup_disk_mountpoint" ] ; then
+			umount "$backup_disk_mountpoint" &> /dev/null
+			result=1
+		fi
+	fi
+
+	if [ $result != 0 ] ; then
 		lb_display --log "...Failed! Delete mountpoint..."
 
 		try_sudo rmdir "$backup_disk_mountpoint"
