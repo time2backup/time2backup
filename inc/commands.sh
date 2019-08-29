@@ -419,8 +419,11 @@ comment = $backup_comment
 		# test mode
 		lb_istrue $test_mode && cmd+=(--dry-run)
 
-		# if it is a directory, add '/' at the end of the path
-		[ -d "$abs_src" ] && abs_src=$(remove_end_slash "$abs_src")/
+		# if it is a directory,
+		if [ -d "$abs_src" ] ; then
+			# add '/' at the end of the path
+			[ "${abs_src:${#abs_src}-1}" != / ] && abs_src+=/
+		fi
 
 		# write source section to info file
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
@@ -908,7 +911,7 @@ t2b_restore() {
 			esac
 
 			# get path to restore
-			file=$(remove_end_slash "$lbg_choose_directory")/
+			file=$lbg_choose_directory
 
 		else
 			# choose a file
@@ -953,30 +956,34 @@ t2b_restore() {
 
 			choose_date=false
 
-			# if it is a directory, add '/' at the end of the path
-			[ -d "$file" ] && file=$(remove_end_slash "$file")/
-
 			# remove backup date path prefix
 			file=${file#$backup_date}
 
 			# check if it is a file backup
-			if [ "$(echo ${file:0:7})" != "/files/" ] ; then
-				lbg_error "$tr_path_is_not_backup"
-				lb_error "Restoring ssh/network files is not supported yet."
-				return 12
-			fi
-
-			# absolute path of destination
-			file=${file:6}
+			case $(echo ${file:0:7}) in
+				'/files/')
+					# absolute path of destination
+					file=${file:6}
+					;;
+				'/ssh/'*)
+					# absolute path of destination
+					file=${file:4}
+					;;
+				*)
+					lbg_error "$tr_path_is_not_backup"
+					return 1
+					;;
+			esac
 		fi
 	fi
-
-	restore_path=$file
 
 	# specified restore destination path
 	if [ -n "$2" ] ; then
 		lb_debug "Restore path destination: $2"
 		restore_path=$2
+	else
+		# restore at original path
+		restore_path=$file
 	fi
 
 	# remote path
@@ -990,15 +997,7 @@ t2b_restore() {
 	 	fi
 
 		# detect directory mode if path ends with / (useful for deleted directories)
-		if [ "${file:${#file}-1}" == "/" ] ; then
-			file=$(remove_end_slash "$file")/
-			directory_mode=true
-		fi
-
-		# directory: add a slash at the end of path (without duplicate it)
-		if ! $directory_mode && [ -d "$file" ] ; then
-			directory_mode=true
-		fi
+		[ "${file:${#file}-1}" == / ] && directory_mode=true
 	fi
 
 	lb_debug "Path to restore: $file"
@@ -1088,6 +1087,9 @@ t2b_restore() {
 			lb_istrue $console_mode || lb_warning "$tr_warn_restore_partial"
 			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
 		fi
+
+		# add mandatory / at the end of path
+		[ "${src:${#src}-1}" != / ] && src+=/
 
 		# enable directory mode
 		directory_mode=true
