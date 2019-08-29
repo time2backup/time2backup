@@ -115,11 +115,16 @@ period2seconds() {
 # Return: new path
 remove_end_slash() {
 	local path=$*
-	if [ "${path:${#path}-1}" == "/" ] ; then
-		echo "${path:0:${#path}-1}"
-	else
-		echo "$path"
-	fi
+
+	# delete ending slashes
+	while [ "${path:${#path}-1}" == / ] ; do
+		# avoid deleting root
+		[ ${#path} == 1 ] && break
+
+		path=${path:0:${#path}-1}
+	done
+
+	echo "$path"
 }
 
 
@@ -1903,6 +1908,7 @@ prepare_rsync() {
 			;;
 
 		*)
+			# preserve permissions
 			lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
 
 			# includes & excludes

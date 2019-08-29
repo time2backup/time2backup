@@ -933,7 +933,6 @@ t2b_restore() {
 
 		# restore a moved file
 		if $restore_moved ; then
-
 			# test if path to restore is stored in the backup directory
 			if [[ "$file" != "$destination"* ]] ; then
 				lbg_error "$tr_path_is_not_backup"
@@ -1137,9 +1136,7 @@ t2b_restore() {
 			lb_debug "Run ${cmd[*]}"
 
 			# test rsync to check newer files
-			"${cmd[@]}" | grep -q "^deleting "
-
-			if [ $? == 0 ] ; then
+			if "${cmd[@]}" | grep -q "^deleting " ; then
 				# ask to keep new files
 				lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" || delete_newer_files=true
 			fi
@@ -1181,7 +1178,7 @@ t2b_restore() {
 
 	# execute rsync command, print result into terminal and errors in logfile
 	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
-	lb_result
+	lb_result --log
 	local res=$?
 
 	# if no errors,
