@@ -3,7 +3,7 @@
 ## 1.6.0
 ### New features
 - New `import` command to copy backups from another folder/host
-- New `--test` option to `backup` and `restore` commands
+- New test mode for `backup` and `restore` commands
 - New option to restore files in another path
 - SMB destinations are now supported
 
@@ -13,7 +13,8 @@
 - Improvements when cleaning empty backups
 - Remove support for URLs like `file://`
 - Configuration upgrade is now simplier and better
-- libbash.sh upgraded to version 1.13.1
+- Logs on Windows are formatted with good end of lines
+- libbash.sh upgraded to version 1.14.0
 
 ### Bugfixes
 - Fixed a bug that prevent calling remote rsync path when restoring remote source

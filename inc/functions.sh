@@ -1126,7 +1126,7 @@ create_config() {
 
 # Upgrade configuration
 # Usage: upgrade_config CURRENT_VERSION
-# Dependencies: $config_file, $version, $quiet_mode, $command, $tr_*
+# Dependencies: $version, $config_file, $version, $quiet_mode, $command, $tr_*
 # Exit codes:
 #   0: upgrade OK
 #   1: compatibility error
