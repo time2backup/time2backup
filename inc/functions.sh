@@ -442,11 +442,14 @@ get_backup_date() {
 	      bhour=${1:11:2} bmin=${1:13:2} bsec=${1:15:2}
 
 	# return date formatted for languages
-	if [ "$lb_current_os" == macOS ] ; then
-		date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
-	else
-		date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
-	fi
+	case $lb_current_os in
+		BSD|macOS)
+			date -j -f "%Y-%m-%d %H:%M:%S" "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
+			;;
+		*)
+			date -d "$byear-$bmonth-$bday $bhour:$bmin:$bsec" +"$format"
+			;;
+	esac
 }
 
 
@@ -581,11 +584,14 @@ get_backup_history() {
 		#  REGULAR FILES
 
 		# compare inodes to detect different versions
-		if [ "$lb_current_os" == macOS ] ; then
-			inode=$(stat -f %i "$gbh_backup_file")
-		else
-			inode=$(stat --format %i "$gbh_backup_file")
-		fi
+		case $lb_current_os in
+			BSD|macOS)
+				inode=$(stat -f %i "$gbh_backup_file")
+				;;
+			*)
+				inode=$(stat --format %i "$gbh_backup_file")
+				;;
+		esac
 
 		if [ "$inode" != "$last_inode" ] ; then
 			echo $gbh_date

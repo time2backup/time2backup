@@ -10,7 +10,7 @@
 #  Version 1.6.0 (2019-08-29)
 #
 
-declare -r version=1.6.0-rc.1
+declare -r version=1.6.0-rc.2
 
 
 #
