@@ -1,11 +1,13 @@
 # Changelog
 
-## 1.6.0
+## 1.6.0 (2019-09-23)
 ### New features
 - New `import` command to copy backups from another folder/host
 - New test mode for `backup` and `restore` commands
 - New option to restore files in another path
 - SMB destinations are now supported
+- BSD systems are now supported
+- Windows: new portable version (bat script)
 
 ### Changes
 - Permit restore directories in trash mode
@@ -14,7 +16,7 @@
 - Remove support for URLs like `file://`
 - Configuration upgrade is now simplier and better
 - Logs on Windows are formatted with good end of lines
-- libbash.sh upgraded to version 1.14.0
+- libbash.sh upgraded to version 1.14.2
 
 ### Bugfixes
 - Fixed a bug that prevent calling remote rsync path when restoring remote source
