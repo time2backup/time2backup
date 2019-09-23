@@ -291,14 +291,12 @@ fi
 if [ -f "$config_file" ] && [ -s "$config_file" ] ; then
 	# upgrade config if needed
 	if ! upgrade_config ; then
-
 		# if failed, display an error and quit
 		if lb_istrue $quiet_mode ; then
 			lb_error "$tr_error_upgrade_config"
 		else
 			lbg_error "$tr_error_upgrade_config"
 		fi
-
 		exit 3
 	fi
 

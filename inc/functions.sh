@@ -291,9 +291,7 @@ file_for_windows() {
 	# not on Windows: do nothing
 	[ "$lb_current_os" != Windows ] && return 0
 
-	# test if a file
-	[ -f "$*" ] || return 1
-
+	# add end line character
 	lb_edit 's/$/\r/g' "$*"
 }
 
@@ -1071,14 +1069,34 @@ try_sudo() {
 #  Config functions
 #
 
+# Create config file from template
+# Usage: create_config_from_template FILE TEMPLATE
+# Exit codes:
+#   0: OK
+#   1: error
+create_config_from_template() {
+	# test if file exists and not empty
+	[ -f "$1" ] && [ -s "$1" ] && return 0
+
+	# copy from template
+	cp -f "$lb_current_script_directory"/config/${2}.example.conf "$1"
+	if [ $? != 0 ] ; then
+		lb_error "Cannot create $2 config file."
+		return 1
+	fi
+
+	# transform to windows format, do not care of errors
+	file_for_windows "$1"
+	return 0
+}
+
+
 # Create configuration files in user config
 # Usage: create_config
 # Dependencies: $config_directory, $config_file, $config_excludes, $config_sources
 # Exit codes:
 #   0: OK
-#   1: could not create config directory
-#   2: could not copy sources config file
-#   3: could not copy global config file
+#   1: error
 create_config() {
 
 	# create config directory
@@ -1089,33 +1107,11 @@ create_config() {
 		return 1
 	fi
 
-	# create excludes file if not exists or is empty
-	# Note: DO NOT transform this file to Windows format!
-	if ! [ -f "$config_excludes" ] || ! [ -s "$config_excludes" ] ; then
-		cp -f "$lb_current_script_directory/config/excludes.example.conf" "$config_excludes"
-	fi
-
-	# create sources file if not exists or is empty
-	if ! [ -f "$config_sources" ] || ! [ -s "$config_sources" ] ; then
-		cp -f "$lb_current_script_directory/config/sources.example.conf" "$config_sources"
-		if [ $? == 0 ] ; then
-			file_for_windows "$config_sources"
-		else
-			lb_error "Cannot create sources file."
-			return 2
-		fi
-	fi
-
-	# create config file if not exists or is empty
-	if ! [ -f "$config_file" ] || ! [ -s "$config_file" ] ; then
-		cp -f "$lb_current_script_directory/config/time2backup.example.conf" "$config_file"
-		if [ $? == 0 ] ; then
-			file_for_windows "$config_file"
-		else
-			lb_error "Cannot create config file."
-			return 3
-		fi
-	fi
+	# create config files from templates if needed
+	create_config_from_template "$config_excludes" excludes && \
+	create_config_from_template "$config_sources" sources && \
+	create_config_from_template "$config_file" time2backup
+	[ $? != 0 ] && return 1
 
 	# if user is different, try to give him ownership on config files
 	if [ $user != $lb_current_user ] ; then
