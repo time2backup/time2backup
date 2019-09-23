@@ -1167,8 +1167,10 @@ upgrade_config() {
 	file_for_windows "$new_config"
 
 	# upgrade config & install it
+	# Note: we avoid to create new files every time
 	lb_migrate_config "$config_file" "$new_config" && \
-	mv "$new_config" "$config_file" &> /dev/null
+	cat "$new_config" > "$config_file" && \
+	rm -f "$new_config"
 
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
