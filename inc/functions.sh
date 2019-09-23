@@ -39,6 +39,7 @@
 #     auto_exclude
 #     try_sudo
 #   Config functions
+#     create_config_from_template
 #     create_config
 #     upgrade_config
 #     load_config
@@ -114,15 +115,11 @@ period2seconds() {
 # Usage: remove_end_slash PATH
 # Return: new path
 remove_end_slash() {
-	local path=$*
+	# remove end slashes
+	local path=$(echo "$*" | sed 's/\/*$//')
 
-	# delete ending slashes
-	while [ "${path:${#path}-1}" == / ] ; do
-		# avoid deleting root
-		[ ${#path} == 1 ] && break
-
-		path=${path:0:${#path}-1}
-	done
+	# if it was / (now empty), keep it
+	[ -z "$path" ] && path=/
 
 	echo "$path"
 }
@@ -157,8 +154,8 @@ get_common_path() {
 	local path dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
 	# get absolute paths
-	[ "${dir1:0:1}" == "/" ] || dir1=$(lb_abspath "$dir1") || return 2
-	[ "${dir2:0:1}" == "/" ] || dir2=$(lb_abspath "$dir2") || return 2
+	[ "${dir1:0:1}" == / ] || dir1=$(lb_abspath "$dir1") || return 2
+	[ "${dir2:0:1}" == / ] || dir2=$(lb_abspath "$dir2") || return 2
 
 	# compare characters of paths one by one
 	local -i i=0
@@ -169,12 +166,6 @@ get_common_path() {
 	done
 
 	path=${dir1:0:i}
-
-	# special case of /
-	if [ "$path" == "/" ] ; then
-		echo /
-		return 0
-	fi
 
 	# if it's a directory, return it
 	if [ -d "$path" ] ; then
@@ -206,8 +197,8 @@ get_relative_path() {
 	local relative_path=./ dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
 	# get absolute paths
-	[ "${dir1:0:1}" == "/" ] || dir1=$(lb_abspath "$dir1") || return 2
-	[ "${dir2:0:1}" == "/" ] || dir2=$(lb_abspath "$dir2") || return 2
+	[ "${dir1:0:1}" == / ] || dir1=$(lb_abspath "$dir1") || return 2
+	[ "${dir2:0:1}" == / ] || dir2=$(lb_abspath "$dir2") || return 2
 
 	# loop to find common path
 	while [ "$dir1" != "$(dirname "$dir2")" ] && [ "$dir1" != "$dir2" ] ; do
@@ -617,7 +608,7 @@ get_backup_path() {
 	local path=$*
 
 	# if absolute path (first character is a /), return file path
-	if [ "${path:0:1}" == "/" ] ; then
+	if [ "${path:0:1}" == / ] ; then
 		echo "/files$path"
 		return 0
 	fi
@@ -1040,7 +1031,7 @@ auto_exclude() {
 	# e.g. /user/device/path/to/backups
 	local exclude_path=${destination#$common_path}
 
-	[ "${exclude_path:0:1}" != "/" ] && exclude_path=/$exclude_path
+	[ "${exclude_path:0:1}" != / ] && exclude_path=/$exclude_path
 
 	# return path to exclude
 	echo "$exclude_path"

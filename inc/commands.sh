@@ -945,7 +945,7 @@ t2b_restore() {
 			# remove destination path prefix
 			file=${file#$destination}
 			# remove first slash
-			[ "${file:0:1}" == "/" ] && file=${file:1}
+			[ "${file:0:1}" == / ] && file=${file:1}
 
 			# get backup date
 			backup_date=$(echo $file | grep -oE "^$backup_date_format")
