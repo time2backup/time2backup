@@ -287,9 +287,8 @@ if ! lb_istrue $quiet_mode ; then
 	lb_debug "Using config file: $config_file"
 fi
 
-# if config file exists
-if [ -f "$config_file" ] ; then
-
+# if config file exists and is not empty
+if [ -f "$config_file" ] && [ -s "$config_file" ] ; then
 	# upgrade config if needed
 	if ! upgrade_config ; then
 

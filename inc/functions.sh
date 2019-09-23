@@ -1089,13 +1089,14 @@ create_config() {
 		return 1
 	fi
 
-	# copy config samples from current directory
+	# create excludes file if not exists or is empty
 	# Note: DO NOT transform this file to Windows format!
-	if ! [ -f "$config_excludes" ] ; then
+	if ! [ -f "$config_excludes" ] || ! [ -s "$config_excludes" ] ; then
 		cp -f "$lb_current_script_directory/config/excludes.example.conf" "$config_excludes"
 	fi
 
-	if ! [ -f "$config_sources" ] ; then
+	# create sources file if not exists or is empty
+	if ! [ -f "$config_sources" ] || ! [ -s "$config_sources" ] ; then
 		cp -f "$lb_current_script_directory/config/sources.example.conf" "$config_sources"
 		if [ $? == 0 ] ; then
 			file_for_windows "$config_sources"
@@ -1105,7 +1106,8 @@ create_config() {
 		fi
 	fi
 
-	if ! [ -f "$config_file" ] ; then
+	# create config file if not exists or is empty
+	if ! [ -f "$config_file" ] || ! [ -s "$config_file" ] ; then
 		cp -f "$lb_current_script_directory/config/time2backup.example.conf" "$config_file"
 		if [ $? == 0 ] ; then
 			file_for_windows "$config_file"
