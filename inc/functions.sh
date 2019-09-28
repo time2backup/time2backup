@@ -818,7 +818,7 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $remote_destination, $destination, $config_file,
+# Dependencies: $remote_destination, $destination, $smb_destination, $config_file,
 #               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
 #               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
@@ -846,16 +846,26 @@ prepare_destination() {
 	if [ -d "$new_destination" ] ; then
 		lb_debug "Migration destination path to: $new_destination"
 		destination=$new_destination
-		lb_set_config "$config_file" destination "\"$new_destination\""
+		lb_set_config "$config_file" destination "$new_destination"
 	fi
 
 	local destok=false
 
 	# test backup destination directory
 	if [ -d "$destination" ] ; then
+		destok=true
+
+		# smb destination
+		if [ -n "$smb_destination" ] ; then
+			# compare mountpoint to avoid writing on an unmounted directory
+			[ "$(lb_df_mountpoint "$destination")" != "$(dirname "$backup_disk_mountpoint"/dummy)" ] && \
+				destok=false
+		fi
+	fi
+
+	if $destok ; then
 		lb_debug "Destination mounted."
 		mounted=true
-		destok=true
 	else
 		lb_debug "Destination NOT mounted."
 
@@ -1667,7 +1677,8 @@ get_infofile_value() {
 
 # Mount destination
 # Usage: mount_destination
-# Dependencies: $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint
+# Dependencies: $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint,
+#               $smb_destination
 # Exit codes:
 #   0: mount OK
 #   1: mount error
