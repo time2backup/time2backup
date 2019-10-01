@@ -1869,12 +1869,18 @@ create_lock() {
 
 
 # Delete backup lock
-# Usage: remove_lock
+# Usage: release_lock [OPTIONS]
+# Options:
+#   -f  Force unlock
 # Dependencies: $remote_destination, $destination, $backup_date, $recurrent_backup, $tr_*
 # Exit codes:
 #   0: OK
 #   1: could not delete lock
 release_lock() {
+
+	local lock=$destination/.lock_
+
+	[ "$1" != "-f" ] && lock+=$backup_date
 
 	# do nothing if remote destination
 	lb_istrue $remote_destination && return 0
@@ -1887,8 +1893,7 @@ release_lock() {
 	fi
 
 	# test if destination still exists, then delete lock
-	[ -d "$destination" ] && \
-	rm -f "$destination/.lock_$backup_date" &> /dev/null
+	[ -d "$destination" ] && rm -f "$lock"* &> /dev/null
 	if [ $? != 0 ] ; then
 		lb_display_critical --log "$tr_error_unlock"
 		# display error if not recurrent

@@ -203,7 +203,7 @@ t2b_backup() {
 		# force mode: delete old lock
 		if lb_istrue $force_unlock ; then
 			lb_info "Force mode: deleting lock $existing_lock"
-			release_lock || clean_exit 8
+			release_lock -f || clean_exit 8
 		else
 			# print error message
 			lb_display_error "$tr_backup_already_running"
