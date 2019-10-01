@@ -1810,6 +1810,7 @@ unmount_destination() {
 # Options:
 #   -f  Get the lock file path
 #   -p  Get the process PID instead of lock date
+#   -q  Quiet mode
 # Dependencies: $remote_destination, $destination
 # Return: date of lock, empty if no lock
 # Exit code:
@@ -1834,6 +1835,9 @@ current_lock() {
 		-p)
 			# return PID
 			lb_get_config "$current_lock_file" pid
+			;;
+		-q)
+			# quiet mode
 			;;
 		*)
 			# return date of lock
@@ -1879,7 +1883,7 @@ release_lock() {
 
 	# if destination exists, but no lock, return 0
 	if [ -d "$destination" ] ; then
-		current_lock &> /dev/null || return 0
+		current_lock -q || return 0
 	fi
 
 	# test if destination still exists, then delete lock

@@ -195,8 +195,7 @@ t2b_backup() {
 	esac
 
 	# test if a backup is running
-	local existing_lock
-	existing_lock=$(current_lock)
+	local existing_lock=$(current_lock)
 	if [ -n "$existing_lock" ] ; then
 
 		lb_debug "Lock found: $existing_lock"
@@ -1980,7 +1979,7 @@ t2b_status() {
 	fi
 
 	# if no backup lock exists, exit
-	if ! current_lock &> /dev/null ; then
+	if ! current_lock -q ; then
 		lb_istrue $quiet_mode || echo "backup is not running"
 		return 0
 	fi
