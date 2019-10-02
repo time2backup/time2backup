@@ -2152,25 +2152,29 @@ test_backup() {
 
 
 # Return backup estimated duration
-# Usage: estimate_backup_time INFO_FILE PATH BACKUP_SIZE
+# Usage: estimate_backup_time PATH BACKUP_SIZE
+# Dependencies: $last_clean_backup
 # Return: estimated time (in seconds)
 estimate_backup_time() {
+	# get last backup infofile
+	local old_infofile=$(get_infofile_path $last_clean_backup)
+	
 	# get section from path
-	local infofile_section=$(find_infofile_section "$1" "$2")
+	local infofile_section=$(find_infofile_section "$old_infofile" "$1")
 	[ -z "$infofile_section" ] && return 1
 
 	# get last backup duration
-	local last_duration=$(lb_get_config -s $infofile_section "$1" duration)
+	local last_duration=$(lb_get_config -s $infofile_section "$old_infofile" duration)
 	lb_is_integer $last_duration || return 1
 
 	# if no size specified, use the last duration time
-	if ! lb_is_integer $3 ; then
+	if ! lb_is_integer $2 ; then
 		echo $last_duration
 		return 0
 	fi
 
 	# get last backup size
-	local last_size=$(lb_get_config -s $infofile_section "$1" size)
+	local last_size=$(lb_get_config -s $infofile_section "$old_infofile" size)
 
 	# if failed to get last size, use the last duration
 	if ! lb_is_integer $last_size ; then

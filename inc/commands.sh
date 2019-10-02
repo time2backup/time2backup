@@ -623,8 +623,8 @@ comment = $backup_comment
 		# ... with nb/total if more than one source
 		[ ${#sources[@]} -gt 1 ] && notification_started_backup+=" ($(($s + 1))/${#sources[@]})"
 
-		# get estimated time
-		estimated_time=$(estimate_backup_time "$(get_infofile_path $last_clean_backup)" "$src" $total_size)
+		# print estimated time
+		estimated_time=$(estimate_backup_time "$src" $total_size)
 		if [ -n "$estimated_time" ] ; then
 			# convert into minutes
 			estimated_time=$(($estimated_time / 60 + 1))
