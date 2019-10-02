@@ -235,27 +235,16 @@ t2b_backup() {
 	lb_istrue $hard_links || hard_links=false
 	lb_istrue $recurrent_backup || recurrent_backup=false
 
-	# create the info file
-	if create_infofile ; then
-		echo "[time2backup]
-version = $version
-os = $lb_current_os
-hostname = $lb_current_hostname
-recurrent = $recurrent_backup
-comment = $backup_comment
-
-[destination]" > "$infofile"
-		append_infofile path "$destination"
-		append_infofile date $backup_date
-		append_infofile hard_links $hard_links
-	fi
-
 	# prepare rsync command
 	prepare_rsync backup
 
 	# remote server command
-	lb_istrue $remote_destination && server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
-
+	if lb_istrue $remote_destination ; then
+		server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
+	fi
+	
+	create_infofile
+	
 	# prepare results
 	local success=() warnings=() errors=()
 
@@ -424,8 +413,9 @@ comment = $backup_comment
 			[ "${abs_src:${#abs_src}-1}" != / ] && abs_src+=/
 		fi
 
-		# write source section to info file
+		# write new source section to info file
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
+		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result -1
 
 		# set final destination with is a representation of the system tree
 		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
@@ -541,7 +531,8 @@ comment = $backup_comment
 		# If first backup, no need to add incremental options.
 		if [ $keep_limit != 0 ] && [ -n "$last_clean_backup" ] ; then
 
-			append_infofile trash $last_clean_backup
+			# write trash in infofile
+			lb_set_config -s src$(($s + 1)) "$infofile" trash $last_clean_backup
 
 			# if destination supports hard links, use incremental with hard links system
 			if lb_istrue $hard_links ; then
@@ -575,9 +566,6 @@ comment = $backup_comment
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
 
-		# set a bad result to detect cancelled or interrupted backups
-		append_infofile rsync_result -1
-
 		# prepare backup: testing space
 		if lb_istrue $test_destination ; then
 
@@ -597,7 +585,9 @@ comment = $backup_comment
 			fi
 
 			lb_debug "Backup total size (in bytes): $total_size"
-			append_infofile size $total_size
+			
+			# write size in infofile
+			lb_set_config -s src$(($s + 1)) "$infofile" size $total_size
 
 			# if not enough space on disk to backup, cancel
 			if ! free_space $total_size ; then
@@ -670,8 +660,8 @@ comment = $backup_comment
 		# clean empty trash and infofile
 		clean_empty_backup -i $last_clean_backup "$path_dest"
 
-		# save duration
-		append_infofile duration $(( $(date +%s) - $src_timestamp ))
+		# write duration in infofile
+		lb_set_config -s src$(($s + 1)) "$infofile" duration $(( $(date +%s) - $src_timestamp ))
 
 		# clean directory WITHOUT infofile
 		clean_empty_backup $backup_date "$path_dest"

@@ -51,7 +51,6 @@
 #     delete_logfile
 #   Infofile functions
 #     create_infofile
-#     append_infofile
 #     get_infofile_path
 #     find_infofile_section
 #     get_infofile_value
@@ -1564,12 +1563,13 @@ delete_logfile() {
 # Create infofile
 # Usage: create_infofile
 # Dependencies: $remote_destination, $destination, $backup_date, $infofile
+#               $version, $recurrent_backup, $backup_comment
 # Exit codes:
 #   0: infofile created
 #   1: not created
 create_infofile() {
 	# remote destination: do not create infofile
-	lb_istrue $remote_destination && return 1
+	lb_istrue $remote_destination && return 0
 
 	# create directory
 	mkdir -p "$destination/$backup_date"
@@ -1579,26 +1579,20 @@ create_infofile() {
 	fi
 
 	infofile=$destination/$backup_date/backup.info
-	touch "$infofile"
-}
 
+	# create infofile
+	touch "$infofile" && \
+	echo "[time2backup]
+version = $version
+os = $lb_current_os
+hostname = $lb_current_hostname
+recurrent = $recurrent_backup
+comment = $backup_comment
 
-# Append a line to infofile
-# Usage: append_infofile
-# Dependencies: $infofile
-append_infofile() {
-	# if infofile not set, do nothing
-	[ -z "$infofile" ] && return 1
-
-	local param=$1
-	shift
-	local value=$*
-
-	echo "$value" | grep -q '\s' && value="\"$(echo "$value" | sed 's/"/\\\"/g')\""
-
-	[ "$lb_current_os" == Windows ] && value+="\r"
-
-	echo "$param = $value" >> "$infofile"
+[destination]
+path = \"$destination\"
+date = $backup_date
+hard_links = $hard_links" > "$infofile"
 }
 
 
@@ -1635,18 +1629,15 @@ find_infofile_section() {
 	local section path
 
 	# search in sections, ignoring global sections
-	for section in $(grep -Eo "^\[.*\]" "$1" 2> /dev/null | grep -Ev "(time2backup|destination)" | tr -d '[]') ; do
+	for section in $(grep -Eo "^\[src.*\]" "$1" 2> /dev/null | tr -d '[]') ; do
 
 		# get path of the backup
 		path=$(lb_get_config -s "$section" "$1" path)
-		[ -z "$path" ] && continue
-
-		# bad path: continue
-		[[ "$2" != "$path"* ]] && continue
-
-		# return good section
-		echo $section
-		return 0
+		
+		if [ -n "$path" ] && [[ "$2" == "$path"* ]] ; then
+			echo $section
+			return 0
+		fi
 	done
 
 	# not found
