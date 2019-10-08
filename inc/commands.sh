@@ -242,9 +242,9 @@ t2b_backup() {
 	if lb_istrue $remote_destination ; then
 		server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
 	fi
-	
+
 	create_infofile
-	
+
 	# prepare results
 	local success=() warnings=() errors=()
 
@@ -296,37 +296,20 @@ t2b_backup() {
 					# get first part of the path
 					homealias=$(echo "$src" | awk -F '/' '{ print $1 }')
 
-					# get user
+					# get user homepath
 					if [ "$homealias" == "~" ] ; then
-						# current user
-						homeuser=$user
+						homedir=$(lb_homepath)
 					else
-						# defined user
-						homeuser=${homealias:1}
+						# defined user (e.g. ~other)
+						homedir=$(lb_homepath "${homealias:1}")
 					fi
 
-					if [ "$lb_current_os" == Windows ] ; then
-						# path of the config is in c:\Users\{user}\AppData\Roaming\time2backup
-						# so we can go up to c:\Users
-						homedir=$config_directory
-						for ((d=1; d<=4; d++)) ; do
-							homedir=$(dirname "$homedir")
-						done
+					# the Windows case
+					# Be careful, ~other won't work on Windows systems
+					[ "$lb_current_os" == Windows ] && homedir=$(cygpath "$USERPROFILE")
 
-						# then complete by \{user}
-						homedir=$homedir/$homeuser
-
-						lb_debug "Windows homedir: $homedir"
-
-						# and test it
-						[ -d "$homedir" ]
-					else
-						# get home path of the user
-						homedir=$(lb_homepath $homeuser)
-					fi
-
-					# if path is ok
-					if [ $? != 0 ] ; then
+					# test if path exists
+					if ! [ -d "$homedir" ] ; then
 						lb_display_error --log "Cannot get user homepath.\nPlease use absolute paths instead of ~ aliases in your sources.conf file."
 						errors+=("$src (does not exists)")
 						lb_exitcode=10
@@ -585,7 +568,7 @@ t2b_backup() {
 			fi
 
 			lb_debug "Backup total size (in bytes): $total_size"
-			
+
 			# write size in infofile
 			lb_set_config -s src$(($s + 1)) "$infofile" size $total_size
 
