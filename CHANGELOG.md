@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1 (2019-10-08)
+### Bugfixes
+- Fixed bug that prevent force unlock mode to delete the good lock
+- Avoid backups on local disk if SMB destination was not unmounted correctly
+- Fixed some bugs related to homepaths on Windows and BSD
+- Various code improvements
+
 ## 1.6.0 (2019-09-23)
 ### New features
 - New `import` command to copy backups from another folder/host
