@@ -1763,6 +1763,9 @@ mount_destination() {
 #   3: cannot delete mountpoint
 unmount_destination() {
 
+	# no unmount: do nothing
+	lb_istrue $unmount || return 0
+
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -2283,11 +2286,7 @@ notify_backup_end() {
 	# Windows: display dialogs instead of notifications
 	if [ "$lb_current_os" == Windows ] ; then
 		# do not popup dialog that would prevent PC from shutdown
-		if ! lb_istrue $shutdown ; then
-			# release lock now, do not wait until user closes the window!
-			release_lock
-			lbg_info "$*"
-		fi
+		lb_istrue $shutdown || windows_ending_popup=$*
 	else
 		notify "$*"
 	fi
@@ -2338,13 +2337,11 @@ clean_exit() {
 	release_lock
 
 	# unmount destination
-	if lb_istrue $unmount ; then
-		if ! unmount_destination ; then
-			lb_display_critical --log "$tr_error_unmount"
-			lbg_critical "$tr_error_unmount"
+	if ! unmount_destination ; then
+		lb_display_critical --log "$tr_error_unmount"
+		lbg_critical "$tr_error_unmount"
 
-			[ $lb_exitcode == 0 ] && lb_exitcode=18
-		fi
+		[ $lb_exitcode == 0 ] && lb_exitcode=18
 	fi
 
 	send_email_report
@@ -2366,6 +2363,9 @@ clean_exit() {
 
 	# if shutdown after backup, execute it
 	lb_istrue $shutdown && haltpc
+
+	# Windows end backup notification popup
+	[ ${#windows_ending_popup} -gt 0 ] && lbg_info "$windows_ending_popup"
 
 	lb_debug "Exited with code: $lb_exitcode"
 
