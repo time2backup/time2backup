@@ -1633,7 +1633,7 @@ find_infofile_section() {
 
 		# get path of the backup
 		path=$(lb_get_config -s "$section" "$1" path)
-		
+
 		if [ -n "$path" ] && [[ "$2" == "$path"* ]] ; then
 			echo $section
 			return 0
@@ -2149,7 +2149,7 @@ test_backup() {
 estimate_backup_time() {
 	# get last backup infofile
 	local old_infofile=$(get_infofile_path $last_clean_backup)
-	
+
 	# get section from path
 	local infofile_section=$(find_infofile_section "$old_infofile" "$1")
 	[ -z "$infofile_section" ] && return 1

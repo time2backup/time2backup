@@ -318,7 +318,8 @@ t2b_backup() {
 						continue
 					fi
 
-					src=$homedir/$(echo "$src" | sed 's/^[^/]*\///')
+					# get the real homepath (it's important if homepath is a symlink)
+					src=$(lb_realpath "$homedir")/$(echo "$src" | sed 's/^[^/]*\///')
 				fi
 
 				# get UNIX format for Windows paths
