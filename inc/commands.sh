@@ -2211,7 +2211,7 @@ t2b_import() {
 	# prepare rsync command
 	prepare_rsync import
 
-	local b d src cmd first=true result error errors=()
+	local b d src cmd result error errors=()
 	for ((b=${#existing_backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${existing_backups[b]}
@@ -2270,13 +2270,11 @@ t2b_import() {
 
 		if [ $result == 0 ] ; then
 			# set reference
-			$first && reference=$src
+			reference=$src
 		else
 			# append error message to report
 			errors+=("$error")
 		fi
-
-		first=false
 	done
 
 	# print report
@@ -2422,7 +2420,7 @@ t2b_export() {
 	# prepare rsync command
 	prepare_rsync export
 
-	local b d src cmd first=true result error errors=()
+	local b d src cmd result error errors=()
 	for ((b=${#backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${backups[b]}
@@ -2481,13 +2479,11 @@ t2b_export() {
 
 		if [ $result == 0 ] ; then
 			# change reference
-			$first && reference=$src
+			reference=$src
 		else
 			# append error message to report
 			errors+=("$error")
 		fi
-
-		first=false
 	done
 
 	# print report
