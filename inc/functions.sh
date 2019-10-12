@@ -65,8 +65,10 @@
 #     prepare_rsync
 #     get_rsync_remote_command
 #     rsync_result
-#   Remote functions
+#   Remote backups
+#     get_t2bserver_cmd
 #     prepare_remote_destination
+#     get_remote_history
 #     read_remote_config
 #   Backup steps
 #     test_backup
@@ -1961,7 +1963,8 @@ prepare_rsync() {
 
 # Generate rsync remote command
 # Usage: get_rsync_remote_command
-# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo, $t2bserver_path
+# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo,
+#               $t2bserver_path, $t2bserver_token, $t2bserver_pwd
 # Return: Remote command
 get_rsync_remote_command() {
 
@@ -2020,36 +2023,44 @@ rsync_result() {
 #  Remote backups
 #
 
-# Usage: prepare_remote_destination
-# Dependencies: $command, $destination, $ssh_options, $remote_sudo, $t2bserver_path
-#               $t2bserver_pwd
-prepare_remote_destination() {
-
-	local response cmd=(ssh "${ssh_options[@]}" $remote_server)
+# Get time2backup server command call and instancies $t2bserver_cmd variable
+# Usage: get_t2bserver_cmd
+get_t2bserver_cmd() {
+	t2bserver_cmd=(ssh "${ssh_options[@]}" $remote_server)
 
 	# server in sudo mode
-	lb_istrue $remote_sudo && cmd+=(sudo)
+	lb_istrue $remote_sudo && t2bserver_cmd+=(sudo)
 
 	# server command path
 	if [ -n "$t2bserver_path" ] ; then
-		cmd+=("$t2bserver_path")
+		t2bserver_cmd+=("$t2bserver_path")
 	else
-		cmd+=(time2backup-server)
+		t2bserver_cmd+=(time2backup-server)
 	fi
 
 	# server password
-	[ -n "$t2bserver_pwd" ] && cmd+=(-p "$t2bserver_pwd")
+	[ -n "$t2bserver_pwd" ] && t2bserver_cmd+=(-p "$t2bserver_pwd")
+}
 
-	cmd+=(prepare $command)
+
+# Prepare remote destination
+# Usage: prepare_remote_destination
+# Dependencies: $command, $destination, $t2bserver_cmd
+prepare_remote_destination() {
+
+	# get t2b server command
+	get_t2bserver_cmd || return 1
+
+	local response opts=()
 
 	case $command in
 		backup)
-			cmd+=($backup_date "${sources[@]}")
+			opts+=($backup_date "${sources[@]}")
 			;;
 	esac
 
 	# run distant command
-	response=$("${cmd[@]}" 2>> "$logfile") || return $?
+	response=$("${t2bserver_cmd[@]}" prepare $command "${opts[@]}" 2>> "$logfile") || return $?
 
 	# get infos from server response
 
@@ -2075,6 +2086,17 @@ prepare_remote_destination() {
 	done
 
 	return 0
+}
+
+
+# Get history for remote destinations
+# Usage: get_remote_history [OPTIONS]
+get_remote_history() {
+
+	# get t2b server command
+	get_t2bserver_cmd || return 1
+
+	"${t2bserver_cmd[@]}" history "$@"
 }
 
 

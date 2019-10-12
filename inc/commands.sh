@@ -1188,7 +1188,7 @@ t2b_restore() {
 t2b_history() {
 
 	# default option values
-	local history_opts=()
+	local history_opts=() file abs_file
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -1220,15 +1220,7 @@ t2b_history() {
 		return 1
 	fi
 
-	if lb_istrue $remote_destination ; then
-		echo "This command is disabled for remote destinations."
-		return 255
-	fi
-
-	# test backup destination
-	prepare_destination || return 4
-
-	# get file
+	# get path
 	if [ "$lb_current_os" == Windows ] ; then
 		# get UNIX format for Windows paths
 		file=$(cygpath "$*")
@@ -1236,8 +1228,24 @@ t2b_history() {
 		file=$*
 	fi
 
-	# get backup versions of this file
-	file_history=($(get_backup_history "${history_opts[@]}" "$file"))
+	# get absolute path (if failed, ignore error)
+	abs_file=$(lb_abspath "$file")
+	[ -n "$abs_file" ] && file=$abs_file
+
+	if lb_istrue $remote_destination ; then
+		# remote: get backup versions of the file
+		file_history=($(get_remote_history "${history_opts[@]}" "$file"))
+		if [ $? != 0 ] ; then
+			lb_error "Remote server connection error"
+			return 4
+		fi
+	else
+		# local: test backup destination
+		prepare_destination || return 4
+
+		# get backup versions of the file
+		file_history=($(get_backup_history "${history_opts[@]}" "$file"))
+	fi
 
 	# no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
@@ -1247,8 +1255,8 @@ t2b_history() {
 
 	# print backup versions
 	for b in "${file_history[@]}" ; do
-		# quiet mode: just print the version
-		if lb_istrue $quiet_mode ; then
+		# quiet mode or remote destination: just print the version
+		if lb_istrue $quiet_mode || lb_istrue $remote_destination ; then
 			echo "$b"
 		else
 			# complete result: print details
