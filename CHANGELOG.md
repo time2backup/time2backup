@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2 (2019-10-12)
+### Bugfixes
+- Improve import/export by using better references
+- Upgrade libbash.sh to 1.14.3
+- Minor code improvements
+
 ## 1.6.1 (2019-10-08)
 ### Bugfixes
 - Fixed bug that prevent force unlock mode to delete the good lock
