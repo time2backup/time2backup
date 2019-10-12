@@ -11,8 +11,6 @@
 tr_readable_date="%Y-%m-%d at %H:%M:%S"
 
 # Global
-tr_file="file"
-tr_directory="directory"
 tr_not_sure_say_yes="If you are not sure, choose 'Yes'."
 tr_not_sure_say_no="If you are not sure, choose 'No'."
 tr_please_retry="Please retry."

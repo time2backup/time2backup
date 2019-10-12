@@ -380,11 +380,6 @@ t2b_backup() {
 		if lb_istrue $remote_destination ; then
 			local server_options="--t2b-src \"$abs_src\""
 
-			# last source: ask to end backup
-			if [ $(($s + 1)) == ${#sources[@]} ] ; then
-				server_options+=" --t2b-end"
-			fi
-
 			rsync_cmd+=(--rsync-path "$server_command $server_options")
 		fi
 
@@ -934,11 +929,11 @@ t2b_restore() {
 
 			# check if it is a file backup
 			case $(echo ${file:0:7}) in
-				'/files/')
+				/files/)
 					# absolute path of destination
 					file=${file:6}
 					;;
-				'/ssh/'*)
+				/ssh/*)
 					# absolute path of destination
 					file=${file:4}
 					;;
@@ -1050,10 +1045,10 @@ t2b_restore() {
 		if ! lb_istrue $hard_links && [ "$backup_date" != "${file_history[0]}" ] ; then
 			warn_partial=true
 		fi
+
 		# if rsync result was not good (backup failed or was incomplete)
-		if [ "$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)" != 0 ] ; then
+		[ "$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)" != 0 ] && \
 			warn_partial=true
-		fi
 
 		# warn user & ask to confirm
 		if $warn_partial ; then
@@ -1107,7 +1102,7 @@ t2b_restore() {
 			cmd+=(--delete --dry-run "$src" "$dest")
 
 			notify "$tr_notify_prepare_restore"
-			echo "Preparing restore..."
+			lb_display --log "Preparing restore..."
 			lb_debug "Run ${cmd[*]}"
 
 			# test rsync to check newer files
@@ -1148,6 +1143,7 @@ t2b_restore() {
 		lb_warning "Cannot create log file. If there are errors, you will not be able to check them easely."
 	fi
 
+	notify "$tr_notify_restoring"
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
 	lb_debug "Run ${cmd[*]}\n"
 
@@ -1192,13 +1188,13 @@ t2b_restore() {
 t2b_history() {
 
 	# default option values
-	local history_opts
+	local history_opts=()
 
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
 			-a|--all)
-				history_opts="-a "
+				history_opts=(-a)
 				;;
 			-q|--quiet)
 				quiet_mode=true
@@ -1241,7 +1237,7 @@ t2b_history() {
 	fi
 
 	# get backup versions of this file
-	file_history=($(get_backup_history $history_opts"$file"))
+	file_history=($(get_backup_history "${history_opts[@]}" "$file"))
 
 	# no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
@@ -1467,7 +1463,7 @@ t2b_config() {
 
 	# default values
 	file=""
-	local op_config cmd_opts
+	local op_config cmd_opts=()
 
 	# get options
 	# following other options to open_config() function
@@ -1502,7 +1498,7 @@ t2b_config() {
 					print_help
 					return 1
 				fi
-				cmd_opts="-e $2 "
+				cmd_opts=(-e "$2")
 				shift
 				;;
 			-h|--help)
@@ -1587,7 +1583,7 @@ t2b_config() {
 		*)
 			# edit configuration
 			echo "Opening configuration file..."
-			open_config $cmd_opts"$file"
+			open_config "${cmd_opts[@]}" "$file"
 
 			# after config,
 			case $? in
@@ -2141,7 +2137,7 @@ t2b_import() {
 		return 1
 	fi
 
-	# Disable command for remote destinations
+	# disable command for remote destinations
 	if lb_istrue $remote_destination ; then
 		lb_error "This command is disabled for remote destinations."
 		return 255
@@ -2222,7 +2218,7 @@ t2b_import() {
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")
 
-		# if reference link not set, search the last existing distant backup
+		# if reference link not set, search the last existing backup
 		if [ ${#backups[@]} -gt 0 ] ; then
 			if [ -z "$reference" ] || [ "$reference" == "$src" ] ; then
 				for ((d=${#backups[@]}-1; d>=0; d--)) ; do
@@ -2346,7 +2342,7 @@ t2b_export() {
 		return 1
 	fi
 
-	# Disable command for remote destinations
+	# disable command for remote destinations
 	if lb_istrue $remote_destination ; then
 		lb_error "This command is disabled for remote destinations."
 		return 255

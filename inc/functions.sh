@@ -1310,7 +1310,7 @@ load_config() {
 #   4: cannot write into the temporary crontab file
 crontab_config() {
 
-	local crontab crontab_opts crontab_enable=false
+	local crontab crontab_opts=() crontab_enable=false
 
 	[ "$1" == enable ] && crontab_enable=true
 
@@ -1320,11 +1320,11 @@ crontab_config() {
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
 	if [ "$lb_current_user" == root ] && [ "$user" != root ] ; then
-		crontab_opts="-u $user"
+		crontab_opts+=(-u $user)
 	fi
 
 	# check if crontab exists
-	crontab=$(crontab $crontab_opts -l 2>&1)
+	crontab=$(crontab "${crontab_opts[@]}" -l 2>&1)
 	if [ $? != 0 ] ; then
 		# special case for error when no crontab
 		if echo "$crontab" | grep -q "no crontab for " ; then
@@ -1378,7 +1378,7 @@ crontab_config() {
 	fi
 
 	# install new crontab
-	echo "$crontab" | crontab $crontab_opts - || return 3
+	echo "$crontab" | crontab "${crontab_opts[@]}" - || return 3
 }
 
 
