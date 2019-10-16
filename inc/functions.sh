@@ -51,7 +51,6 @@
 #     delete_logfile
 #   Infofile functions
 #     create_infofile
-#     get_infofile_path
 #     find_infofile_section
 #     get_infofile_value
 #   Mount functions
@@ -66,9 +65,7 @@
 #     get_rsync_remote_command
 #     rsync_result
 #   Remote backups
-#     get_t2bserver_cmd
 #     prepare_remote_destination
-#     get_remote_history
 #     read_remote_config
 #   Backup steps
 #     test_backup
@@ -828,17 +825,8 @@ report_duration() {
 #   2: destination not writable
 prepare_destination() {
 
-	# remote destination
-	if lb_istrue $remote_destination ; then
-		lb_debug "Connect to remote server..."
-
-		if prepare_remote_destination ; then
-			return 0
-		else
-			lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
-			return 1
-		fi
-	fi
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
 
 	lb_debug "Testing destination on: $destination..."
 
@@ -919,6 +907,12 @@ prepare_destination() {
 #   0: ok
 #   1: not OK
 free_space() {
+
+	# remote destination: execute server rotate command
+	if lb_istrue $remote_destination ; then
+		"${t2bserver_cmd[@]}" rotate --free "$@"
+		return $?
+	fi
 
 	local i all_backups=($(get_backups))
 	local nb_backups=${#all_backups[@]}
@@ -1228,7 +1222,23 @@ load_config() {
 		ssh)
 			# remote destination
 			remote_destination=true
-			remote_server=$(url2host "$destination")
+			t2bserver_host=$(url2host "$destination")
+
+			# get time2backup server command
+			t2bserver_cmd=(ssh "${ssh_options[@]}" $t2bserver_host)
+
+			# server in sudo mode
+			lb_istrue $remote_sudo && t2bserver_cmd+=(sudo)
+
+			# server command path
+			if [ -n "$t2bserver_path" ] ; then
+				t2bserver_cmd+=("$t2bserver_path")
+			else
+				t2bserver_cmd+=(time2backup-server)
+			fi
+
+			# server password
+			[ -n "$t2bserver_pwd" ] && t2bserver_cmd+=(-p "$t2bserver_pwd")
 
 			# define the default logs path to the local config directory
 			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
@@ -1582,6 +1592,9 @@ create_infofile() {
 
 	infofile=$destination/$backup_date/backup.info
 
+	# avoid erase existing infofile
+	[ -f "$infofile" ] && return 0
+
 	# create infofile
 	touch "$infofile" && \
 	echo "[time2backup]
@@ -1595,24 +1608,6 @@ comment = $backup_comment
 path = \"$destination\"
 date = $backup_date
 hard_links = $hard_links" > "$infofile"
-}
-
-
-# Get infofile path
-# Usage: get_infofile_path BACKUP_DATE
-# Dependencies: $destination
-# Return: infofile path
-# Exit codes:
-#   0: infofile found
-#   1: infofile not found
-get_infofile_path() {
-	local f=$destination/$1/backup.info
-
-	# test if file exists
-	[ -f "$f" ] || return 1
-
-	# return path
-	echo "$f"
 }
 
 
@@ -2023,44 +2018,22 @@ rsync_result() {
 #  Remote backups
 #
 
-# Get time2backup server command call and instancies $t2bserver_cmd variable
-# Usage: get_t2bserver_cmd
-get_t2bserver_cmd() {
-	t2bserver_cmd=(ssh "${ssh_options[@]}" $remote_server)
-
-	# server in sudo mode
-	lb_istrue $remote_sudo && t2bserver_cmd+=(sudo)
-
-	# server command path
-	if [ -n "$t2bserver_path" ] ; then
-		t2bserver_cmd+=("$t2bserver_path")
-	else
-		t2bserver_cmd+=(time2backup-server)
-	fi
-
-	# server password
-	[ -n "$t2bserver_pwd" ] && t2bserver_cmd+=(-p "$t2bserver_pwd")
-}
-
-
 # Prepare remote destination
-# Usage: prepare_remote_destination
-# Dependencies: $command, $destination, $t2bserver_cmd
+# Usage: prepare_remote_destination COMMAND [ARGS]
+# Dependencies: $t2bserver_cmd, $logfile, $destination, $hard_links, $last_clean_backup
 prepare_remote_destination() {
 
-	# get t2b server command
-	get_t2bserver_cmd || return 1
+	local response
 
-	local response opts=()
-
-	case $command in
-		backup)
-			opts+=($backup_date "${sources[@]}")
-			;;
-	esac
+	lb_debug "Connect to remote server..."
 
 	# run distant command
-	response=$("${t2bserver_cmd[@]}" prepare $command "${opts[@]}" 2>> "$logfile") || return $?
+	response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
+
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
+		return 1
+	fi
 
 	# get infos from server response
 
@@ -2069,34 +2042,15 @@ prepare_remote_destination() {
 	[ -z "$remote_backup_path" ] && return 1
 
 	destination=$remote_backup_path
-
-	if lb_istrue $(read_remote_config hard_links "$response") ; then
-		hard_links=true
-	else
-		hard_links=false
-	fi
+	hard_links=false
 
 	t2bserver_token=$(read_remote_config token "$response")
 
-	# get remote links infos
-	local s
-	remote_trash=()
-	for ((s=1; s<=${#sources[@]}; s++)) ; do
-		remote_trash+=($(read_remote_config src$s "$response"))
-	done
+	# get remote informations
+	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
+	last_clean_backup=$(read_remote_config trash "$response")
 
 	return 0
-}
-
-
-# Get history for remote destinations
-# Usage: get_remote_history [OPTIONS]
-get_remote_history() {
-
-	# get t2b server command
-	get_t2bserver_cmd || return 1
-
-	"${t2bserver_cmd[@]}" history "$@"
 }
 
 
@@ -2169,11 +2123,11 @@ test_backup() {
 
 # Return backup estimated duration
 # Usage: estimate_backup_time PATH BACKUP_SIZE
-# Dependencies: $last_clean_backup
+# Dependencies: $destination, $last_clean_backup
 # Return: estimated time (in seconds)
 estimate_backup_time() {
 	# get last backup infofile
-	local old_infofile=$(get_infofile_path $last_clean_backup)
+	local old_infofile=$destination/$last_clean_backup/backup.info
 
 	# get section from path
 	local infofile_section=$(find_infofile_section "$old_infofile" "$1")

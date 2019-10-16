@@ -238,10 +238,9 @@ t2b_backup() {
 	# prepare rsync command
 	prepare_rsync backup
 
-	# remote server command
-	if lb_istrue $remote_destination ; then
+	# define remote server command
+	lb_istrue $remote_destination && \
 		server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
-	fi
 
 	create_infofile
 
@@ -376,13 +375,6 @@ t2b_backup() {
 			[ -n "$rsync_remote_command" ] && cmd+=(--rsync-path "$rsync_remote_command")
 		fi
 
-		# remote server path
-		if lb_istrue $remote_destination ; then
-			local server_options="--t2b-src \"$abs_src\""
-
-			rsync_cmd+=(--rsync-path "$server_command $server_options")
-		fi
-
 		# test mode
 		lb_istrue $test_mode && cmd+=(--dry-run)
 
@@ -402,7 +394,9 @@ t2b_backup() {
 
 		local prepare_dest=0
 
-		if ! lb_istrue $remote_destination ; then
+		if lb_istrue $remote_destination ; then
+			prepare_remote_destination $backup_date "$src" || prepare_dest=1
+		else
 			# create parent destination folder
 			mkdir -p "$(dirname "$finaldest")"
 			prepare_dest=$?
@@ -431,15 +425,11 @@ t2b_backup() {
 						# reset resume option
 						resume=$resume_last
 
-						# check status of the last backup
-						if ! lb_istrue $resume ; then
-							# (only if infofile exists and in hard links mode)
-							last_backup_info=$(get_infofile_path $last_clean_backup)
-							if [ -n "$last_backup_info" ] ; then
-								# if last backup failed or was cancelled, resume
-								rsync_result $(get_infofile_value "$last_backup_info" "$src" rsync_result)
-								[ $? == 2 ] && resume=true
-							fi
+						# check status of the last backup (only if infofile exists)
+						if ! lb_istrue $resume && [ -f "$destination/$last_clean_backup/backup.info" ] ; then
+							# if last backup failed or was cancelled, resume
+							rsync_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" rsync_result)
+							[ $? == 2 ] && resume=true
 						fi
 
 						# resume from the last backup
@@ -539,8 +529,14 @@ t2b_backup() {
 			fi
 		fi
 
-		# remote destination: add server address
-		lb_istrue $remote_destination && finaldest=$remote_server:$finaldest
+		# remote destination
+		if lb_istrue $remote_destination ; then
+			# remote server path
+			cmd+=(--rsync-path "$server_command --t2b-rotate $keep_limit --t2b-keep $clean_keep")
+
+			# add server address to final destination
+			finaldest=$t2bserver_host:$finaldest
+		fi
 
 		# add source and destination
 		cmd+=("$abs_src" "$finaldest")
@@ -1234,7 +1230,7 @@ t2b_history() {
 
 	if lb_istrue $remote_destination ; then
 		# remote: get backup versions of the file
-		file_history=($(get_remote_history "${history_opts[@]}" "$file"))
+		file_history=($("${t2bserver_cmd[@]}" history "${history_opts[@]}" "$file"))
 		if [ $? != 0 ] ; then
 			lb_error "Remote server connection error"
 			return 4
