@@ -72,6 +72,7 @@
 #     estimate_backup_time
 #     run_before
 #     run_after
+#     move_backup
 #     create_latest_link
 #     notify_backup_end
 #   Exit functions
@@ -449,6 +450,7 @@ get_backup_date() {
 #   -a  get all versions (including same)
 #   -l  get only last version
 #   -n  get non-empty directories
+#   -z  except latest backup
 # Dependencies: $remote_destination, $destination
 # Return: dates (YYYY-MM-DD-HHMMSS format)
 # Exit codes:
@@ -462,7 +464,7 @@ get_backup_history() {
 	lb_istrue $remote_destination && return 0
 
 	# default options
-	local all_versions=false last_version=false not_empty=false
+	local all_versions=false last_version=false not_empty=false not_latest=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -475,6 +477,9 @@ get_backup_history() {
 				;;
 			-n)
 				not_empty=true
+				;;
+			-z)
+				not_latest=true
 				;;
 			*)
 				break
@@ -503,7 +508,7 @@ get_backup_history() {
 	gbh_backup_path=$(remove_end_slash "$gbh_backup_path")
 
 	# prepare for loop
-	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file
+	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file first=true
 	local -i i nb_versions=0
 
 	# try to find backup from latest to oldest
@@ -525,6 +530,12 @@ get_backup_history() {
 		# if get only non empty directories
 		if $not_empty && [ -d "$gbh_backup_file" ] ; then
 			lb_is_dir_empty "$gbh_backup_file" && continue
+		fi
+
+		# except the latest
+		if $not_latest && $first ; then
+			first=false
+			continue
 		fi
 
 		# if get only last version, print and exit
@@ -2165,7 +2176,7 @@ estimate_backup_time() {
 		return 0
 	fi
 
-	echo $(($last_duration * $3 / $last_size))
+	echo $(($last_duration * $2 / $last_size))
 }
 
 
@@ -2245,6 +2256,26 @@ After script failed (exit code: $result)
 		lb_debug "After script exited with error."
 		clean_exit
 	fi
+}
+
+
+# Move a backup folder to
+# Usage: move_backup DATE NEW_DATE PATH
+# Dependencies: $destination, $backup_date
+# Exit codes:
+#   0: OK
+#   1: failed
+move_backup() {
+
+	local old=$destination/$1/$3 new=$(dirname "$destination/$2/$3")
+
+	# create parent directory and move it
+	[ -e "$old" ] && mkdir -p "$new" && mv "$old" "$new"
+	[ $? != 0 ] && return 1
+
+	# clean old backup directory; don't care of errors
+	clean_empty_backup -i $1 "$(dirname "$3" 2> /dev/null)"
+	return 0
 }
 
 

@@ -254,6 +254,7 @@ t2b_backup() {
 		total_size=""
 		estimated_time=""
 		remote_source=false
+		last_clean_backup=""
 
 		lb_display --log "\n********************************************\n"
 		lb_display --log "Backup $src... ($(($s + 1))/${#sources[@]})\n"
@@ -400,21 +401,16 @@ t2b_backup() {
 				prepare_dest=1
 			fi
 		else
+
+			# find the last backup of this source
+			last_clean_backup=$(get_backup_history -n -l "$src")
+
 			# create parent destination folder
 			mkdir -p "$(dirname "$finaldest")"
 			prepare_dest=$?
 
-			if [ $prepare_dest == 0 ] ; then
-				# reset last backup date
-				real_last_clean_backup=""
-
-				# find the last backup of this source
-				last_clean_backup=$(get_backup_history -n -l "$src")
-
-				# if an old backup exists
-				if [ -n "$last_clean_backup" ] ; then
-
-					lb_debug "Last backup used for link/trash: $last_clean_backup"
+			# if an old backup exists
+			if [ $prepare_dest == 0 ] && [ -n "$last_clean_backup" ] ; then
 
 					# default behaviour: mkdir
 					mv_dest=false
@@ -439,47 +435,27 @@ t2b_backup() {
 						# resume from the last backup
 						if lb_istrue $resume ; then
 							lb_debug "Resume from backup: $last_clean_backup"
-
-							# search again for the last clean backup before that
-							for b in $(get_backup_history -n "$src" | head -2) ; do
-								# ignore the current last backup
-								[ "$b" == "$last_clean_backup" ] && continue
-
-								real_last_clean_backup=$b
-								break
-							done
-
 							mv_dest=true
 						fi
 					fi
 
 					if $mv_dest ; then
 						# move old backup as current backup
-						mv "$destination/$last_clean_backup/$path_dest" "$(dirname "$finaldest")"
+						move_backup $last_clean_backup $backup_date "$path_dest"
 						prepare_dest=$?
-
-						# clean old directory
-						clean_empty_backup -i $last_clean_backup "$(dirname "$path_dest")"
-
-						# change last clean backup for hard links
-						if lb_istrue $hard_links ; then
-							if [ -n "$real_last_clean_backup" ] ; then
-								lb_debug "Last backup used for links: $real_last_clean_backup"
-								last_clean_backup=$real_last_clean_backup
-							else
-								# if no older link, reset it
-								last_clean_backup=""
-							fi
-						fi
 
 						# move latest link
 						create_latest_link
+
+						# search last clean backup for hard links again, without the latest
+						# we just moved (for trash, we keep the same date)
+						lb_istrue $hard_links && \
+							last_clean_backup=$(get_backup_history -n -l -z "$src")
 					else
 						# create destination
 						mkdir "$finaldest"
 						prepare_dest=$?
 					fi
-				fi
 			fi
 		fi
 
@@ -507,10 +483,17 @@ t2b_backup() {
 
 			# if destination supports hard links, use incremental with hard links system
 			if lb_istrue $hard_links ; then
+
+				lb_debug "Last backup used for link dest: $last_clean_backup"
+
 				# get link relative path (../../...)
-				linkdest=$(get_relative_path "$finaldest" "$destination")
+				local linkdest=$(get_relative_path "$finaldest" "$destination")
+
 				[ -n "$linkdest" ] && cmd+=(--link-dest "$linkdest/$last_clean_backup/$path_dest")
 			else
+				# trash mode
+				lb_debug "Last backup used for trash: $last_clean_backup"
+
 				# backups with a "trash" folder that contains older revisions
 				local trash=$destination/$last_clean_backup/$path_dest
 
