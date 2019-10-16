@@ -391,6 +391,8 @@ t2b_backup() {
 		local prepare_dest=0
 
 		if lb_istrue $remote_destination ; then
+			# prepare remote backup
+
 			if prepare_remote_destination backup $backup_date "$src" ; then
 				# reset finaldest with good path
 				finaldest=$destination/$backup_date/$path_dest
@@ -400,7 +402,10 @@ t2b_backup() {
 			else
 				prepare_dest=1
 			fi
+
+			lb_istrue $resume_last && lb_debug "Resume from last backup"
 		else
+			# prepare backup folder
 
 			# find the last backup of this source
 			last_clean_backup=$(get_backup_history -n -l "$src")
@@ -412,52 +417,50 @@ t2b_backup() {
 			# if an old backup exists
 			if [ $prepare_dest == 0 ] && [ -n "$last_clean_backup" ] ; then
 
-					# default behaviour: mkdir
-					mv_dest=false
+				# default behaviour: mkdir
+				mv_dest=false
 
-					# if mirror mode or trash mode, move destination
-					if [ $keep_limit == 0 ] || ! lb_istrue $hard_links ; then
+				# if mirror mode or trash mode, move destination
+				if [ $keep_limit == 0 ] || ! lb_istrue $hard_links ; then
+					mv_dest=true
+				fi
+
+				# check if need to resume from last backup
+				if lb_istrue $hard_links ; then
+					# reset resume option
+					resume=$resume_last
+
+					# check status of the last backup (only if infofile exists)
+					if ! lb_istrue $resume && [ -f "$destination/$last_clean_backup/backup.info" ] ; then
+						# if last backup failed or was cancelled, resume
+						rsync_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" rsync_result)
+						[ $? == 2 ] && resume=true
+					fi
+
+					# resume from the last backup
+					if lb_istrue $resume ; then
+						lb_debug "Resume from backup: $last_clean_backup"
 						mv_dest=true
 					fi
+				fi
 
-					# check if need to resume from last backup
-					if lb_istrue $hard_links ; then
-						# reset resume option
-						resume=$resume_last
+				if $mv_dest ; then
+					# move old backup as current backup (and latest link)
+					move_backup $last_clean_backup $backup_date "$path_dest" && \
+					create_latest_link
+					prepare_dest=$?
 
-						# check status of the last backup (only if infofile exists)
-						if ! lb_istrue $resume && [ -f "$destination/$last_clean_backup/backup.info" ] ; then
-							# if last backup failed or was cancelled, resume
-							rsync_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" rsync_result)
-							[ $? == 2 ] && resume=true
-						fi
-
-						# resume from the last backup
-						if lb_istrue $resume ; then
-							lb_debug "Resume from backup: $last_clean_backup"
-							mv_dest=true
-						fi
-					fi
-
-					if $mv_dest ; then
-						# move old backup as current backup
-						move_backup $last_clean_backup $backup_date "$path_dest"
-						prepare_dest=$?
-
-						# move latest link
-						create_latest_link
-
-						# search last clean backup for hard links again, without the latest
-						# we just moved (for trash, we keep the same date)
-						lb_istrue $hard_links && \
-							last_clean_backup=$(get_backup_history -n -l -z "$src")
-					else
-						# create destination
-						mkdir "$finaldest"
-						prepare_dest=$?
-					fi
+					# search last clean backup for hard links again, without the latest
+					# we just moved (for trash, we keep the same date)
+					lb_istrue $hard_links && \
+						last_clean_backup=$(get_backup_history -n -l -z "$src")
+				else
+					# create destination
+					mkdir "$finaldest"
+					prepare_dest=$?
+				fi
 			fi
-		fi
+		fi # end of prepare backup folder
 
 		# if mkdir (hard links mode) or mv (trash mode) failed,
 		if [ $prepare_dest != 0 ] ; then

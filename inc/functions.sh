@@ -383,8 +383,7 @@ test_space_available() {
 	# if 0, always OK
 	[ "$1" == 0 ] && return 0
 
-	local space_available
-	space_available=$(lb_df_space_left "$2")
+	local space_available=$(lb_df_space_left "$2")
 
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
@@ -917,17 +916,12 @@ prepare_destination() {
 
 # Test free space on disk and remove old backups until it's ready
 # Usage: free_space SIZE
-# Dependencies: $destination, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
+# Dependencies: $destination, $clean_old_backups, $clean_keep,
+#               $last_clean_backup, $tr_*
 # Exit codes:
-#   0: ok
+#   0: OK
 #   1: not OK
 free_space() {
-
-	# remote destination: execute server rotate command
-	if lb_istrue $remote_destination ; then
-		"${t2bserver_cmd[@]}" rotate --free "$@"
-		return $?
-	fi
 
 	local i all_backups=($(get_backups))
 	local nb_backups=${#all_backups[@]}
@@ -2038,7 +2032,8 @@ rsync_result() {
 
 # Prepare remote destination
 # Usage: prepare_remote_destination COMMAND [ARGS]
-# Dependencies: $t2bserver_cmd, $logfile, $destination, $hard_links, $last_clean_backup
+# Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
+#               $destination, $hard_links, $last_clean_backup
 prepare_remote_destination() {
 
 	local response
@@ -2261,7 +2256,7 @@ After script failed (exit code: $result)
 
 # Move a backup folder to
 # Usage: move_backup DATE NEW_DATE PATH
-# Dependencies: $destination, $backup_date
+# Dependencies: $destination
 # Exit codes:
 #   0: OK
 #   1: failed
