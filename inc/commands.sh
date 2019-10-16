@@ -238,10 +238,6 @@ t2b_backup() {
 	# prepare rsync command
 	prepare_rsync backup
 
-	# define remote server command
-	lb_istrue $remote_destination && \
-		server_command="$(get_rsync_remote_command) backup --t2b-date $backup_date"
-
 	create_infofile
 
 	# prepare results
@@ -283,7 +279,7 @@ t2b_backup() {
 				# get full backup path
 				path_dest=$(get_backup_path "$src")
 
-				# get server path from URL
+				# set absolute source path
 				abs_src=$(url2ssh "$src")
 				;;
 
@@ -378,9 +374,8 @@ t2b_backup() {
 		# test mode
 		lb_istrue $test_mode && cmd+=(--dry-run)
 
-		# if it is a directory,
+		# if it is a directory, add '/' at the end of the path
 		if [ -d "$abs_src" ] ; then
-			# add '/' at the end of the path
 			[ "${abs_src:${#abs_src}-1}" != / ] && abs_src+=/
 		fi
 
@@ -395,7 +390,15 @@ t2b_backup() {
 		local prepare_dest=0
 
 		if lb_istrue $remote_destination ; then
-			prepare_remote_destination $backup_date "$src" || prepare_dest=1
+			if prepare_remote_destination backup $backup_date "$src" ; then
+				# reset finaldest with good path
+				finaldest=$destination/$backup_date/$path_dest
+
+				# add server path (with token provided)
+				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep")
+			else
+				prepare_dest=1
+			fi
 		else
 			# create parent destination folder
 			mkdir -p "$(dirname "$finaldest")"
@@ -407,10 +410,11 @@ t2b_backup() {
 
 				# find the last backup of this source
 				last_clean_backup=$(get_backup_history -n -l "$src")
-				lb_debug "Last backup used for link/trash: $last_clean_backup"
 
 				# if an old backup exists
 				if [ -n "$last_clean_backup" ] ; then
+
+					lb_debug "Last backup used for link/trash: $last_clean_backup"
 
 					# default behaviour: mkdir
 					mv_dest=false
@@ -494,8 +498,6 @@ t2b_backup() {
 			continue
 		fi
 
-		lb_istrue $remote_destination && last_clean_backup=${remote_trash[s]}
-
 		# If keep_limit = 0 (mirror mode), we don't need to use versionning.
 		# If first backup, no need to add incremental options.
 		if [ $keep_limit != 0 ] && [ -n "$last_clean_backup" ] ; then
@@ -510,11 +512,11 @@ t2b_backup() {
 				[ -n "$linkdest" ] && cmd+=(--link-dest "$linkdest/$last_clean_backup/$path_dest")
 			else
 				# backups with a "trash" folder that contains older revisions
-				# be careful that trash must be set to parent directory
-				# or it will create something like dest/src/src
 				local trash=$destination/$last_clean_backup/$path_dest
 
-				if ! lb_istrue $remote_destination ; then
+				if lb_istrue $remote_destination ; then
+					trash=$(url2path "$destination")/$last_clean_backup/$path_dest
+				else
 					# create trash
 					mkdir -p "$trash"
 
@@ -529,17 +531,8 @@ t2b_backup() {
 			fi
 		fi
 
-		# remote destination
-		if lb_istrue $remote_destination ; then
-			# remote server path
-			cmd+=(--rsync-path "$server_command --t2b-rotate $keep_limit --t2b-keep $clean_keep")
-
-			# add server address to final destination
-			finaldest=$t2bserver_host:$finaldest
-		fi
-
 		# add source and destination
-		cmd+=("$abs_src" "$finaldest")
+		cmd+=("$abs_src" "$(url2ssh "$finaldest")")
 
 		# prepare backup: testing space
 		if lb_istrue $test_destination ; then
