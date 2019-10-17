@@ -307,6 +307,8 @@ time2backup [GLOBAL_OPTIONS] rotate [OPTIONS] [LIMIT]
 -f, --force  Force clean; do not display confirmation
 -q, --quiet  Quiet mode
 -h, --help   Print help
+
+LIMIT        Set number of maximum backups to keep
 ```
 
 ### Exit codes

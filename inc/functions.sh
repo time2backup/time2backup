@@ -733,9 +733,6 @@ delete_backup() {
 #   3: delete error
 rotate_backups() {
 
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
-
 	local limit=$keep_limit
 
 	# limit specified
@@ -743,6 +740,13 @@ rotate_backups() {
 
 	# if unlimited, do not rotate
 	[ "$limit" == -1 ] && return 0
+
+	# remote destination
+	if lb_istrue $remote_destination ; then
+		lb_debug "Rotate on remote server..."
+		"${t2bserver_cmd[@]}" rotate $1
+		return $?
+	fi
 
 	# get all backups
 	local all_backups=($(get_backups)) b to_rotate=()
@@ -803,9 +807,6 @@ rotate_backups() {
 	for b in "${to_rotate[@]}" ; do
 		delete_backup "$b" || result=3
 	done
-
-	# line jump
-	lb_display --log
 
 	return $result
 }

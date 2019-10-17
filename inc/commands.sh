@@ -1887,11 +1887,6 @@ t2b_rotate() {
 		shift # load next argument
 	done
 
-	if lb_istrue $remote_destination ; then
-		echo "This command is disabled for remote destinations."
-		return 255
-	fi
-
 	local keep=$keep_limit
 
 	# test if number or period has a valid syntax
