@@ -51,7 +51,6 @@
 #     delete_logfile
 #   Infofile functions
 #     create_infofile
-#     get_infofile_path
 #     find_infofile_section
 #     get_infofile_value
 #   Mount functions
@@ -65,7 +64,7 @@
 #     prepare_rsync
 #     get_rsync_remote_command
 #     rsync_result
-#   Remote functions
+#   Remote backups
 #     prepare_remote_destination
 #     read_remote_config
 #   Backup steps
@@ -73,6 +72,7 @@
 #     estimate_backup_time
 #     run_before
 #     run_after
+#     move_backup
 #     create_latest_link
 #     notify_backup_end
 #   Exit functions
@@ -195,10 +195,6 @@ get_relative_path() {
 	# avoid comparison errors with double slashes or else
 	local relative_path=./ dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
-	# get absolute paths
-	[ "${dir1:0:1}" == / ] || dir1=$(lb_abspath "$dir1") || return 2
-	[ "${dir2:0:1}" == / ] || dir2=$(lb_abspath "$dir2") || return 2
-
 	# loop to find common path
 	while [ "$dir1" != "$(dirname "$dir2")" ] && [ "$dir1" != "$dir2" ] ; do
 		# go to upper directory
@@ -267,7 +263,12 @@ url2path() {
 # Usage: url2ssh URL
 # Return: complete path
 url2ssh() {
-	echo "$(url2host "$1"):$(url2path "$1")"
+	# test URL
+	if [ "${1:0:6}" == 'ssh://' ] ; then
+		echo "$(url2host "$1"):$(url2path "$1")"
+	else
+		echo "$1"
+	fi
 }
 
 
@@ -382,8 +383,7 @@ test_space_available() {
 	# if 0, always OK
 	[ "$1" == 0 ] && return 0
 
-	local space_available
-	space_available=$(lb_df_space_left "$2")
+	local space_available=$(lb_df_space_left "$2")
 
 	# if there was an unknown error, continue
 	if ! lb_is_integer $space_available ; then
@@ -449,6 +449,7 @@ get_backup_date() {
 #   -a  get all versions (including same)
 #   -l  get only last version
 #   -n  get non-empty directories
+#   -z  except latest backup
 # Dependencies: $remote_destination, $destination
 # Return: dates (YYYY-MM-DD-HHMMSS format)
 # Exit codes:
@@ -458,8 +459,11 @@ get_backup_date() {
 #   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
 
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
 	# default options
-	local all_versions=false last_version=false not_empty=false
+	local all_versions=false last_version=false not_empty=false not_latest=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -473,6 +477,9 @@ get_backup_history() {
 			-n)
 				not_empty=true
 				;;
+			-z)
+				not_latest=true
+				;;
 			*)
 				break
 				;;
@@ -482,9 +489,6 @@ get_backup_history() {
 
 	# usage error
 	[ $# == 0 ] && return 1
-
-	# if remote destination, disable
-	lb_istrue $remote_destination && return 1
 
 	# get all backups
 	local all_backups=($(get_backups))
@@ -503,7 +507,7 @@ get_backup_history() {
 	gbh_backup_path=$(remove_end_slash "$gbh_backup_path")
 
 	# prepare for loop
-	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file
+	local inode last_inode symlink_target last_symlink_target gbh_date gbh_backup_file first=true
 	local -i i nb_versions=0
 
 	# try to find backup from latest to oldest
@@ -525,6 +529,12 @@ get_backup_history() {
 		# if get only non empty directories
 		if $not_empty && [ -d "$gbh_backup_file" ] ; then
 			lb_is_dir_empty "$gbh_backup_file" && continue
+		fi
+
+		# except the latest
+		if $not_latest && $first ; then
+			first=false
+			continue
 		fi
 
 		# if get only last version, print and exit
@@ -673,10 +683,7 @@ get_backups() {
 
 	case $(get_protocol "$path") in
 		ssh)
-			local ssh_cmd=()
-			[ "${ssh_options:0:3}" != ssh ] && ssh_cmd=(ssh)
-
-			"${ssh_cmd[@]}" ${ssh_options[*]} "$(url2host "$path")" "ls \"$(url2path "$path")\"" 2> /dev/null | grep -E "^$backup_date_format$"
+			ssh "${ssh_options[@]}" "$(url2host "$path")" "ls \"$(url2path "$path")\"" 2> /dev/null | grep -E "^$backup_date_format$"
 			;;
 		*)
 			# return content of path (only the backup folders)
@@ -725,6 +732,9 @@ delete_backup() {
 #   2: nothing rotated
 #   3: delete error
 rotate_backups() {
+
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
 
 	local limit=$keep_limit
 
@@ -826,17 +836,8 @@ report_duration() {
 #   2: destination not writable
 prepare_destination() {
 
-	# remote destination
-	if lb_istrue $remote_destination ; then
-		lb_debug "Connect to remote server..."
-
-		if prepare_remote_destination ; then
-			return 0
-		else
-			lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
-			return 1
-		fi
-	fi
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
 
 	lb_debug "Testing destination on: $destination..."
 
@@ -912,9 +913,10 @@ prepare_destination() {
 
 # Test free space on disk and remove old backups until it's ready
 # Usage: free_space SIZE
-# Dependencies: $destination, $clean_old_backups, $clean_keep, $last_clean_backup, $tr_*
+# Dependencies: $destination, $clean_old_backups, $clean_keep,
+#               $last_clean_backup, $tr_*
 # Exit codes:
-#   0: ok
+#   0: OK
 #   1: not OK
 free_space() {
 
@@ -970,6 +972,9 @@ free_space() {
 #   0: cleaned
 #   1: usage error or path is not a directory
 clean_empty_backup() {
+
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
 
 	local delete_infofile=false
 
@@ -1129,7 +1134,7 @@ create_config() {
 
 
 # Upgrade configuration
-# Usage: upgrade_config CURRENT_VERSION
+# Usage: upgrade_config
 # Dependencies: $version, $config_file, $version, $quiet_mode, $command, $tr_*
 # Exit codes:
 #   0: upgrade OK
@@ -1226,10 +1231,28 @@ load_config() {
 		ssh)
 			# remote destination
 			remote_destination=true
-			remote_server=$(url2host "$destination")
+
+			# get time2backup server command
+			t2bserver_cmd=(ssh "${ssh_options[@]}" "$(url2host "$destination")")
+
+			# server in sudo mode
+			lb_istrue $remote_sudo && t2bserver_cmd+=(sudo)
+
+			# server command path
+			if [ -n "$t2bserver_path" ] ; then
+				t2bserver_cmd+=("$t2bserver_path")
+			else
+				t2bserver_cmd+=(time2backup-server)
+			fi
+
+			# server password
+			[ -n "$t2bserver_pwd" ] && t2bserver_cmd+=(-p "$t2bserver_pwd")
 
 			# define the default logs path to the local config directory
 			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
+
+			# disable test destination
+			test_destination=false
 			;;
 
 		*)
@@ -1568,7 +1591,8 @@ delete_logfile() {
 #   0: infofile created
 #   1: not created
 create_infofile() {
-	# remote destination: do not create infofile
+
+	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
 	# create directory
@@ -1579,6 +1603,9 @@ create_infofile() {
 	fi
 
 	infofile=$destination/$backup_date/backup.info
+
+	# avoid erase existing infofile
+	[ -f "$infofile" ] && return 0
 
 	# create infofile
 	touch "$infofile" && \
@@ -1593,24 +1620,6 @@ comment = $backup_comment
 path = \"$destination\"
 date = $backup_date
 hard_links = $hard_links" > "$infofile"
-}
-
-
-# Get infofile path
-# Usage: get_infofile_path BACKUP_DATE
-# Dependencies: $destination
-# Return: infofile path
-# Exit codes:
-#   0: infofile found
-#   1: infofile not found
-get_infofile_path() {
-	local f=$destination/$1/backup.info
-
-	# test if file exists
-	[ -f "$f" ] || return 1
-
-	# return path
-	echo "$f"
 }
 
 
@@ -1763,11 +1772,11 @@ mount_destination() {
 #   3: cannot delete mountpoint
 unmount_destination() {
 
-	# no unmount: do nothing
-	lb_istrue $unmount || return 0
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
+
+	# no unmount: do nothing
+	lb_istrue $unmount || return 0
 
 	lb_display --log "Unmount destination..."
 
@@ -1812,7 +1821,7 @@ unmount_destination() {
 #   1: lock does not exists
 current_lock() {
 
-	# do not check lock if remote destination
+	# remote destination: do nothing (return no lock exists)
 	lb_istrue $remote_destination && return 1
 
 	# get lock file
@@ -1872,12 +1881,12 @@ create_lock() {
 #   1: could not delete lock
 release_lock() {
 
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
 	local lock=$destination/.lock_
 
 	[ "$1" != "-f" ] && lock+=$backup_date
-
-	# do nothing if remote destination
-	lb_istrue $remote_destination && return 0
 
 	lb_debug "Deleting lock..."
 
@@ -1961,7 +1970,8 @@ prepare_rsync() {
 
 # Generate rsync remote command
 # Usage: get_rsync_remote_command
-# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo, $t2bserver_path
+# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo,
+#               $t2bserver_path, $t2bserver_token, $t2bserver_pwd
 # Return: Remote command
 get_rsync_remote_command() {
 
@@ -1975,9 +1985,9 @@ get_rsync_remote_command() {
 		fi
 
 		if [ -n "$t2bserver_token" ] ; then
-			echo "-t $t2bserver_token"
+			echo " -t $t2bserver_token"
 		else
-			[ -n "$t2bserver_pwd" ] && echo "-p $t2bserver_pwd"
+			[ -n "$t2bserver_pwd" ] && echo " -p $t2bserver_pwd"
 		fi
 	else
 		# rsync remote path
@@ -2020,59 +2030,41 @@ rsync_result() {
 #  Remote backups
 #
 
-# Usage: prepare_remote_destination
-# Dependencies: $command, $destination, $ssh_options, $remote_sudo, $t2bserver_path
-#               $t2bserver_pwd
+# Prepare remote destination
+# Usage: prepare_remote_destination COMMAND [ARGS]
+# Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
+#               $destination, $hard_links, $last_clean_backup
 prepare_remote_destination() {
 
-	local response cmd=(ssh "${ssh_options[@]}" $remote_server)
+	local response
 
-	# server in sudo mode
-	lb_istrue $remote_sudo && cmd+=(sudo)
-
-	# server command path
-	if [ -n "$t2bserver_path" ] ; then
-		cmd+=("$t2bserver_path")
-	else
-		cmd+=(time2backup-server)
-	fi
-
-	# server password
-	[ -n "$t2bserver_pwd" ] && cmd+=(-p "$t2bserver_pwd")
-
-	cmd+=(prepare $command)
-
-	case $command in
-		backup)
-			cmd+=($backup_date "${sources[@]}")
-			;;
-	esac
+	lb_debug "Connect to remote server..."
 
 	# run distant command
-	response=$("${cmd[@]}" 2>> "$logfile") || return $?
+	response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
+
+	if [ $? != 0 ] ; then
+		lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
+		return 1
+	fi
+
+	lb_debug "Server response:"
+	lb_debug "$response"
 
 	# get infos from server response
+
+	t2bserver_token=$(read_remote_config token "$response")
+	[ -z "$t2bserver_token" ] && return 1
 
 	# get remote backup path
 	local remote_backup_path=$(read_remote_config destination "$response")
 	[ -z "$remote_backup_path" ] && return 1
 
-	destination=$remote_backup_path
+	destination=$(remove_end_slash "$destination")$remote_backup_path
 
-	if lb_istrue $(read_remote_config hard_links "$response") ; then
-		hard_links=true
-	else
-		hard_links=false
-	fi
-
-	t2bserver_token=$(read_remote_config token "$response")
-
-	# get remote links infos
-	local s
-	remote_trash=()
-	for ((s=1; s<=${#sources[@]}; s++)) ; do
-		remote_trash+=($(read_remote_config src$s "$response"))
-	done
+	hard_links=false
+	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
+	last_clean_backup=$(read_remote_config trash "$response")
 
 	return 0
 }
@@ -2083,7 +2075,8 @@ read_remote_config() {
 	local param=$1
 	shift
 
-	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//"
+	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//; s/^\"\(.*\)\"$/\1/; s/^'\(.*\)'$/\1/; s/\\\\\"/\"/g"
+
 	return ${PIPESTATUS[1]}
 }
 
@@ -2095,8 +2088,7 @@ read_remote_config() {
 # Test backup command
 # rsync simulation and get total size of the files to transfer
 # Usage: test_backup COMMAND [ARGS...]
-# Dependencies: $logfile, $total_size
-# Return: size of the backup (in bytes)
+# Dependencies: $rsync_path, $logfile, $total_size
 # Exit codes:
 #   0: OK
 #   1: rsync test command failed
@@ -2147,11 +2139,11 @@ test_backup() {
 
 # Return backup estimated duration
 # Usage: estimate_backup_time PATH BACKUP_SIZE
-# Dependencies: $last_clean_backup
+# Dependencies: $destination, $last_clean_backup
 # Return: estimated time (in seconds)
 estimate_backup_time() {
 	# get last backup infofile
-	local old_infofile=$(get_infofile_path $last_clean_backup)
+	local old_infofile=$destination/$last_clean_backup/backup.info
 
 	# get section from path
 	local infofile_section=$(find_infofile_section "$old_infofile" "$1")
@@ -2176,7 +2168,7 @@ estimate_backup_time() {
 		return 0
 	fi
 
-	echo $(($last_duration * $3 / $last_size))
+	echo $(($last_duration * $2 / $last_size))
 }
 
 
@@ -2259,10 +2251,34 @@ After script failed (exit code: $result)
 }
 
 
+# Move a backup folder to
+# Usage: move_backup DATE NEW_DATE PATH
+# Dependencies: $destination
+# Exit codes:
+#   0: OK
+#   1: failed
+move_backup() {
+
+	local old=$destination/$1/$3 new=$(dirname "$destination/$2/$3")
+
+	# create parent directory and move it
+	[ -e "$old" ] && mkdir -p "$new" && mv "$old" "$new"
+	[ $? != 0 ] && return 1
+
+	# clean old backup directory; don't care of errors
+	clean_empty_backup $1 "$(dirname "$3" 2> /dev/null)"
+	return 0
+}
+
+
 # Create latest link
 # Usage: create_latest_link
 # Dependencies: $destination, $backup_date
 create_latest_link() {
+
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
 	lb_debug "Create latest link..."
 
 	# create a new link
