@@ -284,7 +284,7 @@ if ! lb_istrue $quiet_mode ; then
 			;;
 	esac
 
-	lb_debug "Using config file: $config_file"
+	debug "Using config file: $config_file"
 fi
 
 # if config file exists and is not empty
@@ -361,6 +361,6 @@ esac
 t2b_$command "$@"
 lb_exitcode=$?
 
-lb_debug "Exited with code: $lb_exitcode"
+debug "Exited with code: $lb_exitcode"
 
 lb_exit

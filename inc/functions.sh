@@ -21,6 +21,7 @@
 #     url2path
 #     url2ssh
 #     file_for_windows
+#     debug
 #     notify
 #     folders_size
 #     set_verbose_log_levels
@@ -287,6 +288,15 @@ file_for_windows() {
 }
 
 
+# Display a debug message
+# Usage: debug TEXT
+# Dependencies: $debug_mode
+debug() {
+	lb_istrue $debug_mode || return 0
+	lb_debug "$*"
+}
+
+
 # Display a notification if enabled
 # Usage: notify TEXT
 # Dependencies: $notifications
@@ -394,11 +404,11 @@ test_space_available() {
 	# transform space size from KB to bytes
 	space_available=$(($space_available * 1024))
 
-	lb_debug "Space available on disk (in bytes): $space_available"
+	debug "Space available on disk (in bytes): $space_available"
 
 	# if space is not enough, error
 	if [ $space_available -lt $1 ] ; then
-		lb_debug "Not enough space on device! Needed (in bytes): $1/$space_available"
+		debug "Not enough space on device! Needed (in bytes): $1/$space_available"
 		return 1
 	fi
 }
@@ -709,12 +719,12 @@ delete_backup() {
 	[ -z "$1" ] && return 1
 
 	# delete log file
-	lb_debug "Deleting log file time2backup_$1.log..."
+	debug "Deleting log file time2backup_$1.log..."
 	rm -f "$logs_directory/time2backup_$1.log" || \
 		lb_display_error --log "Failed to delete $logs_directory/time2backup_$1.log. Please delete this file manually."
 
 	# delete backup directory
-	lb_debug "Deleting $destination/$1..."
+	debug "Deleting $destination/$1..."
 	rm -rf "$destination/$1"
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Failed to delete backup $1! Please delete this folder manually."
@@ -743,7 +753,7 @@ rotate_backups() {
 
 	# remote destination
 	if lb_istrue $remote_destination ; then
-		lb_debug "Rotate on remote server..."
+		debug "Rotate on remote server..."
 		"${t2bserver_cmd[@]}" rotate $1
 		return $?
 	fi
@@ -760,7 +770,7 @@ rotate_backups() {
 		# if limit not reached, do nothing
 		[ $nb_backups -le $limit ] && return 0
 
-		lb_debug "Clean to keep $limit backups on $nb_backups"
+		debug "Clean to keep $limit backups on $nb_backups"
 
 		# get old backups until max - nb to keep
 		to_rotate=(${all_backups[@]:0:$(($nb_backups - $limit))})
@@ -783,7 +793,7 @@ rotate_backups() {
 			# time limit reached: stop iterate
 			[ $t -ge $time_limit ] && break
 
-			lb_debug "Clean old backup $b because < $limit"
+			debug "Clean old backup $b because < $limit"
 
 			# add backup to list to clean
 			to_rotate+=("$b")
@@ -795,7 +805,7 @@ rotate_backups() {
 
 	# nothing to clean: quit
 	if [ ${#to_rotate[@]} == 0 ] ; then
-		lb_debug "Nothing to rotate"
+		debug "Nothing to rotate"
 		return 0
 	fi
 
@@ -840,12 +850,12 @@ prepare_destination() {
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
-	lb_debug "Testing destination on: $destination..."
+	debug "Testing destination on: $destination..."
 
 	# subdirectories removed since 1.3.0
 	local new_destination=$destination/backups/$lb_current_hostname
 	if [ -d "$new_destination" ] ; then
-		lb_debug "Migration destination path to: $new_destination"
+		debug "Migration destination path to: $new_destination"
 		destination=$new_destination
 		lb_set_config "$config_file" destination "$new_destination"
 	fi
@@ -865,10 +875,10 @@ prepare_destination() {
 	fi
 
 	if $destok ; then
-		lb_debug "Destination mounted."
+		debug "Destination mounted."
 		mounted=true
 	else
-		lb_debug "Destination NOT mounted."
+		debug "Destination NOT mounted."
 
 		# if automount set and backup disk mountpoint is defined,
 		# try to mount disk
@@ -905,7 +915,7 @@ prepare_destination() {
 	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
 		if ! test_hardlinks "$destination" ; then
 			# filesystem does not support hard links
-			lb_debug "Destination does not support hard links. Continue in trash mode."
+			debug "Destination does not support hard links. Continue in trash mode."
 			hard_links=false
 		fi
 	fi
@@ -1003,21 +1013,21 @@ clean_empty_backup() {
 		[ -d "$destination/$1/$d" ] || d=$(dirname "$2")
 
 		if lb_is_dir_empty "$destination/$1/$d" ; then
-			lb_debug "Clean empty backup: $1/$d"
+			debug "Clean empty backup: $1/$d"
 			dummy=$(cd "$destination" &> /dev/null && rmdir -p "$1/$d" &> /dev/null)
 		fi
 	fi
 
 	if $delete_infofile && \
 	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
-		lb_debug "Clean info file of backup $1"
+		debug "Clean info file of backup $1"
 		rm -f "$destination/$1/backup.info" &> /dev/null
 	fi
 
 	# if not empty, do nothing
 	lb_is_dir_empty "$destination/$1" || return 0
 
-	lb_debug "Clean empty backup: $1"
+	debug "Clean empty backup: $1"
 
 	# delete and prevent loosing context
 	dummy=$(cd "$destination" &> /dev/null && rmdir "$1" &> /dev/null)
@@ -1067,7 +1077,7 @@ try_sudo() {
 	if [ $result != 0 ] ; then
 		# if sudo exists and not root
 		if lb_command_exists sudo && [ "$lb_current_user" != root ] ; then
-			lb_debug "...Failed! Try with sudo..."
+			debug "...Failed! Try with sudo..."
 			sudo "$@"
 			result=$?
 		fi
@@ -1161,7 +1171,7 @@ upgrade_config() {
 				lb_print "$tr_upgrade_config"
 				;;
 		esac
-		lb_debug "Upgrading config v$old_config_version -> v$version"
+		debug "Upgrading config v$old_config_version -> v$version"
 	fi
 
 	# save old config file
@@ -1715,7 +1725,7 @@ mount_destination() {
 		# test if UUID exists (disk plugged)
 		ls /dev/disk/by-uuid/ 2> /dev/null | grep -q "$backup_disk_uuid"
 		if [ $? != 0 ] ; then
-			lb_debug "Disk not available."
+			debug "Disk not available."
 			return 2
 		fi
 
@@ -1796,7 +1806,7 @@ unmount_destination() {
 		return 2
 	fi
 
-	lb_debug "Delete mount point..."
+	debug "Delete mount point..."
 	try_sudo rmdir "$destination_mountpoint"
 	if [ $? != 0 ] ; then
 		lb_display --log "...Failed!"
@@ -1865,7 +1875,7 @@ create_lock() {
 	# do not create lock if remote destination
 	lb_istrue $remote_destination && return 0
 
-	lb_debug "Create lock..."
+	debug "Create lock..."
 
 	# create lock file with process PID inside
 	touch "$destination/.lock_$backup_date" && lb_set_config "$destination/.lock_$backup_date" pid $$
@@ -1889,7 +1899,7 @@ release_lock() {
 
 	[ "$1" != "-f" ] && lock+=$backup_date
 
-	lb_debug "Deleting lock..."
+	debug "Deleting lock..."
 
 	# if destination exists, but no lock, return 0
 	if [ -d "$destination" ] ; then
@@ -2039,7 +2049,7 @@ prepare_remote_destination() {
 
 	local response
 
-	lb_debug "Connect to remote server..."
+	debug "Connect to remote server..."
 
 	# run distant command
 	response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
@@ -2049,8 +2059,8 @@ prepare_remote_destination() {
 		return 1
 	fi
 
-	lb_debug "Server response:"
-	lb_debug "$response"
+	debug "Server response:"
+	debug "$response"
 
 	# get infos from server response
 
@@ -2108,13 +2118,13 @@ test_backup() {
 	# option dry-run makes a simulation for rsync
 	# then we get the last line with the total amount of bytes to be copied
 	# which is in format 999,999,999 so then we delete the commas
-	lb_debug "Testing rsync in dry-run mode: ${test_cmd[*]}..."
+	debug "Testing rsync in dry-run mode: ${test_cmd[*]}..."
 
 	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
-		lb_debug "rsync test failed"
+		debug "rsync test failed"
 		return 1
 	fi
 
@@ -2191,7 +2201,7 @@ run_before() {
 		false # bad command to go into the if $? != 0
 	else
 		# run command/script
-		lb_debug "Run ${exec_before[*]}"
+		debug "Run ${exec_before[*]}"
 
 		"${exec_before[@]}"
 	fi
@@ -2206,7 +2216,7 @@ Before script failed (exit code: $result)
 
 	# option exit if error
 	if lb_istrue $exec_before_block ; then
-		lb_debug "Before script exited with error."
+		debug "Before script exited with error."
 		clean_exit
 	fi
 }
@@ -2230,7 +2240,7 @@ run_after() {
 		false # bad command to go into the if $? != 0
 	else
 		# run command/script
-		lb_debug "Run ${exec_after[*]}"
+		debug "Run ${exec_after[*]}"
 
 		"${exec_after[@]}"
 	fi
@@ -2246,7 +2256,7 @@ After script failed (exit code: $result)
 
 	# option exit if error
 	if lb_istrue $exec_after_block ; then
-		lb_debug "After script exited with error."
+		debug "After script exited with error."
 		clean_exit
 	fi
 }
@@ -2280,7 +2290,7 @@ create_latest_link() {
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
-	lb_debug "Create latest link..."
+	debug "Create latest link..."
 
 	# create a new link
 	# in a sub-context to avoid confusion and do not care of output
@@ -2346,7 +2356,7 @@ clean_exit() {
 	# set exit code if specified
 	[ -n "$1" ] && lb_exitcode=$1
 
-	lb_debug "Clean exit"
+	debug "Clean exit"
 
 	clean_empty_backup -i $backup_date "$path_dest"
 
@@ -2384,7 +2394,7 @@ clean_exit() {
 	# Windows end backup notification popup
 	[ ${#windows_ending_popup} -gt 0 ] && lbg_info "$windows_ending_popup"
 
-	lb_debug "Exited with code: $lb_exitcode"
+	debug "Exited with code: $lb_exitcode"
 
 	lb_exit
 }
@@ -2478,7 +2488,7 @@ $(report_duration)
 $tr_email_report_regards
 time2backup"
 
-	lb_debug "Sending email report..."
+	debug "Sending email report..."
 
 	# send email without managing errors and without blocking script
 	lb_email "${email_opts[@]}" --subject "$email_subject" "$email_recipient" "$email_content" &
@@ -2568,7 +2578,7 @@ config_wizard() {
 	# choose destination directory
 	if lbg_choose_directory -t "$tr_choose_backup_destination" "$start_path" ; then
 
-		lb_debug "Chosen destination: $lbg_choose_directory"
+		debug "Chosen destination: $lbg_choose_directory"
 
 		# get the real path of the chosen directory
 		local chosen_directory=$(lb_realpath "$lbg_choose_directory")
@@ -2599,7 +2609,7 @@ config_wizard() {
 		# set mountpoint in config file
 		local mountpoint=$(lb_df_mountpoint "$chosen_directory")
 		if [ -n "$mountpoint" ] ; then
-			lb_debug "Mount point: $mountpoint"
+			debug "Mount point: $mountpoint"
 
 			# update disk mountpoint config
 			if [ "$chosen_directory" != "$backup_disk_mountpoint" ] ; then
@@ -2607,13 +2617,13 @@ config_wizard() {
 					lb_warning "Cannot set config: backup_disk_mountpoint"
 			fi
 		else
-			lb_debug "Could not find mount point of destination."
+			debug "Could not find mount point of destination."
 		fi
 
 		# set mountpoint in config file
 		local disk_uuid=$(lb_df_uuid "$chosen_directory")
 		if [ -n "$disk_uuid" ] ; then
-			lb_debug "Disk UUID: $disk_uuid"
+			debug "Disk UUID: $disk_uuid"
 
 			# update disk UUID config
 			if [ "$chosen_directory" != "$backup_disk_uuid" ] ; then
@@ -2621,7 +2631,7 @@ config_wizard() {
 					lb_warning "Cannot set config: backup_disk_uuid"
 			fi
 		else
-			lb_debug "Could not find disk UUID of destination."
+			debug "Could not find disk UUID of destination."
 		fi
 
 		# test if destination supports hard links
@@ -2636,7 +2646,7 @@ config_wizard() {
 			fi
 		fi
 	else
-		lb_debug "Error or cancel when choosing destination directory (result code: $?)."
+		debug "Error or cancel when choosing destination directory (result code: $?)."
 
 		# if no destination set, return error
 		if [ -z "$destination" ] ; then
@@ -2660,7 +2670,7 @@ config_wizard() {
 		# choose with folder selector
 		if ! $advanced_mode && lbg_choose_directory -t "$tr_choose_backup_source" "$(lb_homepath)" ; then
 
-			lb_debug "Chosen source: $lbg_choose_directory"
+			debug "Chosen source: $lbg_choose_directory"
 
 			# get the real path of the chosen directory
 			local chosen_directory=$(lb_realpath "$lbg_choose_directory")

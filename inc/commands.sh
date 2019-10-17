@@ -165,7 +165,7 @@ t2b_backup() {
 
 			if [ $test_timestamp -gt 0 ] ; then
 				if [ $test_timestamp -le $seconds_offset ] ; then
-					lb_debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
+					debug "Last backup was done at $(lb_timestamp2date -f "$tr_readable_date" $last_backup_timestamp), we are now $(lb_timestamp2date -f "$tr_readable_date" $current_timestamp) (backup every $(($seconds_offset / 60)) minutes)"
 					lb_info "Recurrent backup: no need to backup."
 
 					# exit without email or shutdown or delete log (does not exists)
@@ -198,7 +198,7 @@ t2b_backup() {
 	local existing_lock=$(current_lock)
 	if [ -n "$existing_lock" ] ; then
 
-		lb_debug "Lock found: $existing_lock"
+		debug "Lock found: $existing_lock"
 
 		# force mode: delete old lock
 		if lb_istrue $force_unlock ; then
@@ -406,7 +406,7 @@ t2b_backup() {
 				prepare_dest=1
 			fi
 
-			lb_istrue $resume_last && lb_debug "Resume from last backup"
+			lb_istrue $resume_last && debug "Resume from last backup"
 		else
 			# prepare backup folder
 
@@ -442,7 +442,7 @@ t2b_backup() {
 
 					# resume from the last backup
 					if lb_istrue $resume ; then
-						lb_debug "Resume from backup: $last_clean_backup"
+						debug "Resume from backup: $last_clean_backup"
 						mv_dest=true
 					fi
 				fi
@@ -495,7 +495,7 @@ t2b_backup() {
 			# if destination supports hard links, use incremental with hard links system
 			if lb_istrue $hard_links ; then
 
-				lb_debug "Last backup used for link dest: $last_clean_backup"
+				debug "Last backup used for link dest: $last_clean_backup"
 
 				# get link relative path (../../...)
 				local linkdest=$(get_relative_path "$finaldest" "$destination")
@@ -514,7 +514,7 @@ t2b_backup() {
 				fi
 			else
 				# trash mode
-				lb_debug "Last backup used for trash: $last_clean_backup"
+				debug "Last backup used for trash: $last_clean_backup"
 
 				# backups with a "trash" folder that contains older revisions
 				local trash=$destination/$last_clean_backup/$path_dest
@@ -557,7 +557,7 @@ t2b_backup() {
 				continue
 			fi
 
-			lb_debug "Backup total size (in bytes): $total_size"
+			debug "Backup total size (in bytes): $total_size"
 
 			# write size in infofile
 			lb_set_config -s src$(($s + 1)) "$infofile" size $total_size
@@ -579,7 +579,7 @@ t2b_backup() {
 		fi # end of free space tests
 
 		lb_display --log "\nRunning backup..."
-		lb_debug "Run ${cmd[*]}\n"
+		debug "Run ${cmd[*]}\n"
 
 		# display start notification
 		notification_started_backup=$tr_backup_in_progress
@@ -943,7 +943,7 @@ t2b_restore() {
 
 	# specified restore destination path
 	if [ -n "$2" ] ; then
-		lb_debug "Restore path destination: $2"
+		debug "Restore path destination: $2"
 		restore_path=$2
 	else
 		# restore at original path
@@ -964,7 +964,7 @@ t2b_restore() {
 		[ "${file:${#file}-1}" == / ] && directory_mode=true
 	fi
 
-	lb_debug "Path to restore: $file"
+	debug "Path to restore: $file"
 
 	# case of symbolic links
 	if [ -L "$file" ] ; then
@@ -1099,7 +1099,7 @@ t2b_restore() {
 
 			notify "$tr_notify_prepare_restore"
 			lb_display --log "Preparing restore..."
-			lb_debug "Run ${cmd[*]}"
+			debug "Run ${cmd[*]}"
 
 			# test rsync to check newer files
 			if "${cmd[@]}" | grep -q "^deleting " ; then
@@ -1141,7 +1141,7 @@ t2b_restore() {
 
 	notify "$tr_notify_restoring"
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
-	lb_debug "Run ${cmd[*]}\n"
+	debug "Run ${cmd[*]}\n"
 
 	# execute rsync command, print result into terminal and errors in logfile
 	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
@@ -1957,7 +1957,7 @@ t2b_status() {
 	local pid
 	pid=$(current_lock -p)
 
-	lb_debug "File lock contains: $pid"
+	debug "File lock contains: $pid"
 
 	if ! lb_is_integer "$pid" ; then
 		lb_istrue $quiet_mode || echo "Cannot retrieve process PID! Please search it manually."
@@ -2042,7 +2042,7 @@ t2b_stop() {
 		return 7
 	fi
 
-	lb_debug "time2backup PID found: $t2b_pid"
+	debug "time2backup PID found: $t2b_pid"
 
 	# prompt confirmation
 	$force_mode || lb_yesno "Are you sure you want to interrupt the current backup (PID $t2b_pid)?" || return 0
@@ -2056,7 +2056,7 @@ t2b_stop() {
 		rsync_pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
 
 		if lb_is_integer $rsync_pid ; then
-			lb_debug "Found rsync PID: $rsync_pid"
+			debug "Found rsync PID: $rsync_pid"
 
 			# send the kill signal to rsync
 			kill $rsync_pid || lb_warning "Failed to kill rsync PID $rsync_pid"
@@ -2186,7 +2186,7 @@ t2b_import() {
 		return 0
 	fi
 
-	lb_debug "Backups to import: ${existing_backups[*]}"
+	debug "Backups to import: ${existing_backups[*]}"
 
 	local total=${#existing_backups[@]}
 	if [ $limit -gt 0 ] ; then
@@ -2239,13 +2239,13 @@ t2b_import() {
 		cmd+=("$import_source/$src/" "$destination/$src")
 
 		while true ; do
-			lb_debug "Run ${cmd[*]}"
+			debug "Run ${cmd[*]}"
 
 			"${cmd[@]}"
 			lb_result
 			result=$?
 
-			lb_debug "Result: $result"
+			debug "Result: $result"
 
 			if [ $result != 0 ] ; then
 				if rsync_result $result ; then
@@ -2395,7 +2395,7 @@ t2b_export() {
 			;;
 	esac
 
-	lb_debug "Existing backups: ${existing_backups[*]}"
+	debug "Existing backups: ${existing_backups[*]}"
 
 	local total=${#backups[@]}
 	if [ $limit -gt 0 ] ; then
@@ -2448,13 +2448,13 @@ t2b_export() {
 		cmd+=("$destination/$src/" "$export_destination/$src")
 
 		while true ; do
-			lb_debug "Run ${cmd[*]}"
+			debug "Run ${cmd[*]}"
 
 			"${cmd[@]}"
 			lb_result
 			result=$?
 
-			lb_debug "Result: $result"
+			debug "Result: $result"
 
 			if [ $result != 0 ] ; then
 				if rsync_result $result ; then
