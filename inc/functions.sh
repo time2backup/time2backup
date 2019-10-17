@@ -1134,7 +1134,7 @@ create_config() {
 
 
 # Upgrade configuration
-# Usage: upgrade_config CURRENT_VERSION
+# Usage: upgrade_config
 # Dependencies: $version, $config_file, $version, $quiet_mode, $command, $tr_*
 # Exit codes:
 #   0: upgrade OK
@@ -2062,9 +2062,6 @@ prepare_remote_destination() {
 
 	destination=$(remove_end_slash "$destination")$remote_backup_path
 
-	lb_debug "$destination"
-	lb_debug "$(url2ssh "$destination")"/truc
-
 	hard_links=false
 	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
 	last_clean_backup=$(read_remote_config trash "$response")
@@ -2269,7 +2266,7 @@ move_backup() {
 	[ $? != 0 ] && return 1
 
 	# clean old backup directory; don't care of errors
-	clean_empty_backup -i $1 "$(dirname "$3" 2> /dev/null)"
+	clean_empty_backup $1 "$(dirname "$3" 2> /dev/null)"
 	return 0
 }
 

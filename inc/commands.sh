@@ -453,10 +453,15 @@ t2b_backup() {
 					create_latest_link
 					prepare_dest=$?
 
-					# search last clean backup for hard links again, without the latest
-					# we just moved (for trash, we keep the same date)
-					lb_istrue $hard_links && \
+					# if resumed,
+					if lb_istrue $hard_links ; then
+						# delete last backup infofile
+						clean_empty_backup -i $last_clean_backup
+
+						# search last clean backup for hard links again, without the latest
+						# we just moved (for trash, we keep the same date)
 						last_clean_backup=$(get_backup_history -n -l -z "$src")
+					fi
 				else
 					# create destination
 					mkdir "$finaldest"
@@ -495,7 +500,18 @@ t2b_backup() {
 				# get link relative path (../../...)
 				local linkdest=$(get_relative_path "$finaldest" "$destination")
 
-				[ -n "$linkdest" ] && cmd+=(--link-dest "$linkdest/$last_clean_backup/$path_dest")
+				if [ -n "$linkdest" ] ; then
+					linkdest+=$last_clean_backup
+
+					if lb_istrue $remote_destination ; then
+						# the case of spaces in remote path
+						linkdest+=$(echo "$path_dest" | sed 's/ /\\ /g')
+					else
+						linkdest+=$path_dest
+					fi
+
+					cmd+=(--link-dest "$linkdest")
+				fi
 			else
 				# trash mode
 				lb_debug "Last backup used for trash: $last_clean_backup"
@@ -504,7 +520,7 @@ t2b_backup() {
 				local trash=$destination/$last_clean_backup/$path_dest
 
 				if lb_istrue $remote_destination ; then
-					trash=$(url2path "$destination")/$last_clean_backup/$path_dest
+					trash=$(url2path "$destination/$last_clean_backup/$path_dest")
 				else
 					# create trash
 					mkdir -p "$trash"
@@ -630,20 +646,22 @@ t2b_backup() {
 
 	lb_display --log "\n********************************************\n"
 
-	# if destination disappered (e.g. network folder disconnected),
-	# return a critical error
-	if ! [ -d "$destination" ] ; then
-		errors+=("Destination folder vanished! Disk or network may have been disconnected.")
-		lb_exitcode=14
-	else
-		# final cleanup
-		clean_empty_backup -i $backup_date
+	# if nothing was backed up ($res variable has never been set),
+	# consider it as a critical error and do not rotate backups
+	if [ -z "$res" ] ; then
+		errors+=("Nothing was backed up.")
+		lb_exitcode=22
+	fi
 
-		# if nothing was backed up, consider it as a critical error
-		# and do not rotate backups
-		if ! [ -d "$destination/$backup_date" ] ; then
-			errors+=("Nothing was backed up.")
-			lb_exitcode=22
+	if ! lb_istrue $remote_destination ; then
+		if [ -d "$destination" ] ; then
+			# final cleanup
+			clean_empty_backup -i $backup_date
+		else
+			# if destination disappered (e.g. network folder disconnected),
+			# return a critical error
+			errors+=("Destination folder vanished! Disk or network may have been disconnected.")
+			lb_exitcode=14
 		fi
 	fi
 
