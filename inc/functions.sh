@@ -2632,13 +2632,45 @@ config_wizard() {
 	# edit sources to backup
 	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
 
-		if open_config "$config_sources" ; then
-			if [ "$lb_current_os" != Windows ] ; then
-				# display window to wait until user has finished
-				lb_istrue $console_mode || lbg_info "$tr_finished_edit"
+		local advanced_mode=false
+		lb_istrue $console_mode && advanced_mode=true
+
+		# check defined sources
+		local sources=()
+		lb_read_config "$config_sources" && sources=("${lb_read_config[@]}")
+		[ ${#sources[@]} -gt 1 ] && advanced_mode=true
+
+		# choose with folder selector
+		if ! $advanced_mode && lbg_choose_directory -t "$tr_choose_backup_source" "$(lb_homepath)" ; then
+
+			lb_debug "Chosen source: $lbg_choose_directory"
+
+			# get the real path of the chosen directory
+			local chosen_directory=$(lb_realpath "$lbg_choose_directory")
+
+			if [ -n "$chosen_directory" ] ; then
+				# edit source file
+				if [ ${#sources[@]} == 0 ] ; then
+					echo "$chosen_directory" >> $config_sources
+				else
+					lb_edit "s|^${sources[0]}[[:space:]]*$|$chosen_directory|" "$config_sources"
+				fi
+				[ $? != 0 ] && advanced_mode=true
+			else
+				advanced_mode=true
 			fi
-		else
-			lb_warning "Failed to edit sources config file"
+		fi
+
+		# edit config file
+		if $advanced_mode ; then
+			if open_config "$config_sources" ; then
+				if [ "$lb_current_os" != Windows ] ; then
+					# display window to wait until user has finished
+					lb_istrue $console_mode || lbg_info "$tr_finished_edit"
+				fi
+			else
+				lb_warning "Failed to edit sources config file"
+			fi
 		fi
 	fi
 

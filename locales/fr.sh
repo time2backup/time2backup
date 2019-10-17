@@ -53,6 +53,7 @@ tr_edit_config_manually="Veuillez éditer le fichier de configuration manuelleme
 tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
 tr_ask_edit_sources="Voulez-vous choisir les éléments à sauvegarder ?"
 tr_default_source="Par défaut, tout votre répertoire personnel sera sauvegardé."
+tr_choose_backup_source="Choisissez le dossier à sauvegarder :"
 tr_finished_edit="Si vous avez terminé l'édition du fichier de configuration, enregistrez le fichier et cliquez sur OK."
 tr_ask_activate_recurrent="Voulez-vous activer les sauvegardes récurrentes ?"
 tr_choose_backup_frequency="Choisissez la fréquence des sauvegardes :"
