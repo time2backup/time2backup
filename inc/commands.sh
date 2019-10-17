@@ -363,7 +363,7 @@ t2b_backup() {
 			lb_istrue $network_compression && cmd+=(-z)
 
 			# add ssh options
-			[ -n "$ssh_options" ] && cmd+=(-e "$ssh_options")
+			[ "${#ssh_options[@]}" -gt 0 ] && cmd+=(-e "ssh ${ssh_options[*]}")
 		fi
 
 		# set rsync remote path for remote sources
@@ -392,8 +392,11 @@ t2b_backup() {
 
 		if lb_istrue $remote_destination ; then
 			# prepare remote backup
+			local remote_opts=()
+			lb_istrue $force_unlock && remote_opts+=(--unlock)
+			lb_istrue $resume_last && remote_opts+=(--resume)
 
-			if prepare_remote_destination backup $backup_date "$src" ; then
+			if prepare_remote_destination backup "${remote_opts[@]}" $backup_date "$src" ; then
 				# reset finaldest with good path
 				finaldest=$destination/$backup_date/$path_dest
 

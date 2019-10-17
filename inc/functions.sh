@@ -683,10 +683,7 @@ get_backups() {
 
 	case $(get_protocol "$path") in
 		ssh)
-			local ssh_cmd=()
-			[ "${ssh_options:0:3}" != ssh ] && ssh_cmd=(ssh)
-
-			"${ssh_cmd[@]}" ${ssh_options[*]} "$(url2host "$path")" "ls \"$(url2path "$path")\"" 2> /dev/null | grep -E "^$backup_date_format$"
+			ssh "${ssh_options[@]}" "$(url2host "$path")" "ls \"$(url2path "$path")\"" 2> /dev/null | grep -E "^$backup_date_format$"
 			;;
 		*)
 			# return content of path (only the backup folders)
@@ -1253,6 +1250,9 @@ load_config() {
 
 			# define the default logs path to the local config directory
 			[ -z "$logs_directory" ] && logs_directory=$config_directory/logs
+
+			# disable test destination
+			test_destination=false
 			;;
 
 		*)
