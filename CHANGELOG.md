@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 (2019-10-17)
+### New features
+- Remote server support
+- New sources selector in config wizard
+
 ## 1.6.2 (2019-10-12)
 ### Bugfixes
 - Improve import/export by using better references
