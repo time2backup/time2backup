@@ -396,7 +396,7 @@ t2b_backup() {
 
 			# add server path (with token provided)
 			prepare_remote_destination backup "${remote_opts[@]}" $backup_date "$src" && \
-				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(lb_istrue $trash_mode && echo --t2b-trash)")
+				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(! lb_istrue $trash_mode || echo --t2b-trash)")
 		else
 			# prepare backup folder
 			prepare_backup
