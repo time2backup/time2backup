@@ -881,9 +881,9 @@ prepare_destination() {
 	else
 		debug "Destination NOT mounted."
 
-		# if automount set and backup disk mountpoint is defined,
-		# try to mount disk
-		if lb_istrue $mount && [ -n "$backup_disk_mountpoint" ] ; then
+		# if automount set and backup disk mountpoint is defined but not mounted,
+		if lb_istrue $mount && [ -n "$backup_disk_mountpoint" ] && ! [ -e "$backup_disk_mountpoint" ] ; then
+			# try to mount disk
 			mount_destination && destok=true
 		fi
 	fi
