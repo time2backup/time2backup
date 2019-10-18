@@ -54,6 +54,7 @@
 #     create_infofile
 #     find_infofile_section
 #     get_infofile_value
+#     check_infofile_rsync_result
 #   Mount functions
 #     mount_destination
 #     unmount_destination
@@ -1686,6 +1687,22 @@ get_infofile_value() {
 }
 
 
+# Usage: check_infofile_rsync_result BACKUP_DATE SRC
+# Exit codes:
+#   0: OK
+#   1: backup failed
+check_infofile_rsync_result() {
+	# check only if file exists
+	if [ -f "$destination/$1/backup.info" ] ; then
+		# check if last backup failed or was cancelled
+		rsync_result $(get_infofile_value "$destination/$1/backup.info" "$2" rsync_result)
+		[ $? == 2 ] && return 1
+	fi
+
+	return 0
+}
+
+
 #
 #  Mount functions
 #
@@ -2286,10 +2303,66 @@ move_backup() {
 }
 
 
+# Prepare backup folder
+# Usage: prepare_backup
+# Dependencies: $remote_destination, $last_clean_backup, $src, $destination, $backup_date, $path_dest,
+#               $resume_last, $keep_limit, $hard_links
+prepare_backup() {
+
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
+	# find the last backup of this source
+	last_clean_backup=$(get_backup_history -n -l "$src")
+
+	# create backup folder
+	mkdir -p "$destination/$backup_date/$path_dest" || return 1
+
+	# if no older backups, no versionning
+	[ -z "$last_clean_backup" ] && return 0
+
+	# check if need to resume from last backup
+	local resume=$resume_last
+
+	# check status of the last backup (only if infofile exists)
+	if ! lb_istrue $resume ; then
+		# if last backup failed or was cancelled, resume
+		check_infofile_rsync_result $last_clean_backup "$src" || resume=true
+	fi
+
+	# if hard links, no mirror more and no resume, quit
+	lb_istrue $hard_links && [ $keep_limit != 0 ] && ! lb_istrue $resume && return 0
+
+	# moving last backup to the current
+
+	# delete current backup destination (empty directory)
+	rmdir "$destination/$backup_date/$path_dest" || return 1
+
+	# move old backup as current backup (and latest link)
+	lb_istrue $resume && debug "Resume from backup: $last_clean_backup"
+	move_backup $last_clean_backup $backup_date "$path_dest" || return 1
+
+	# update latest link
+	create_latest_link
+
+	# if resumed,
+	if lb_istrue $resume ; then
+		# delete the last backup directory completely
+		clean_empty_backup -i $last_clean_backup
+
+		# search last clean backup for hard links again, without the latest
+		# we just moved
+		last_clean_backup=$(get_backup_history -n -l -z "$src")
+	fi
+
+	return 0
+}
+
+
 # Prepare trash
 # Usage: prepare_trash
 # Dependencies: $destination, $last_clean_backup, $path_dest, $remote_destination
-#               $src, $backup_date, $errors
+#               $src, $backup_date, $errors, $trash
 # Exit codes:
 #   0: OK
 #   1: Failed
@@ -2303,26 +2376,30 @@ prepare_trash() {
 
 	if lb_istrue $remote_destination ; then
 		trash=$(url2path "$destination/$trash_date/$path_dest")
-	else
-		# create trash
-		if ! mkdir -p "$trash" ; then
-			lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
-
-			# prepare report and save exit code
-			errors+=("$src (write error)")
-			[ $lb_exitcode == 0 ] && lb_exitcode=7
-
-			# clean directory but NOT the infofile
-			clean_empty_backup $backup_date "$path_dest"
-
-			return 1
-		fi
-
-		# get absolute path of trash to avoid errors
-		trash=$(lb_abspath "$trash")
+		return 0
 	fi
 
-	echo "$trash"
+	# create trash
+	if ! mkdir -p "$trash" ; then
+		lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
+
+		# prepare report and save exit code
+		errors+=("$src (write error)")
+		[ $lb_exitcode == 0 ] && lb_exitcode=7
+
+		# clean directory but NOT the infofile
+		clean_empty_backup $backup_date "$path_dest"
+
+		return 1
+	fi
+
+	# get absolute path of trash to avoid errors
+	trash=$(lb_abspath "$trash")
+
+	# if remote source, we need to escape spaces or it fails
+	lb_istrue $remote_source && trash=$(echo "$trash" | sed 's/ /\\ /g')
+
+	return 0
 }
 
 

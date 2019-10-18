@@ -384,94 +384,26 @@ t2b_backup() {
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
 		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result -1
 
-		# set final destination with is a representation of the system tree
-		# e.g. /path/to/my/backups/mypc/2016-12-31-2359/files/home/user/tobackup
-		finaldest=$destination/$backup_date/$path_dest
-
-		local prepare_dest=0
-
 		if lb_istrue $remote_destination ; then
 			# prepare remote backup
 			local remote_opts=()
 			lb_istrue $force_unlock && remote_opts+=(--unlock)
-			lb_istrue $resume_last && remote_opts+=(--resume)
 
-			if prepare_remote_destination backup "${remote_opts[@]}" $backup_date "$src" ; then
-				# reset finaldest with good path
-				finaldest=$destination/$backup_date/$path_dest
-
-				# add server path (with token provided)
-				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(lb_istrue $trash_mode && echo --t2b-trash)")
-			else
-				prepare_dest=1
+			if lb_istrue $resume_last ; then
+				debug "Resume from last backup"
+				remote_opts+=(--resume)
 			fi
 
-			lb_istrue $resume_last && debug "Resume from last backup"
+			# add server path (with token provided)
+			prepare_remote_destination backup "${remote_opts[@]}" $backup_date "$src" && \
+				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(lb_istrue $trash_mode && echo --t2b-trash)")
 		else
 			# prepare backup folder
+			prepare_backup
+		fi
 
-			# find the last backup of this source
-			last_clean_backup=$(get_backup_history -n -l "$src")
-
-			# create parent destination folder
-			mkdir -p "$(dirname "$finaldest")"
-			prepare_dest=$?
-
-			# if an old backup exists
-			if [ $prepare_dest == 0 ] && [ -n "$last_clean_backup" ] ; then
-
-				# default behaviour: mkdir
-				mv_dest=false
-
-				# if mirror mode or no hard links, move destination
-				if [ $keep_limit == 0 ] || ! lb_istrue $hard_links ; then
-					mv_dest=true
-				fi
-
-				# check if need to resume from last backup
-				if lb_istrue $hard_links ; then
-					# reset resume option
-					resume=$resume_last
-
-					# check status of the last backup (only if infofile exists)
-					if ! lb_istrue $resume && [ -f "$destination/$last_clean_backup/backup.info" ] ; then
-						# if last backup failed or was cancelled, resume
-						rsync_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" rsync_result)
-						[ $? == 2 ] && resume=true
-					fi
-
-					# resume from the last backup
-					if lb_istrue $resume ; then
-						debug "Resume from backup: $last_clean_backup"
-						mv_dest=true
-					fi
-				fi
-
-				if $mv_dest ; then
-					# move old backup as current backup (and latest link)
-					move_backup $last_clean_backup $backup_date "$path_dest" && \
-					create_latest_link
-					prepare_dest=$?
-
-					# if resumed,
-					if lb_istrue $hard_links ; then
-						# delete last backup infofile
-						clean_empty_backup -i $last_clean_backup
-
-						# search last clean backup for hard links again, without the latest
-						# we just moved (for trash, we keep the same date)
-						last_clean_backup=$(get_backup_history -n -l -z "$src")
-					fi
-				else
-					# create destination
-					mkdir "$finaldest"
-					prepare_dest=$?
-				fi
-			fi
-		fi # end of prepare backup folder
-
-		# if mkdir (hard links) or mv (no hard links) failed,
-		if [ $prepare_dest != 0 ] ; then
+		# if prepare destination failed,
+		if [ $? != 0 ] ; then
 			lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
 			# prepare report and save exit code
@@ -498,7 +430,7 @@ t2b_backup() {
 				debug "Last backup used for link dest: $last_clean_backup"
 
 				# get link relative path (../../...)
-				local linkdest=$(get_relative_path "$finaldest" "$destination")
+				local linkdest=$(get_relative_path "$destination/$backup_date/$path_dest" "$destination")
 
 				if [ -n "$linkdest" ] ; then
 					linkdest+=$last_clean_backup
@@ -538,7 +470,7 @@ t2b_backup() {
 		fi
 
 		# add source and destination
-		cmd+=("$abs_src" "$(url2ssh "$finaldest")")
+		cmd+=("$abs_src" "$(url2ssh "$destination/$backup_date/$path_dest")")
 
 		# prepare backup: testing space
 		if lb_istrue $test_destination ; then
