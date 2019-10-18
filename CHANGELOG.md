@@ -1,8 +1,9 @@
 # Changelog
 
-## 1.7.0 (2019-10-17)
+## 1.7.0 (2019-10-18)
 ### New features
-- Remote server support
+- Remote destination support with [time2backup server](https://github.com/time2backup/server)
+- New trash mode
 - New sources selector in config wizard
 
 ## 1.6.2 (2019-10-12)
