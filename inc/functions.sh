@@ -74,6 +74,7 @@
 #     run_before
 #     run_after
 #     move_backup
+#     prepare_trash
 #     create_latest_link
 #     notify_backup_end
 #   Exit functions
@@ -915,7 +916,7 @@ prepare_destination() {
 	if lb_istrue $hard_links && ! lb_istrue $force_hard_links ; then
 		if ! test_hardlinks "$destination" ; then
 			# filesystem does not support hard links
-			debug "Destination does not support hard links. Continue in trash mode."
+			debug "Destination does not support hard links."
 			hard_links=false
 		fi
 	fi
@@ -1320,6 +1321,9 @@ load_config() {
 
 	# increment clean_keep to 1 to keep the current backup
 	clean_keep=$(($clean_keep + 1))
+
+	# trash mode: force mirror mode
+	lb_istrue $trash_mode && keep_limit=0
 
 	# set default rsync path if not defined or if custom commands not allowed
 	if [ -z "$rsync_path" ] || lb_istrue $disable_custom_commands ; then
@@ -2279,6 +2283,46 @@ move_backup() {
 	# clean old backup directory; don't care of errors
 	clean_empty_backup $1 "$(dirname "$3" 2> /dev/null)"
 	return 0
+}
+
+
+# Prepare trash
+# Usage: prepare_trash
+# Dependencies: $destination, $last_clean_backup, $path_dest, $remote_destination
+#               $src, $backup_date, $errors
+# Exit codes:
+#   0: OK
+#   1: Failed
+prepare_trash() {
+
+	local trash_date=$last_clean_backup
+	lb_istrue $trash_mode && trash_date=trash
+
+	# backups with a "trash" folder that contains older revisions
+	trash=$destination/$trash_date/$path_dest
+
+	if lb_istrue $remote_destination ; then
+		trash=$(url2path "$destination/$trash_date/$path_dest")
+	else
+		# create trash
+		if ! mkdir -p "$trash" ; then
+			lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
+
+			# prepare report and save exit code
+			errors+=("$src (write error)")
+			[ $lb_exitcode == 0 ] && lb_exitcode=7
+
+			# clean directory but NOT the infofile
+			clean_empty_backup $backup_date "$path_dest"
+
+			return 1
+		fi
+
+		# get absolute path of trash to avoid errors
+		trash=$(lb_abspath "$trash")
+	fi
+
+	echo "$trash"
 }
 
 

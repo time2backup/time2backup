@@ -241,7 +241,7 @@ t2b_backup() {
 	create_infofile
 
 	# prepare results
-	local success=() warnings=() errors=()
+	success=() warnings=() errors=()
 
 	# execute backup for each source
 	# do a loop like this to prevent errors with spaces in strings
@@ -401,7 +401,7 @@ t2b_backup() {
 				finaldest=$destination/$backup_date/$path_dest
 
 				# add server path (with token provided)
-				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep")
+				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(lb_istrue $trash_mode && echo --t2b-trash)")
 			else
 				prepare_dest=1
 			fi
@@ -423,7 +423,7 @@ t2b_backup() {
 				# default behaviour: mkdir
 				mv_dest=false
 
-				# if mirror mode or trash mode, move destination
+				# if mirror mode or no hard links, move destination
 				if [ $keep_limit == 0 ] || ! lb_istrue $hard_links ; then
 					mv_dest=true
 				fi
@@ -470,7 +470,7 @@ t2b_backup() {
 			fi
 		fi # end of prepare backup folder
 
-		# if mkdir (hard links mode) or mv (trash mode) failed,
+		# if mkdir (hard links) or mv (no hard links) failed,
 		if [ $prepare_dest != 0 ] ; then
 			lb_display_error --log "Could not prepare backup destination for source $src. Please verify your access rights."
 
@@ -513,27 +513,28 @@ t2b_backup() {
 					cmd+=(--link-dest "$linkdest")
 				fi
 			else
-				# trash mode
+				# no hard links
 				debug "Last backup used for trash: $last_clean_backup"
 
-				# backups with a "trash" folder that contains older revisions
-				local trash=$destination/$last_clean_backup/$path_dest
-
-				if lb_istrue $remote_destination ; then
-					trash=$(url2path "$destination/$last_clean_backup/$path_dest")
-				else
-					# create trash
-					mkdir -p "$trash"
-
-					# get absolute path of trash to avoid errors
-					trash=$(lb_abspath "$trash")
-				fi
+				# last backup folder will contains only changed/deleted files
+				prepare_trash || continue
 
 				# set trash path
 				# Note: use absolute path to avoid trash to be inside backup destination
 				#       if destination variable is a relative path
 				cmd+=(-b --backup-dir "$trash")
 			fi
+		fi
+
+		# trash mode
+		if lb_istrue $trash_mode ; then
+			# "trash" folder that contains older revisions
+			prepare_trash || continue
+
+			# set trash path (old files will be suffixed by _DATE)
+			# Note: use absolute path to avoid trash to be inside backup destination
+			#       if destination variable is a relative path
+			cmd+=(-b --backup-dir "$trash" --suffix "_$backup_date")
 		fi
 
 		# add source and destination
@@ -1037,7 +1038,7 @@ t2b_restore() {
 	if [ -d "$src" ] ; then
 		local warn_partial=false
 
-		# trash mode: warn when restoring old directories
+		# no hard links: warn when restoring old directories
 		if ! lb_istrue $hard_links && [ "$backup_date" != "${file_history[0]}" ] ; then
 			warn_partial=true
 		fi
