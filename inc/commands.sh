@@ -216,10 +216,10 @@ t2b_backup() {
 		fi
 	fi
 
-	create_lock
-
 	# catch term signals
 	catch_kills cancel_exit
+
+	create_lock
 
 	# set log file path
 	logfile=$logs_directory/time2backup_$backup_date.log
@@ -703,6 +703,10 @@ t2b_restore() {
 				;;
 			-t|--test)
 				test_mode=true
+				no_lock=true
+				;;
+			--no-lock)
+				no_lock=true
 				;;
 			-f|--force)
 				force_mode=true
@@ -725,21 +729,17 @@ t2b_restore() {
 		shift # load next argument
 	done
 
-	# disable if remote destination
-	if lb_istrue $remote_destination ; then
-		echo "This command is disabled for remote destinations."
-		return 255
-	fi
-
 	# test backup destination
 	prepare_destination || return 4
 
 	# get all backups
-	backups=($(get_backups))
-	# if no backups, exit
-	if [ ${#backups[@]} == 0 ] ; then
-		lbg_error "$tr_no_backups_available"
-		return 5
+	if ! lb_istrue $remote_destination ; then
+		backups=($(get_backups))
+		# if no backups, exit
+		if [ ${#backups[@]} == 0 ] ; then
+			lbg_error "$tr_no_backups_available"
+			return 5
+		fi
 	fi
 
 	# get path from argument
@@ -831,6 +831,12 @@ t2b_restore() {
 					return 1
 					;;
 			esac
+
+			# TODO: translate
+			if lbg_yesno "Do you want to choose a place to restore your files?" ; then
+				# choose destination folder (if cancel, continue)
+				lbg_choose_directory -t "Choose a destination:" && restore_path=$lbg_choose_directory
+			fi
 		fi
 	fi
 
@@ -845,6 +851,12 @@ t2b_restore() {
 
 	# remote path
 	if [ "$(get_protocol "$restore_path")" == ssh ] ; then
+		# test if we don't have double remotes
+		# (rsync does not support ssh to ssh copy)
+		if lb_istrue $remote_destination ; then
+			lbg_display_error "You cannot restore a remote backup to a remote destination."
+			return 1
+		fi
 		remote_source=true
 	else
 		# get UNIX format for Windows paths
@@ -871,8 +883,17 @@ t2b_restore() {
 	# if error, exit
 	[ -z "$backup_file_path" ] && return 1
 
-	# get all versions of the file/directory
-	file_history=($(get_backup_history "$file"))
+	if lb_istrue $remote_destination ; then
+		# remote: get backup versions of the file
+		file_history=($("${t2bserver_cmd[@]}" history "$file"))
+		if [ $? != 0 ] ; then
+			lb_error "Remote server connection error"
+			return 4
+		fi
+	else
+		# get backup versions of the file
+		file_history=($(get_backup_history "$file"))
+	fi
 
 	# if no backup found
 	if [ ${#file_history[@]} == 0 ] ; then
@@ -910,11 +931,31 @@ t2b_restore() {
 	# if latest backup wanted, get most recent date
 	[ "$backup_date" == latest ] && backup_date=${file_history[0]}
 
+	# remote: get infos from server
+	prepare_remote_destination restore $backup_date "$file" || return 4
+
+	# test if a backup is running
+	if ! lb_istrue $no_lock ; then
+		if lb_istrue $remote_destination ; then
+			[ "$server_status" == running ]
+		else
+			current_lock -q
+		fi
+
+		if [ $? == 0 ] ; then
+			debug "Destination locked"
+
+			# display window error & quit
+			lbg_error "$tr_backup_already_running"
+			return 4
+		fi
+	fi
+
 	# set backup source for restore command
-	src=$destination/$backup_date/$backup_file_path
+	src=$(url2ssh "$destination/$backup_date/$backup_file_path")
 
 	# if source is a directory
-	if [ -d "$src" ] ; then
+	if [ -d "$src" ] || [ "$src_type" == directory ] ; then
 		local warn_partial=false
 
 		# no hard links: warn when restoring old directories
@@ -923,8 +964,10 @@ t2b_restore() {
 		fi
 
 		# if rsync result was not good (backup failed or was incomplete)
-		[ "$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)" != 0 ] && \
-			warn_partial=true
+		lb_istrue $remote_destination || \
+			rsync_result=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)
+
+		[ "$rsync_result" != 0 ] && warn_partial=true
 
 		# warn user & ask to confirm
 		if $warn_partial ; then
@@ -951,9 +994,6 @@ t2b_restore() {
 
 	# prepare rsync command
 	prepare_rsync restore
-
-	# catch term signals
-	catch_kills cancel_exit
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
@@ -1009,7 +1049,33 @@ t2b_restore() {
 	# test mode
 	lb_istrue $test_mode && cmd+=(--dry-run)
 
+	lb_istrue $remote_destination && \
+		cmd+=(--rsync-path "$(get_rsync_remote_command) restore $(lb_istrue $no_lock && echo --t2b-nolock)")
+
 	cmd+=("$src" "$dest")
+
+	# catch term signals
+	catch_kills cancel_exit
+
+	if ! lb_istrue $no_lock ; then
+		# retest if a backup is running
+		if lb_istrue $remote_destination ; then
+			[ "$server_status" == running ]
+		else
+			current_lock -q
+		fi
+
+		if [ $? == 0 ] ; then
+			debug "Destination locked"
+
+			# display window error & quit
+			lbg_error "$tr_backup_already_running"
+			return 4
+		else
+			# create lock
+			create_lock
+		fi
+	fi
 
 	# set log file path
 	logfile=$logs_directory/restore_$(date '+%Y-%m-%d-%H%M%S').log
@@ -1032,7 +1098,7 @@ t2b_restore() {
 		# delete log file, print info and quit
 		delete_logfile
 		lbg_info "$tr_restore_finished"
-		return 0
+		clean_exit 0
 	fi
 
 	# if the was errors,
@@ -1054,7 +1120,7 @@ t2b_restore() {
 		open_config "$logfile" &> /dev/null &
 	fi
 
-	return $res
+	clean_exit $res
 }
 
 

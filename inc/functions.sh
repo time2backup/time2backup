@@ -2066,6 +2066,20 @@ rsync_result() {
 #  Remote backups
 #
 
+# Read server response from input line
+# Usage: read_remote_config PARAM FILE_CONTENT
+# Exit codes:
+#   0: OK
+#   1: param not found
+read_remote_config() {
+	local param=$1
+	shift
+
+	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//; s/^\"\(.*\)\"$/\1/; s/^'\(.*\)'$/\1/; s/\\\\\"/\"/g"
+	return ${PIPESTATUS[1]}
+}
+
+
 # Prepare remote destination
 # Usage: prepare_remote_destination COMMAND [ARGS]
 # Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
@@ -2077,7 +2091,11 @@ prepare_remote_destination() {
 	debug "Connect to remote server..."
 
 	# run distant command
-	response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
+	if [ "$1" == backup ] ; then
+		response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
+	else
+		response=$("${t2bserver_cmd[@]}" prepare "$@")
+	fi
 
 	if [ $? != 0 ] ; then
 		lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
@@ -2104,20 +2122,14 @@ prepare_remote_destination() {
 	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
 
 	# optionnal infos
+
 	last_clean_backup=$(read_remote_config trash "$response")
+	server_status=$(read_remote_config status "$response")
+
+	rsync_result=$(read_remote_config rsync_result "$response")
+	src_type=$(read_remote_config src_type "$response")
 
 	return 0
-}
-
-
-# Usage: read_remote_config PARAM FILE_CONTENT
-read_remote_config() {
-	local param=$1
-	shift
-
-	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//; s/^\"\(.*\)\"$/\1/; s/^'\(.*\)'$/\1/; s/\\\\\"/\"/g"
-
-	return ${PIPESTATUS[1]}
 }
 
 
