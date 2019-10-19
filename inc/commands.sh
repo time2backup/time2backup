@@ -885,7 +885,8 @@ t2b_restore() {
 
 	if lb_istrue $remote_destination ; then
 		# remote: get backup versions of the file
-		file_history=($("${t2bserver_cmd[@]}" history "$file"))
+		# be careful to send absolute path of the file and not $file that could be relative!
+		file_history=($("${t2bserver_cmd[@]}" history "${backup_file_path:6}"))
 		if [ $? != 0 ] ; then
 			lb_error "Remote server connection error"
 			return 4
@@ -932,7 +933,10 @@ t2b_restore() {
 	[ "$backup_date" == latest ] && backup_date=${file_history[0]}
 
 	# remote: get infos from server
-	prepare_remote_destination restore $backup_date "$file" || return 4
+	# be careful to send absolute path of the file and not $file that could be relative!
+	if lb_istrue $remote_destination ; then
+		prepare_remote_destination restore $backup_date "${backup_file_path:6}" || return 4
+	fi
 
 	# test if a backup is running
 	if ! lb_istrue $no_lock ; then

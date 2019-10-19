@@ -662,13 +662,13 @@ get_backup_path() {
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$path" ] ; then
-		echo -n "/files/$(lb_abspath "$path")"
+		echo -n "/files$(lb_abspath "$path")"
 
 		# if it is a directory, add '/' at the end of the path
 		[ -d "$path" ] && echo /
 	else
 		if [ -d "$(dirname "$path")" ] ; then
-			echo "/files/$(lb_abspath "$path")"
+			echo "/files$(lb_abspath "$path")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -676,6 +676,8 @@ get_backup_path() {
 			return 1
 		fi
 	fi
+	
+	return 0
 }
 
 

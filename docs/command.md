@@ -126,6 +126,7 @@ time2backup [GLOBAL_OPTIONS] restore [OPTIONS] [PATH] [DESTINATION]
 --delete-new     Delete newer files if exists for directories (restore exactly the same version)
 -p, --progress   Display restore progress for each file (overrides configuration)
 -t, --test       Test mode; do not restore files
+--no-lock        Do not create a lock when restoring
 -f, --force      Force restore; do not display confirmation
 -q, --quiet      Quiet mode; do not print transfer details
 -h, --help       Print help
