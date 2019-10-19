@@ -138,7 +138,7 @@ DESTINATION      Destination for restored files
 - 0: File(s) restored
 - 1: Usage error
 - 3: Config error
-- 4: Backup device is not reachable
+- 4: Backup device is not available
 - 5: No backups available at this path
 - 6: No backups of this file
 - 7: No backup found at this date

@@ -749,21 +749,11 @@ t2b_restore() {
 	if [ ${#file} == 0 ] ; then
 
 		# choose type of file to restore (file/directory)
-		lbg_choose_option -d 1 -l "$tr_choose_restore" "$tr_restore_existing_file" "$tr_restore_moved_file" "$tr_restore_existing_directory" "$tr_restore_moved_directory"
+		local choices=("$tr_restore_existing_file" "$tr_restore_existing_directory")
 
-		case $? in
-			0)
-				# continue
-				;;
-			2)
-				# cancelled
-				return 0
-				;;
-			*)
-				# error
-				return 1
-				;;
-		esac
+		lb_istrue $remote_destination || choices+=("$tr_restore_moved_file" "$tr_restore_moved_directory")
+
+		lbg_choose_option -d 1 -l "$tr_choose_restore" "${choices[@]}" || return 0
 
 		# manage chosen option
 		case $lbg_choose_option in
@@ -771,13 +761,13 @@ t2b_restore() {
 				# restore a file
 				;;
 			2)
+				# restore a directory
+				directory_mode=true
+				;;
+			3)
 				# restore a moved file
 				starting_path=$destination
 				restore_moved=true
-				;;
-			3)
-				# restore a directory
-				directory_mode=true
 				;;
 			4)
 				# restore a moved directory
@@ -790,48 +780,17 @@ t2b_restore() {
 				;;
 		esac
 
-		# choose a directory
+		# choose a directory to restore
 		if $directory_mode ; then
-			lbg_choose_directory -t "$tr_choose_directory_to_restore" "$starting_path"
-			case $? in
-				0)
-					# continue
-					;;
-				2)
-					# cancelled
-					return 0
-					;;
-				*)
-					# error
-					return 1
-					;;
-			esac
-
-			# get path to restore
+			lbg_choose_directory -t "$tr_choose_directory_to_restore" "$starting_path" || return 0
 			file=$lbg_choose_directory
-
 		else
-			# choose a file
-			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path"
-			case $? in
-				0)
-					# continue
-					;;
-				2)
-					# cancelled
-					return 0
-					;;
-				*)
-					# error
-					return 1
-					;;
-			esac
-
-			# get path to restore
+			# choose a file to restore
+			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path" || return 0
 			file=$lbg_choose_file
 		fi
 
-		# restore a moved file
+		# restore a moved/deleted file
 		if $restore_moved ; then
 			# test if path to restore is stored in the backup directory
 			if [[ "$file" != "$destination"* ]] ; then
@@ -845,7 +804,7 @@ t2b_restore() {
 			[ "${file:0:1}" == / ] && file=${file:1}
 
 			# get backup date
-			backup_date=$(echo $file | grep -oE "^$backup_date_format")
+			backup_date=$(echo $file | grep -o "^$backup_date_format")
 			if [ -z "$backup_date" ] ; then
 				lbg_error "$tr_path_is_not_backup"
 				return 1
@@ -863,8 +822,9 @@ t2b_restore() {
 					file=${file:6}
 					;;
 				/ssh/*)
-					# absolute path of destination
-					file=${file:4}
+					# transform path to URL
+					# Warning: if user@host defined, it will be lost (keep only host)
+					file=ssh:/${file:4}
 					;;
 				*)
 					lbg_error "$tr_path_is_not_backup"
@@ -941,20 +901,7 @@ t2b_restore() {
 		done
 
 		# choose backup date
-		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
-		case $? in
-			0)
-				# continue
-				;;
-			2)
-				# cancelled
-				return 0
-				;;
-			*)
-				# error
-				return 1
-				;;
-		esac
+		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}" || return 0
 
 		# get chosen backup (= chosen ID - 1 because array ID starts from 0)
 		backup_date=${file_history[lbg_choose_option-1]}
@@ -1068,9 +1015,8 @@ t2b_restore() {
 	logfile=$logs_directory/restore_$(date '+%Y-%m-%d-%H%M%S').log
 
 	# create log file for errors
-	if ! create_logfile "$logfile" ; then
+	create_logfile "$logfile" || \
 		lb_warning "Cannot create log file. If there are errors, you will not be able to check them easely."
-	fi
 
 	notify "$tr_notify_restoring"
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
@@ -1361,20 +1307,7 @@ t2b_explore() {
 				done
 
 				# choose backup date
-				lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}"
-				case $? in
-					0)
-						# continue
-						;;
-					2)
-						# cancelled
-						return 0
-						;;
-					*)
-						# error
-						return 1
-						;;
-				esac
+				lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}" || return 0
 
 				# get chosen backup (= chosen ID - 1 because array ID starts from 0)
 				backup_date=${path_history[lbg_choose_option-1]}

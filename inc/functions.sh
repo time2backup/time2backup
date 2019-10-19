@@ -681,12 +681,16 @@ get_backup_path() {
 
 # Get all backup dates
 # Usage: get_backups [PATH]
-# Dependencies: $destination, $backup_date_format, $ssh_options
+# Dependencies: $remote_destination, $destination, $backup_date_format, $ssh_options
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
 #   1: error for the path
 get_backups() {
+
+	# remote destination: do nothing
+	lb_istrue $remote_destination && return 0
+
 	# default options
 	local path=$destination
 
@@ -2085,17 +2089,21 @@ prepare_remote_destination() {
 
 	# get infos from server response
 
+	# save session token
 	t2bserver_token=$(read_remote_config token "$response")
 	[ -z "$t2bserver_token" ] && return 1
 
-	# get remote backup path
+	# save remote backup destination
 	local remote_backup_path=$(read_remote_config destination "$response")
 	[ -z "$remote_backup_path" ] && return 1
-
 	destination=$(remove_end_slash "$destination")$remote_backup_path
 
+	# hard links support is set by server and cannot be overwritten by client config
 	hard_links=false
+	force_hard_links=false
 	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
+
+	# optionnal infos
 	last_clean_backup=$(read_remote_config trash "$response")
 
 	return 0
@@ -2479,41 +2487,44 @@ clean_exit() {
 
 	debug "Clean exit"
 
-	clean_empty_backup -i $backup_date "$path_dest"
-
 	# delete backup lock
 	release_lock
 
-	# unmount destination
-	if ! unmount_destination ; then
-		lb_display_critical --log "$tr_error_unmount"
-		lbg_critical "$tr_error_unmount"
+	if [ "$command" == backup ] ; then
 
-		[ $lb_exitcode == 0 ] && lb_exitcode=18
+		clean_empty_backup -i $backup_date "$path_dest"
+
+		# unmount destination
+		if ! unmount_destination ; then
+			lb_display_critical --log "$tr_error_unmount"
+			lbg_critical "$tr_error_unmount"
+
+			[ $lb_exitcode == 0 ] && lb_exitcode=18
+		fi
+
+		send_email_report
+
+		# delete log file
+		local delete_logs=true
+
+		case $keep_logs in
+			always)
+				delete_logs=false
+				;;
+			on_error)
+				[ $lb_exitcode != 0 ] && delete_logs=false
+				;;
+		esac
+
+		# delete log file
+		$delete_logs && delete_logfile
+
+		# if shutdown after backup, execute it
+		lb_istrue $shutdown && haltpc
+
+		# Windows end backup notification popup
+		[ ${#windows_ending_popup} -gt 0 ] && lbg_info "$windows_ending_popup"
 	fi
-
-	send_email_report
-
-	# delete log file
-	local delete_logs=true
-
-	case $keep_logs in
-		always)
-			delete_logs=false
-			;;
-		on_error)
-			[ $lb_exitcode != 0 ] && delete_logs=false
-			;;
-	esac
-
-	# delete log file
-	$delete_logs && delete_logfile
-
-	# if shutdown after backup, execute it
-	lb_istrue $shutdown && haltpc
-
-	# Windows end backup notification popup
-	[ ${#windows_ending_popup} -gt 0 ] && lbg_info "$windows_ending_popup"
 
 	debug "Exited with code: $lb_exitcode"
 
@@ -2537,7 +2548,7 @@ cancel_exit() {
 			;;
 		restore)
 			notify "$tr_restore_cancelled"
-			exit 11
+			clean_exit 11
 			;;
 		*)
 			lb_exit
