@@ -6,6 +6,10 @@
 - New trash mode
 - New sources selector in config wizard
 
+### Changes
+- Removed compatibility for old subdirectories destinations (deprecated since 1.3.0)
+- Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
+
 ## 1.6.2 (2019-10-12)
 ### Bugfixes
 - Improve import/export by using better references

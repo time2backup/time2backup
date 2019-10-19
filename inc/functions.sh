@@ -858,14 +858,6 @@ prepare_destination() {
 
 	debug "Testing destination on: $destination..."
 
-	# subdirectories removed since 1.3.0
-	local new_destination=$destination/backups/$lb_current_hostname
-	if [ -d "$new_destination" ] ; then
-		debug "Migration destination path to: $new_destination"
-		destination=$new_destination
-		lb_set_config "$config_file" destination "$new_destination"
-	fi
-
 	local destok=false
 
 	# test backup destination directory

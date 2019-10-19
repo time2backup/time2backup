@@ -60,7 +60,7 @@ t2b_backup() {
 				test_mode=true
 				test_destination=false
 				;;
-			--force-lock|--force-unlock)
+			--force-unlock)
 				force_unlock=true
 				;;
 			-q|--quiet)
