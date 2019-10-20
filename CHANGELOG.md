@@ -3,12 +3,14 @@
 ## 1.7.0 (2019-10-18)
 ### New features
 - Remote destination support with [time2backup server](https://github.com/time2backup/server)
-- New trash mode
+- New trash mode: put every old backup versions in the same directory, like a trashbin
 - New sources selector in config wizard
 
 ### Changes
 - Removed compatibility for old subdirectories destinations (deprecated since 1.3.0)
 - Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
+- Config parameter `ssh_options` is now an array of values (old configs are upgraded automatically)
+- Major code rewrites in backup procedure with simplifications
 
 ## 1.6.2 (2019-10-12)
 ### Bugfixes

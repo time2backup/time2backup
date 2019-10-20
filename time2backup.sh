@@ -10,7 +10,7 @@
 #  Version 1.7.0 (2019-10-18)
 #
 
-declare -r version=1.7.0-beta.2
+declare -r version=1.7.0-rc.1
 
 
 #
