@@ -630,7 +630,7 @@ get_backup_path() {
 
 	# if absolute path (first character is a /), return file path
 	if [ "${path:0:1}" == / ] ; then
-		echo "/files$path"
+		echo /files"$path"
 		return 0
 	fi
 
@@ -662,13 +662,13 @@ get_backup_path() {
 
 	# if not exists (file moved or deleted), try to get parent directory path
 	if [ -e "$path" ] ; then
-		echo -n "/files$(lb_abspath "$path")"
+		echo -n /files"$(lb_abspath "$path")"
 
 		# if it is a directory, add '/' at the end of the path
 		[ -d "$path" ] && echo /
 	else
 		if [ -d "$(dirname "$path")" ] ; then
-			echo "/files$(lb_abspath "$path")"
+			echo /files"$(lb_abspath "$path")"
 		else
 			# if not exists, I cannot guess original path
 			lb_error "File does not exist."
@@ -676,7 +676,7 @@ get_backup_path() {
 			return 1
 		fi
 	fi
-	
+
 	return 0
 }
 
@@ -1174,7 +1174,7 @@ upgrade_config() {
 		debug "Upgrading config v$old_config_version -> v$version"
 	fi
 
-	# save old config file
+	# prepare new config file
 	local new_config=$config_file.v$version
 
 	cat "$lb_current_script_directory"/config/time2backup.example.conf > "$new_config"
@@ -1186,12 +1186,34 @@ upgrade_config() {
 	# transform Windows file
 	file_for_windows "$new_config"
 
-	# upgrade config & install it
-	# Note: we avoid to create new files every time
-	lb_migrate_config "$config_file" "$new_config" && \
-	cat "$new_config" > "$config_file" && \
-	rm -f "$new_config"
+	# import old config in new file
+	lb_migrate_config "$config_file" "$new_config"
+	if [ $? != 0 ] ; then
+		lb_display_error "$tr_error_upgrade_config"
+		return 2
+	fi
 
+	# custom upgrade process
+
+	# version < 1.7.0: migrate ssh options field
+	if lb_compare_versions "$old_config_version" -lt 1.7.0 ; then
+		local old_ssh_options=$(grep '^ssh_options' "$new_config" | cut -d= -f2-)
+		# if defined and not migrated yet
+		if [ -n "$old_ssh_options" ] && ! echo "$old_ssh_options" | grep -Eq '^[[:space:]]*\(' ; then
+			# remove quotes, delete ssh command
+			old_ssh_options=$(echo "$old_ssh_options" | sed 's/^[[:space:]]*"[[:space:]]*//; s/[[:space:]]*"[[:space:]]*$//; s/ssh[[:space:]]*//')
+			# replace config with array syntax
+			lb_edit "s|^ssh_options.*|ssh_options = ($old_ssh_options)|" "$new_config"
+			if [ $? != 0 ] ; then
+				lb_display_error "$tr_error_upgrade_config"
+				return 2
+			fi
+		fi
+	fi
+
+	# install new config
+	# Note: we avoid to create new files every time
+	cat "$new_config" > "$config_file" && rm -f "$new_config"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
