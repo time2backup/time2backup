@@ -163,6 +163,7 @@ print_help() {
 			echo "Force rotate backups"
 
 			print_help_options
+			echo "  -t, --test   Test mode; do not delete backups"
 			echo "  -f, --force  Force clean; do not display confirmation"
 			echo "  -q, --quiet  Quiet mode"
 			echo "  -h, --help   Print help"

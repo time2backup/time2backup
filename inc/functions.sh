@@ -726,6 +726,9 @@ delete_backup() {
 	# usage error
 	[ -z "$1" ] && return 1
 
+	# test mode: no delete
+	lb_istrue $test_mode && return 0
+
 	# delete log file
 	debug "Deleting log file time2backup_$1.log..."
 	rm -f "$logs_directory/time2backup_$1.log" || \

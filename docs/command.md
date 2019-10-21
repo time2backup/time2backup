@@ -305,6 +305,7 @@ time2backup [GLOBAL_OPTIONS] rotate [OPTIONS] [LIMIT]
 
 ### Options
 ```
+-t, --test   Test mode; do not delete backups
 -f, --force  Force clean; do not display confirmation
 -q, --quiet  Quiet mode
 -h, --help   Print help

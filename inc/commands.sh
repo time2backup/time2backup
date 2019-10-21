@@ -743,7 +743,7 @@ t2b_restore() {
 	fi
 
 	# get path from argument
-	file=$1
+	local file=$1
 
 	# if no file specified, go to interactive mode
 	if [ ${#file} == 0 ] ; then
@@ -1401,9 +1401,8 @@ t2b_explore() {
 # Usage: t2b_config [OPTIONS]
 t2b_config() {
 
-	# default values
-	file=""
-	local op_config cmd_opts=()
+	# default options
+	local file op_config cmd_opts=()
 
 	# get options
 	# following other options to open_config() function
@@ -1557,7 +1556,7 @@ t2b_config() {
 # Usage: t2b_mv [OPTIONS] PATH
 t2b_mv() {
 
-	# default option values
+	# default options
 	local mv_latest=false force_mode=false
 
 	# get options
@@ -1691,7 +1690,7 @@ t2b_mv() {
 # Usage: t2b_clean [OPTIONS] PATH
 t2b_clean() {
 
-	# default option values
+	# default options
 	local keep=0 force_mode=false
 
 	# get options
@@ -1799,9 +1798,16 @@ t2b_clean() {
 # Usage: t2b_rotate [OPTIONS] [LIMIT]
 t2b_rotate() {
 
+	# default options
+	local force_mode=false
+
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
+			-t|--test)
+				test_mode=true
+				force_mode=true
+				;;
 			-f|--force)
 				force_mode=true
 				;;
@@ -1916,8 +1922,8 @@ t2b_status() {
 # Usage: t2b_stop [OPTIONS]
 t2b_stop() {
 
-	# default options and values
-	local force_mode=false pid_killed=false
+	# default options
+	local force_mode=false
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -2023,7 +2029,7 @@ t2b_stop() {
 # Usage: t2b_import [OPTIONS] PATH [DATE...]
 t2b_import() {
 
-	# default option values
+	# default options
 	local reference limit=0
 
 	# get options
@@ -2228,7 +2234,7 @@ t2b_import() {
 # Usage: t2b_export [OPTIONS] PATH
 t2b_export() {
 
-	# default option values
+	# default options
 	local reference limit=0
 
 	# get options
