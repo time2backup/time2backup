@@ -382,14 +382,15 @@ time2backup [GLOBAL_OPTIONS] import [OPTIONS] PATH [DATE...]
 
 ### Options
 ```
--l, --latest      Import only the latest backup
---limit N         Limit import to N latest backups
---reference DATE  Specify a backup date reference
--f, --force       Do not print confirmation
--h, --help        Print help
+-l, --latest          Import only the latest backup
+--limit N             Limit import to N latest backups
+-r, --reference DATE  Specify a backup date reference
+-a, --all             Import all backups, even already existing ones
+-f, --force           Do not print confirmation
+-h, --help            Print help
 
-DATE              Backup date to import
-                  (Useful if you cannot get information about existing backups)
+DATE                  Backup date to import
+                      (Useful if you cannot get information about existing backups)
 ```
 
 ### Exit codes
@@ -412,11 +413,12 @@ time2backup [GLOBAL_OPTIONS] export [OPTIONS] PATH
 
 ### Options
 ```
--l, --latest      Export only the latest backup
---limit N         Limit export to N latest backups
---reference DATE  Specify a backup date reference
--f, --force       Do not print confirmation
--h, --help        Print help
+-l, --latest          Export only the latest backup
+--limit N             Limit export to N latest backups
+-r, --reference DATE  Specify a backup date reference
+-a, --all             Export all backups, even already existing ones
+-f, --force           Do not print confirmation
+-h, --help            Print help
 ```
 
 ### Exit codes

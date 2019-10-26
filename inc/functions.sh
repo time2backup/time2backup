@@ -75,6 +75,7 @@
 #     run_before
 #     run_after
 #     move_backup
+#     prepare_backup
 #     prepare_trash
 #     create_latest_link
 #     notify_backup_end

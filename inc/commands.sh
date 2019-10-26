@@ -2046,13 +2046,16 @@ t2b_import() {
 				fi
 				shift
 				;;
-			--reference)
+			-r|--reference)
 				reference=$(lb_getopt "$@")
 				if ! check_backup_date "$reference" ; then
 					print_help
 					return 1
 				fi
 				shift
+				;;
+			-a|--all)
+				import_all=true
 				;;
 			-f|--force)
 				force_mode=true
@@ -2148,13 +2151,10 @@ t2b_import() {
 	# prepare rsync command
 	prepare_rsync import
 
-	local b d src cmd result error errors=()
+	local b d src cmd import result error errors=()
 	for ((b=${#existing_backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${existing_backups[b]}
-
-		lb_print
-		lb_print "Import $src... ($((${#existing_backups[@]} - $b))/$total)"
 
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")
@@ -2180,7 +2180,22 @@ t2b_import() {
 		# add source and destination in rsync command
 		cmd+=("$import_source/$src/" "$destination/$src")
 
-		while true ; do
+		lb_print
+		lb_print "Import $src... ($((${#existing_backups[@]} - $b))/$total)"
+
+		# reset status
+		import=true
+		result=0
+
+		if ! lb_istrue $import_all ; then
+			# search if backup has already been imported
+			if lb_in_array $src "${backups[@]}" ; then
+				lb_print "... Already imported"
+				import=false
+			fi
+		fi
+
+		while $import ; do
 			debug "Run ${cmd[*]}"
 
 			"${cmd[@]}"
@@ -2206,7 +2221,7 @@ t2b_import() {
 		done
 
 		if [ $result == 0 ] ; then
-			# set reference
+			# change reference
 			reference=$src
 		else
 			# append error message to report
@@ -2251,13 +2266,16 @@ t2b_export() {
 				fi
 				shift
 				;;
-			--reference)
+			-r|--reference)
 				reference=$(lb_getopt "$@")
 				if ! check_backup_date "$reference" ; then
 					print_help
 					return 1
 				fi
 				shift
+				;;
+			-a|--all)
+				export_all=true
 				;;
 			-f|--force)
 				force_mode=true
@@ -2357,13 +2375,10 @@ t2b_export() {
 	# prepare rsync command
 	prepare_rsync export
 
-	local b d src cmd result error errors=()
+	local b d src cmd export result error errors=()
 	for ((b=${#backups[@]}-1; b>=$limit; b--)) ; do
 
 		src=${backups[b]}
-
-		lb_print
-		lb_print "Export $src... ($((${#backups[@]} - $b))/$total)"
 
 		# prepare rsync command
 		cmd=("${rsync_cmd[@]}")
@@ -2389,7 +2404,22 @@ t2b_export() {
 		# add source and destination in rsync command
 		cmd+=("$destination/$src/" "$export_destination/$src")
 
-		while true ; do
+		lb_print
+		lb_print "Export $src... ($((${#backups[@]} - $b))/$total)"
+
+		# reset status
+		export=true
+		result=0
+
+		if ! lb_istrue $export_all ; then
+			# search if backup has already been exported
+			if lb_in_array $src "${existing_backups[@]}" ; then
+				lb_print "... Already exported"
+				export=false
+			fi
+		fi
+
+		while $export ; do
 			debug "Run ${cmd[*]}"
 
 			"${cmd[@]}"
