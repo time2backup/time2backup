@@ -2109,21 +2109,42 @@ read_remote_config() {
 #               $destination, $hard_links, $last_clean_backup
 prepare_remote_destination() {
 
-	local response
+	local response code=0
 
 	debug "Connect to remote server..."
 
 	# run distant command
 	if [ "$1" == backup ] ; then
-		response=$("${t2bserver_cmd[@]}" prepare "$@" 2>> "$logfile")
+		response=$("${t2bserver_cmd[@]}" prepare "$@" 2> >(tee -a "$logfile" >&2))
 	else
 		response=$("${t2bserver_cmd[@]}" prepare "$@")
 	fi
 
-	if [ $? != 0 ] ; then
-		lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
-		return 1
-	fi
+	code=$?
+	case $code in
+		0)
+			# OK: continue
+			;;
+
+		208)
+			# backup already running
+
+			# print error message
+			lb_display_error "$tr_backup_already_running"
+
+			# display window error
+			if ! lb_istrue $recurrent_backup && ! lb_istrue $console_mode ; then
+				lbg_error "$tr_backup_already_running"
+			fi
+			clean_exit 8
+			;;
+
+		*)
+			debug "Server returned error code: $code"
+			lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
+			return 1
+			;;
+	esac
 
 	debug "Server response:"
 	debug "$response"
