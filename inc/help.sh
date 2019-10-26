@@ -198,7 +198,7 @@ print_help() {
 			print_help_options
 			echo "  -l, --latest          Import only the latest backup"
 			echo "  --limit N             Limit import to N latest backups"
-			echo "  -r, --reference DATE  Specify a backup date reference
+			echo "  -r, --reference DATE  Specify a backup date reference"
 			echo "  -a, --all             Import all backups, even already existing ones"
 			echo "  -f, --force           Do not print confirmation"
 			echo "  -h, --help            Print help"

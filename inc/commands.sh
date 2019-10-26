@@ -372,9 +372,6 @@ t2b_backup() {
 			[ -n "$rsync_remote_command" ] && cmd+=(--rsync-path "$rsync_remote_command")
 		fi
 
-		# test mode
-		lb_istrue $test_mode && cmd+=(--dry-run)
-
 		# if it is a directory, add '/' at the end of the path
 		if [ -d "$abs_src" ] ; then
 			[ "${abs_src:${#abs_src}-1}" != / ] && abs_src+=/
@@ -1050,9 +1047,7 @@ t2b_restore() {
 	# delete new files
 	$delete_newer_files && cmd+=(--delete)
 
-	# test mode
-	lb_istrue $test_mode && cmd+=(--dry-run)
-
+	# remote server
 	lb_istrue $remote_destination && \
 		cmd+=(--rsync-path "$(get_rsync_remote_command) restore $(lb_istrue $no_lock && echo --t2b-nolock)")
 

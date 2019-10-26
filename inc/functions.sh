@@ -1981,6 +1981,9 @@ prepare_rsync() {
 		lb_istrue $files_progress && rsync_cmd+=(--progress)
 	fi
 
+	# test mode
+	lb_istrue $test_mode && rsync_cmd+=(--dry-run)
+
 	# remote rsync path
 	if lb_istrue $remote_source ; then
 		local rsync_remote_command=$(get_rsync_remote_command)
