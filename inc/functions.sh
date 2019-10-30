@@ -2128,7 +2128,7 @@ prepare_remote_destination() {
 			# OK: continue
 			;;
 
-		208)
+		205)
 			# backup already running
 
 			# print error message
