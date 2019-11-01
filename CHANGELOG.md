@@ -5,13 +5,17 @@
 - Remote destination support with [time2backup server](https://github.com/time2backup/server)
 - New trash mode: put every old backup versions in the same directory, like a trashbin
 - New sources selector in config wizard
+- New `--all` option for `import` and `export` commands
+- New `--test` option for `rotate` command
 
 ### Changes
 - Removed compatibility for old subdirectories destinations (deprecated since 1.3.0)
 - Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
 - Config parameter `ssh_options` is now an array of values (old configs are upgraded automatically)
 - Removed config parameter `remote_sudo` (old configs are upgraded automatically)
+- Enhance security for config import
 - Major code rewrites in backup procedure with simplifications
+- Upgrade libbash.sh to 1.14.4
 
 ## 1.6.2 (2019-10-12)
 ### Bugfixes
