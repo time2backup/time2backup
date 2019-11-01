@@ -10,6 +10,7 @@
 - Removed compatibility for old subdirectories destinations (deprecated since 1.3.0)
 - Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
 - Config parameter `ssh_options` is now an array of values (old configs are upgraded automatically)
+- Removed config parameter `remote_sudo` (old configs are upgraded automatically)
 - Major code rewrites in backup procedure with simplifications
 
 ## 1.6.2 (2019-10-12)

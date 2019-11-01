@@ -1199,9 +1199,26 @@ upgrade_config() {
 
 	# custom upgrade process
 
-	# version < 1.7.0: migrate ssh options field
-	if lb_compare_versions "$old_config_version" -lt 1.7.0 ; then
-		local old_ssh_options=$(grep '^ssh_options' "$new_config" | cut -d= -f2-)
+	# version < 1.7.0 (including pre-releases)
+	if lb_compare_versions "$old_config_version" -le 1.7.0 ; then
+
+		# remove remote_sudo option
+		local old_remote_sudo=$(grep '^remote_sudo' "$config_file" | cut -d= -f2- | tr -d '[:space:]')
+		# if defined in the old config,
+		if [ -n "$old_remote_sudo" ] && [ "$old_remote_sudo" == true ] ; then
+			# if rsync remote path is defined,
+			local new_rsync_remote_path=$(lb_get_config "$new_config" rsync_remote_path)
+			if [ -n "$new_rsync_remote_path" ] ; then
+				# append 'sudo ' to existing remote path
+				[ "${new_rsync_remote_path:0:5}" != "sudo " ] && \
+					lb_set_config "$new_config" rsync_remote_path "sudo $new_rsync_remote_path"
+			else
+				lb_set_config "$new_config" rsync_remote_path "sudo rsync"
+			fi
+		fi
+
+		# migrate ssh options field
+		local old_ssh_options=$(grep '^ssh_options' "$config_file" | cut -d= -f2-)
 		# if defined and not migrated yet
 		if [ -n "$old_ssh_options" ] && ! echo "$old_ssh_options" | grep -Eq '^[[:space:]]*\(' ; then
 			# remove quotes, delete ssh command
@@ -1273,9 +1290,6 @@ load_config() {
 
 			# get time2backup server command
 			t2bserver_cmd=(ssh "${ssh_options[@]}" "$(url2host "$destination")")
-
-			# server in sudo mode
-			lb_istrue $remote_sudo && t2bserver_cmd+=(sudo)
 
 			# server command path
 			if [ -n "$t2bserver_path" ] ; then
@@ -2031,7 +2045,7 @@ prepare_rsync() {
 
 # Generate rsync remote command
 # Usage: get_rsync_remote_command
-# Dependencies: $remote_destination, $rsync_remote_path, $remote_sudo,
+# Dependencies: $remote_destination, $rsync_remote_path,
 #               $t2bserver_path, $t2bserver_token, $t2bserver_pwd
 # Return: Remote command
 get_rsync_remote_command() {
@@ -2051,13 +2065,8 @@ get_rsync_remote_command() {
 			[ -n "$t2bserver_pwd" ] && echo " -p $t2bserver_pwd"
 		fi
 	else
-		# rsync remote path
-		if [ -n "$rsync_remote_path" ] ; then
-			lb_istrue $remote_sudo && echo -n 'sudo '
-			echo "$rsync_remote_path"
-		else
-			lb_istrue $remote_sudo && echo 'sudo rsync'
-		fi
+		# custom rsync remote path
+		[ -n "$rsync_remote_path" ] && echo "$rsync_remote_path"
 	fi
 }
 
