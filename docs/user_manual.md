@@ -16,20 +16,33 @@
 ## What is time2backup?
 time2backup is a program to easy backup and restore your files.
 
-
 <a name="requirements"></a>
 ## What do I need to install time2backup?
 Nothing else but the rsync program, which is installed on most popular systems like Ubuntu,
 Linux Mint, Debian, openSuse, Mageia, macOS, ...
 
-
 <a name="install"></a>
 ## How to install time2backup
-1. [Download time2backup here](https://time2backup.org)
+### Debian/Ubuntu
+1. Download time2backup [deb package here](https://time2backup.org/download/time2backup/stable)
+2. Install package: `dpkg -i time2backup-X.X.X.deb`
+
+### Windows
+[Read instructions here](https://github.com/time2backup/windows/tree/master/package).
+
+### macOS
+1. Download time2backup [macOS app package here](https://time2backup.org/download/time2backup/stable)
+2. Unzip file and drag/drop the `time2backup.app` file in your `Applications` folder
+
+### Manual install
+1. Download time2backup [zip or tar.gz archive here](https://time2backup.org/download/time2backup/stable)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
-4. Then follow the instructions.
-
+4. (optionnal) To install time2backup globally (having a link in the terminal), run the following command:
+```bash
+/path/to/time2backup.sh install [OPTIONS]
+```
+See [command documentation](command.md#install) for more information and options.
 
 <a name="backup"></a>
 ## Backup your files
@@ -43,8 +56,7 @@ If you haven't, just run time2backup and go into backup mode, or run the followi
 ```bash
 /path/to/time2backup.sh backup [OPTIONS] [PATH]
 ```
-See [command documentation](command.md) for more information and options.
-
+See [command documentation](command.md#backup) for more information and options.
 
 <a name="restore"></a>
 ## Restore your files
@@ -52,28 +64,34 @@ Run time2backup and go into restore mode, or run the following command in a term
 ```bash
 /path/to/time2backup.sh restore [OPTIONS] [PATH]
 ```
-See [command documentation](command.md) for more information and options.
+See [command documentation](command.md#restore) for more information and options.
 
 You will have to choose the file or directory to restore, and the version date to restore.
 
 Then you will get your file(s) exactly at backup state.
 
-
 <a name="upgrade"></a>
 ## Upgrading time2backup
-To upgrade time2backup, download the last version on the [official website](https://time2backup.org),
-and uncompress the archive into the same folder.
-If your system is asking, choose to overwrite files.
-
+To upgrade time2backup, download the last version on the [official website](https://time2backup.org)
+and reinstall it (see [instructions above](#install)).
 
 <a name="uninstall"></a>
 ## Uninstall time2backup
-To uninstall time2backup, run the following command in a terminal:
+### Debian/Ubuntu
+Run `apt remove time2backup`.
+
+### Windows
+[Read instructions here](https://github.com/time2backup/windows/tree/master/package).
+
+### macOS
+Put `time2backup.app` in trashbin.
+
+### Manual install
+Run the following command in a terminal:
 ```bash
 /path/to/time2backup.sh uninstall [OPTIONS]
 ```
-See [command documentation](command.md) for more information about options.
-
+See [command documentation](command.md#uninstall) for more information about options.
 
 <a name="troubleshootting"></a>
 ## Troubleshootting
@@ -83,4 +101,4 @@ In case of problem, please report your bugs here: https://github.com/time2backup
 
 ### time2backup is stuck with message "a backup is already running"
 Sometimes, if time2backup was killed by force, a lock file may stay.
-If you are sure that no backup is currently running, you can delete the lock files named `path/to/backups/.lock_*`
+To fix this, run the backup command with `--force-unlock` option.
