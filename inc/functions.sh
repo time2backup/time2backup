@@ -1292,8 +1292,8 @@ load_config() {
 			t2bserver_cmd=(ssh "${ssh_options[@]}" "$(url2host "$destination")")
 
 			# server command path
-			if [ -n "$t2bserver_path" ] ; then
-				t2bserver_cmd+=("$t2bserver_path")
+			if [ "${#t2bserver_path[@]}" -gt 0 ] ; then
+				t2bserver_cmd+=("${t2bserver_path[@]}")
 			else
 				t2bserver_cmd+=(time2backup-server)
 			fi
@@ -2053,8 +2053,8 @@ get_rsync_remote_command() {
 	# time2backup server path
 	if lb_istrue $remote_destination ; then
 
-		if [ -n "$t2bserver_path" ] ; then
-			echo -n "$t2bserver_path"
+		if [ "${#t2bserver_path[@]}" -gt 0 ] ; then
+			echo -n "${t2bserver_path[*]}"
 		else
 			echo -n time2backup-server
 		fi
