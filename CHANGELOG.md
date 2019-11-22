@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.7.0 (2019-10-18)
+## 1.7.0 (2019-11-22)
 ### New features
 - Remote destination support with [time2backup server](https://github.com/time2backup/server)
 - New trash mode: put every old backup versions in the same directory, like a trashbin
@@ -13,6 +13,7 @@
 - Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
 - Config parameter `ssh_options` is now an array of values (old configs are upgraded automatically)
 - Removed config parameter `remote_sudo` (old configs are upgraded automatically)
+- `history` command displays folders without content
 - Enhance security for config import
 - Major code rewrites in backup procedure with simplifications
 - Upgrade libbash.sh to 1.14.4

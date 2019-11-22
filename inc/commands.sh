@@ -1220,7 +1220,7 @@ t2b_history() {
 			fi
 
 			# print details of file/directory
-			echo "$(cd "$(dirname "$backup_file")" && ls -l "$(basename "$backup_file")" 2> /dev/null)"
+			echo "$(cd "$(dirname "$backup_file")" && ls -ld "$(basename "$backup_file")" 2> /dev/null)"
 		fi
 	done
 
