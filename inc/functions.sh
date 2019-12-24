@@ -1096,13 +1096,29 @@ try_sudo() {
 #
 
 # Create config file from template
-# Usage: create_config_from_template FILE TEMPLATE
+# Usage: create_config_from_template [OPTIONS] FILE TEMPLATE
+# Options:
+#   -n  Create if file is empty
 # Exit codes:
 #   0: OK
 #   1: error
 create_config_from_template() {
-	# test if file exists and not empty
-	[ -f "$1" ] && [ -s "$1" ] && return 0
+
+	local nonempty=false
+	if [ "$1" = "-n" ] ; then
+		nonempty=true
+		shift
+	fi
+
+	# if file exists,
+	if [ -f "$1" ] ; then
+		if $nonempty ; then
+			# if non empty, do nothing
+			[ -s "$1" ] && return 0
+		else
+			return 0
+		fi
+	fi
 
 	# copy from template
 	cp -f "$lb_current_script_directory"/config/${2}.example.conf "$1"
@@ -1135,8 +1151,8 @@ create_config() {
 
 	# create config files from templates if needed
 	create_config_from_template "$config_excludes" excludes && \
-	create_config_from_template "$config_sources" sources && \
-	create_config_from_template "$config_file" time2backup
+	create_config_from_template -n "$config_sources" sources && \
+	create_config_from_template -n "$config_file" time2backup
 	[ $? != 0 ] && return 1
 
 	# if user is different, try to give him ownership on config files
