@@ -737,8 +737,7 @@ delete_backup() {
 
 	# delete backup directory
 	debug "Deleting $destination/$1..."
-	rm -rf "$destination/$1"
-	if [ $? != 0 ] ; then
+	if ! rm -rf "$destination/$1" ; then
 		lb_display_error --log "Failed to delete backup $1! Please delete this folder manually."
 		return 2
 	fi
@@ -1121,8 +1120,7 @@ create_config_from_template() {
 	fi
 
 	# copy from template
-	cp -f "$lb_current_script_directory"/config/${2}.example.conf "$1"
-	if [ $? != 0 ] ; then
+	if ! cp -f "$lb_current_script_directory"/config/${2}.example.conf "$1" ; then
 		lb_error "Cannot create $2 config file."
 		return 1
 	fi
@@ -1186,7 +1184,10 @@ upgrade_config() {
 
 	if ! lb_istrue $quiet_mode ; then
 		case $command in
-			""|backup|restore)
+			history|status|stop)
+				# don't print anything
+				;;
+			*)
 				echo
 				lb_print "$tr_upgrade_config"
 				;;
@@ -1207,8 +1208,7 @@ upgrade_config() {
 	file_for_windows "$new_config"
 
 	# import old config in new file
-	lb_migrate_config "$config_file" "$new_config"
-	if [ $? != 0 ] ; then
+	if ! lb_migrate_config "$config_file" "$new_config" ; then
 		lb_display_error "$tr_error_upgrade_config"
 		return 2
 	fi
@@ -1614,8 +1614,7 @@ open_config() {
 #   2: failed to create log file
 create_logfile() {
 	# create logs directory
-	mkdir -p "$(dirname "$*")"
-	if [ $? != 0 ] ; then
+	if ! mkdir -p "$(dirname "$*")" ; then
 		lb_display_error "Could not create logs directory. Please verify your access rights."
 		return 1
 	fi
@@ -1668,8 +1667,7 @@ create_infofile() {
 	lb_istrue $remote_destination && return 0
 
 	# create directory
-	mkdir -p "$destination/$backup_date"
-	if [ $? != 0 ] ; then
+	if ! mkdir -p "$destination/$backup_date" ; then
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
 		clean_exit 7
 	fi
@@ -1838,8 +1836,7 @@ mount_destination() {
 	if [ $result != 0 ] ; then
 		lb_display --log "...Failed! Delete mountpoint..."
 
-		try_sudo rmdir "$backup_disk_mountpoint"
-		if [ $? != 0 ] ; then
+		if ! try_sudo rmdir "$backup_disk_mountpoint" ; then
 			lb_display --log "...Failed!"
 			return 6
 		fi
@@ -1877,15 +1874,13 @@ unmount_destination() {
 	fi
 
 	# unmount
-	try_sudo umount "$destination_mountpoint"
-	if [ $? != 0 ] ; then
+	if ! try_sudo umount "$destination_mountpoint" ; then
 		lb_display --log "...Failed!"
 		return 2
 	fi
 
 	debug "Delete mount point..."
-	try_sudo rmdir "$destination_mountpoint"
-	if [ $? != 0 ] ; then
+	if ! try_sudo rmdir "$destination_mountpoint" ; then
 		lb_display --log "...Failed!"
 		return 3
 	fi
@@ -2802,8 +2797,7 @@ config_wizard() {
 		if [ "$chosen_directory" != "$destination" ] ; then
 
 			# update destination config
-			lb_set_config "$config_file" destination "$chosen_directory"
-			if [ $? == 0 ] ; then
+			if lb_set_config "$config_file" destination "$chosen_directory" ; then
 				# reset destination variable
 				destination=$chosen_directory
 			else
@@ -2995,8 +2989,7 @@ config_wizard() {
 	# ask to edit config
 	if lbg_yesno "$tr_ask_edit_config" ; then
 
-		open_config "$config_file"
-		if [ $? == 0 ] && [ "$lb_current_os" != Windows ] ; then
+		if open_config "$config_file" && [ "$lb_current_os" != Windows ] ; then
 			# display window to wait until user has finished
 			lb_istrue $console_mode || lbg_info "$tr_finished_edit"
 		fi

@@ -59,6 +59,7 @@ t2b_backup() {
 			-t|--test)
 				test_mode=true
 				test_destination=false
+				debug "Test mode"
 				;;
 			--force-unlock)
 				force_unlock=true
@@ -701,6 +702,7 @@ t2b_restore() {
 			-t|--test)
 				test_mode=true
 				no_lock=true
+				debug "Test mode"
 				;;
 			--no-lock)
 				no_lock=true
@@ -1300,9 +1302,8 @@ t2b_explore() {
 	# if path is not specified, open the backup destination folder
 	if [ -z "$path" ] ; then
 		echo "Exploring backups..."
-		lbg_open_directory "$destination"
 
-		if [ $? == 0 ] ; then
+		if lbg_open_directory "$destination" ; then
 			return 0
 		else
 			return 8
@@ -1778,8 +1779,7 @@ t2b_clean() {
 		lb_istrue $quiet_mode || echo "Deleting backup $b ($(($i + 1 - $keep))/$((${#file_history[@]} - $keep)))..."
 
 		# delete file(s)
-		rm -rf "$destination/$b/$path_src"
-		if [ $? != 0 ] ; then
+		if ! rm -rf "$destination/$b/$path_src" ; then
 			lb_istrue $quiet_mode || lb_result 1
 			result=7
 		fi
@@ -2340,8 +2340,7 @@ t2b_export() {
 				[ -z "$reference" ] && existing_backups=($(get_backups "$export_destination"))
 			else
 				# create if not exists
-				mkdir -p "$export_destination"
-				if [ $? != 0 ] ; then
+				if ! mkdir -p "$export_destination" ; then
 					lb_error "Cannot create folder $export_destination."
 					lb_error "Please check your access rights."
 					return 6
@@ -2607,8 +2606,7 @@ t2b_uninstall() {
 
 	# delete desktop file
 	if [ -f "$application_link" ] ; then
-		rm -f "$application_link"
-		if [ $? != 0 ] ; then
+		if ! rm -f "$application_link" ; then
 			lb_error "Failed to remove application link.  You may have to run in sudo."
 			lb_exitcode=4
 		fi
@@ -2616,8 +2614,7 @@ t2b_uninstall() {
 
 	# delete alias if exists
 	if [ -e "$cmd_alias" ] ; then
-		rm -f "$cmd_alias"
-		if [ $? != 0 ] ; then
+		if ! rm -f "$cmd_alias" ; then
 			lb_error "Failed to remove command alias. You may have to run in sudo."
 			lb_exitcode=5
 		fi
@@ -2625,8 +2622,7 @@ t2b_uninstall() {
 
 	# delete files
 	if $delete_files ; then
-		rm -rf "$lb_current_script_directory"
-		if [ $? != 0 ] ; then
+		if ! rm -rf "$lb_current_script_directory" ; then
 			lb_error "Failed to delete time2backup directory. You may have to run in sudo."
 			lb_exitcode=6
 		fi
@@ -2634,8 +2630,7 @@ t2b_uninstall() {
 
 	# delete bash completion script
 	if [ -f /etc/bash_completion.d/time2backup ] ; then
-		rm -f /etc/bash_completion.d/time2backup
-		if [ $? != 0 ] ; then
+		if ! rm -f /etc/bash_completion.d/time2backup ; then
 			lb_error "Failed to remove bash auto-completion script. You may have to run in sudo."
 			lb_exitcode=7
 		fi

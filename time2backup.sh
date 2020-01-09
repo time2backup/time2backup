@@ -279,7 +279,10 @@ config_includes=$config_directory/includes.conf
 
 if ! lb_istrue $quiet_mode ; then
 	case $command in
-		""|backup|restore)
+		status|stop)
+			# don't print version
+			;;
+		*)
 			echo "time2backup $version"
 			;;
 	esac

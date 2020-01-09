@@ -158,7 +158,7 @@ print_help() {
 			;;
 
 		rotate)
-			print_help_usage [LIMIT]
+			print_help_usage "[LIMIT]"
 
 			echo "Force rotate backups"
 
@@ -191,7 +191,7 @@ print_help() {
 			;;
 
 		import)
-			print_help_usage PATH [DATE...]
+			print_help_usage PATH "[DATE...]"
 
 			echo "Import backups from another folder or host"
 
