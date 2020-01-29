@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1 (2020-01-29)
+### Changes
+- Don't override excludes config file if it is empty
+- Improve display for some commands
+- Upgrade libbash.sh to 1.15.0
+
 ## 1.7.0 (2019-11-22)
 ### New features
 - Remote destination support with [time2backup server](https://github.com/time2backup/server)

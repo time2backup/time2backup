@@ -5,7 +5,7 @@
 #
 #  Website: https://time2backup.org
 #  MIT License
-#  Copyright (c) 2017-2019 Jean Prunneaux
+#  Copyright (c) 2017-2020 Jean Prunneaux
 #
 
 # get real path of the script
