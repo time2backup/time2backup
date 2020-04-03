@@ -9,7 +9,7 @@
 #
 
 # get real path of the script
-if [ "$(uname)" == Darwin ] ; then
+if [ "$(uname)" = Darwin ] ; then
 	# macOS which does not support readlink -f option
 	current_script=$(perl -e 'use Cwd "abs_path";print abs_path(shift)' "$0")
 else

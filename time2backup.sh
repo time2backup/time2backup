@@ -18,7 +18,7 @@ declare -r version=1.7.1
 #
 
 # get real path of the script
-if [ "$(uname)" == Darwin ] ; then
+if [ "$(uname)" = Darwin ] ; then
 	# macOS which does not support readlink -f option
 	current_script=$(perl -e 'use Cwd "abs_path";print abs_path(shift)' "$0")
 else
@@ -183,7 +183,7 @@ if lb_istrue $console_mode ; then
 	notifications=false
 else
 	# try to find display (if into a cron job on Linux)
-	if [ "$lb_current_os" == Linux ] ; then
+	if [ "$lb_current_os" = Linux ] ; then
 
 		u=$user
 

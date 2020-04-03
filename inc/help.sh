@@ -25,7 +25,7 @@ print_help() {
 	echo "  -h, --help                 Print help"
 	echo
 
-	if [ "$1" == global ] ; then
+	if [ "$1" = global ] ; then
 		echo "Commands:"
 		echo "   backup     Backup your files"
 		echo "   restore    Restore a backup of a file/directory"

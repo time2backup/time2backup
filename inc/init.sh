@@ -19,7 +19,7 @@ current_timestamp=$(date +%s)
 #  Default core config
 #
 
-if [ "$lb_current_os" == Windows ] ; then
+if [ "$lb_current_os" = Windows ] ; then
 	enable_recurrent=false
 	default_shutdown_cmd=(shutdown /s)
 	preserve_permissions=false

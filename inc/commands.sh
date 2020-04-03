@@ -98,7 +98,7 @@ t2b_backup() {
 	fi
 
 	# if no sources to backup, exit
-	if [ ${#sources[@]} == 0 ] ; then
+	if [ ${#sources[@]} = 0 ] ; then
 		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
 		clean_exit 4
 	fi
@@ -289,12 +289,12 @@ t2b_backup() {
 				# file or directory
 
 				# replace ~ by user home directory
-				if [ "${src:0:1}" == "~" ] ; then
+				if [ "${src:0:1}" = "~" ] ; then
 					# get first part of the path
 					homealias=$(echo "$src" | awk -F '/' '{ print $1 }')
 
 					# get user homepath
-					if [ "$homealias" == "~" ] ; then
+					if [ "$homealias" = "~" ] ; then
 						homedir=$(lb_homepath)
 					else
 						# defined user (e.g. ~other)
@@ -303,7 +303,7 @@ t2b_backup() {
 
 					# the Windows case
 					# Be careful, ~other won't work on Windows systems
-					[ "$lb_current_os" == Windows ] && homedir=$(cygpath "$USERPROFILE")
+					[ "$lb_current_os" = Windows ] && homedir=$(cygpath "$USERPROFILE")
 
 					# test if path exists
 					if ! [ -d "$homedir" ] ; then
@@ -320,7 +320,7 @@ t2b_backup() {
 				fi
 
 				# get UNIX format for Windows paths
-				[ "$lb_current_os" == Windows ] && src=$(cygpath "$src")
+				[ "$lb_current_os" = Windows ] && src=$(cygpath "$src")
 
 				# get absolute path for source
 				abs_src=$(lb_abspath "$src")
@@ -406,7 +406,7 @@ t2b_backup() {
 
 			# prepare report and save exit code
 			errors+=("$src (write error)")
-			[ $lb_exitcode == 0 ] && lb_exitcode=7
+			[ $lb_exitcode = 0 ] && lb_exitcode=7
 
 			# clean directory but NOT the infofile
 			clean_empty_backup $backup_date "$path_dest"
@@ -479,7 +479,7 @@ t2b_backup() {
 
 				# prepare report and save exit code
 				errors+=("$src (rsync test error)")
-				[ $lb_exitcode == 0 ] && lb_exitcode=12
+				[ $lb_exitcode = 0 ] && lb_exitcode=12
 
 				# clean directory but NOT the infofile
 				clean_empty_backup $backup_date "$path_dest"
@@ -499,7 +499,7 @@ t2b_backup() {
 
 				# prepare report and save exit code
 				errors+=("$src (not enough space left)")
-				[ $lb_exitcode == 0 ] && lb_exitcode=13
+				[ $lb_exitcode = 0 ] && lb_exitcode=13
 
 				# clean directory but NOT the infofile
 				clean_empty_backup $backup_date "$path_dest"
@@ -544,7 +544,7 @@ t2b_backup() {
 		# save rsync result in info file and delete temporary file
 		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result $res
 
-		if [ $res == 0 ] ; then
+		if [ $res = 0 ] ; then
 			# backup succeeded
 			# (ignoring vanished files in transfer)
 			success+=("$src")
@@ -615,7 +615,7 @@ t2b_backup() {
 	lb_display --log "Backup ended on $(date '+%Y-%m-%d at %H:%M:%S')"
 	lb_display --log "$(report_duration)\n"
 
-	if [ $lb_exitcode == 0 ] ; then
+	if [ $lb_exitcode = 0 ] ; then
 		lb_display --log "Backup finished successfully."
 		notify_backup_end "$tr_backup_finished\n$(report_duration)"
 	else
@@ -641,7 +641,7 @@ Warnings:
 			done
 
 			# do not display warning message if there are critical errors to display after that
-			if [ ${#errors[@]} == 0 ] ; then
+			if [ ${#errors[@]} = 0 ] ; then
 				notify_backup_end "$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
 			fi
 		fi
@@ -735,7 +735,7 @@ t2b_restore() {
 	if ! lb_istrue $remote_destination ; then
 		backups=($(get_backups))
 		# if no backups, exit
-		if [ ${#backups[@]} == 0 ] ; then
+		if [ ${#backups[@]} = 0 ] ; then
 			lbg_error "$tr_no_backups_available"
 			return 5
 		fi
@@ -745,7 +745,7 @@ t2b_restore() {
 	local file=$1
 
 	# if no file specified, go to interactive mode
-	if [ ${#file} == 0 ] ; then
+	if [ ${#file} = 0 ] ; then
 
 		# choose type of file to restore (file/directory)
 		local choices=("$tr_restore_existing_file" "$tr_restore_existing_directory")
@@ -800,7 +800,7 @@ t2b_restore() {
 			# remove destination path prefix
 			file=${file#$destination}
 			# remove first slash
-			[ "${file:0:1}" == / ] && file=${file:1}
+			[ "${file:0:1}" = / ] && file=${file:1}
 
 			# get backup date
 			backup_date=$(echo $file | grep -o "^$backup_date_format")
@@ -849,7 +849,7 @@ t2b_restore() {
 	fi
 
 	# remote path
-	if [ "$(get_protocol "$restore_path")" == ssh ] ; then
+	if [ "$(get_protocol "$restore_path")" = ssh ] ; then
 		# test if we don't have double remotes
 		# (rsync does not support ssh to ssh copy)
 		if lb_istrue $remote_destination ; then
@@ -859,13 +859,13 @@ t2b_restore() {
 		remote_source=true
 	else
 		# get UNIX format for Windows paths
-		if [ "$lb_current_os" == Windows ] ; then
+		if [ "$lb_current_os" = Windows ] ; then
 			file=$(cygpath "$file")
 			restore_path=$(cygpath "$restore_path")
 	 	fi
 
 		# detect directory mode if path ends with / (useful for deleted directories)
-		[ "${file:${#file}-1}" == / ] && directory_mode=true
+		[ "${file:${#file}-1}" = / ] && directory_mode=true
 	fi
 
 	debug "Path to restore: $file"
@@ -896,7 +896,7 @@ t2b_restore() {
 	fi
 
 	# if no backup found
-	if [ ${#file_history[@]} == 0 ] ; then
+	if [ ${#file_history[@]} = 0 ] ; then
 		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
@@ -929,7 +929,7 @@ t2b_restore() {
 	fi
 
 	# if latest backup wanted, get most recent date
-	[ "$backup_date" == latest ] && backup_date=${file_history[0]}
+	[ "$backup_date" = latest ] && backup_date=${file_history[0]}
 
 	# remote: get infos from server
 	# be careful to send absolute path of the file and not $file that could be relative!
@@ -940,12 +940,12 @@ t2b_restore() {
 	# test if a backup is running
 	if ! lb_istrue $no_lock ; then
 		if lb_istrue $remote_destination ; then
-			[ "$server_status" == running ]
+			[ "$server_status" = running ]
 		else
 			current_lock -q
 		fi
 
-		if [ $? == 0 ] ; then
+		if [ $? = 0 ] ; then
 			debug "Destination locked"
 
 			# display window error & quit
@@ -958,7 +958,7 @@ t2b_restore() {
 	src=$(url2ssh "$destination/$backup_date/$backup_file_path")
 
 	# if source is a directory
-	if [ -d "$src" ] || [ "$src_type" == directory ] ; then
+	if [ -d "$src" ] || [ "$src_type" = directory ] ; then
 		local warn_partial=false
 
 		# no hard links: warn when restoring old directories
@@ -1002,7 +1002,7 @@ t2b_restore() {
 	# into the destination path
 	# e.g. to restore /media directory, we must exclude /user/device/path/to/backups
 	exclude_backup_dir=$(auto_exclude "$dest")
-	if [ $? == 0 ] ; then
+	if [ $? = 0 ] ; then
 		# if there is something to exclude, do it
 		[ -n "$exclude_backup_dir" ] && rsync_cmd+=(--exclude "$exclude_backup_dir")
 	else
@@ -1061,12 +1061,12 @@ t2b_restore() {
 	if ! lb_istrue $no_lock ; then
 		# retest if a backup is running
 		if lb_istrue $remote_destination ; then
-			[ "$server_status" == running ]
+			[ "$server_status" = running ]
 		else
 			current_lock -q
 		fi
 
-		if [ $? == 0 ] ; then
+		if [ $? = 0 ] ; then
 			debug "Destination locked"
 
 			# display window error & quit
@@ -1095,7 +1095,7 @@ t2b_restore() {
 	local res=$?
 
 	# if no errors,
-	if [ $res == 0 ] ; then
+	if [ $res = 0 ] ; then
 		# delete log file, print info and quit
 		delete_logfile
 		lbg_info "$tr_restore_finished"
@@ -1157,13 +1157,13 @@ t2b_history() {
 	done
 
 	# missing arguments
-	if [ $# == 0 ] ; then
+	if [ $# = 0 ] ; then
 		print_help
 		return 1
 	fi
 
 	# get path
-	if [ "$lb_current_os" == Windows ] ; then
+	if [ "$lb_current_os" = Windows ] ; then
 		# get UNIX format for Windows paths
 		file=$(cygpath "$*")
 	else
@@ -1190,7 +1190,7 @@ t2b_history() {
 	fi
 
 	# no backup found
-	if [ ${#file_history[@]} == 0 ] ; then
+	if [ ${#file_history[@]} = 0 ] ; then
 		lb_error "No backup found for '$file'!"
 		return 5
 	fi
@@ -1313,7 +1313,7 @@ t2b_explore() {
 	# get all backups
 	backups=($(get_backups))
 	# if no backups, exit
-	if [ ${#backups[@]} == 0 ] ; then
+	if [ ${#backups[@]} = 0 ] ; then
 		lbg_error "$tr_no_backups_available"
 		return 5
 	fi
@@ -1331,7 +1331,7 @@ t2b_explore() {
 	path_history=($(get_backup_history "$path"))
 
 	# if no backup found
-	if [ ${#path_history[@]} == 0 ] ; then
+	if [ ${#path_history[@]} = 0 ] ; then
 		lbg_error "$tr_no_backups_for_file"
 		return 6
 	fi
@@ -1339,7 +1339,7 @@ t2b_explore() {
 	# if backup date is specified,
 	if [ -n "$backup_date" ] ; then
 		# get the latest one
-		if [ "$backup_date" == latest ] ; then
+		if [ "$backup_date" = latest ] ; then
 			backup_date=${path_history[0]}
 		else
 			# test if specified date exists
@@ -1360,7 +1360,7 @@ t2b_explore() {
 
 		else
 			# if only one backup, no need to choose one
-			if [ ${#path_history[@]} == 1 ] ; then
+			if [ ${#path_history[@]} = 1 ] ; then
 				backup_date=${path_history[0]}
 			else
 				# prompt user to choose a backup date
@@ -1599,9 +1599,9 @@ t2b_mv() {
 	src=$1
 	abs_src=$1
 
-	if [ "$(get_protocol "$src")" == files ] ; then
+	if [ "$(get_protocol "$src")" = files ] ; then
 		# get UNIX format for Windows paths
-		[ "$lb_current_os" == Windows ] && src=$(cygpath "$src")
+		[ "$lb_current_os" = Windows ] && src=$(cygpath "$src")
 
 		# get absolute path of source
 		abs_src=$(lb_abspath "$src")
@@ -1610,9 +1610,9 @@ t2b_mv() {
 	dest=$2
 	abs_dest=$2
 
-	if [ "$(get_protocol "$dest")" == files ] ; then
+	if [ "$(get_protocol "$dest")" = files ] ; then
 		# get UNIX format for Windows paths
-		[ "$lb_current_os" == Windows ] && dest=$(cygpath "$dest")
+		[ "$lb_current_os" = Windows ] && dest=$(cygpath "$dest")
 
 		# get absolute path of source
 		abs_dest=$(lb_abspath "$dest")
@@ -1622,7 +1622,7 @@ t2b_mv() {
 	file_history=($(get_backup_history -a "$src"))
 
 	# no backup found
-	if [ ${#file_history[@]} == 0 ] ; then
+	if [ ${#file_history[@]} = 0 ] ; then
 		lb_error "No backup found for '$src'!"
 		return 5
 	fi
@@ -1657,14 +1657,14 @@ t2b_mv() {
 		lb_istrue $quiet_mode || echo "Moving file(s) for backup $b..."
 
 		mv "$destination/$b/$path_src" "$destination/$b/$path_dest"
-		if [ $? == 0 ] ; then
+		if [ $? = 0 ] ; then
 			# get the infofile
 			infofile=$destination/$b/backup.info
 			section=$(find_infofile_section "$infofile" "$abs_src")
 
 			# if the moved source is a source itself, rename it
 			if [ -n "$section" ] ; then
-				[ "$(lb_get_config -s $section "$infofile" path)" == "$abs_src" ] && \
+				[ "$(lb_get_config -s $section "$infofile" path)" = "$abs_src" ] && \
 					lb_set_config -s $section "$infofile" path "$abs_dest"
 			fi
 
@@ -1725,7 +1725,7 @@ t2b_clean() {
 	done
 
 	# missing arguments
-	if [ $# == 0 ] ; then
+	if [ $# = 0 ] ; then
 		print_help
 		return 1
 	fi
@@ -1738,7 +1738,7 @@ t2b_clean() {
 	# test backup destination
 	prepare_destination || return 4
 
-	if [ "$lb_current_os" == Windows ] ; then
+	if [ "$lb_current_os" = Windows ] ; then
 		# get UNIX format for Windows paths
 		src=$(cygpath "$1")
 	else
@@ -1749,7 +1749,7 @@ t2b_clean() {
 	file_history=($(get_backup_history -a "$src"))
 
 	# no backup found
-	if [ ${#file_history[@]} == 0 ] ; then
+	if [ ${#file_history[@]} = 0 ] ; then
 		lb_error "No backup found for '$src'!"
 		return 5
 	fi
@@ -2103,12 +2103,12 @@ t2b_import() {
 			remote_source=true
 
 			# get backups to import
-			[ ${#existing_backups[@]} == 0 ] && existing_backups=($(get_backups "$path"))
+			[ ${#existing_backups[@]} = 0 ] && existing_backups=($(get_backups "$path"))
 			;;
 
 		*)
 			# get destination path
-			if [ "$lb_current_os" == Windows ] ; then
+			if [ "$lb_current_os" = Windows ] ; then
 				# get UNIX format for Windows paths
 				import_source=$(cygpath "$path")
 			else
@@ -2116,12 +2116,12 @@ t2b_import() {
 			fi
 
 			# get backups to import
-			[ ${#existing_backups[@]} == 0 ] && existing_backups=($(get_backups "$import_source"))
+			[ ${#existing_backups[@]} = 0 ] && existing_backups=($(get_backups "$import_source"))
 			;;
 	esac
 
 	# no backup found
-	if [ ${#existing_backups[@]} == 0 ] ; then
+	if [ ${#existing_backups[@]} = 0 ] ; then
 		lb_error "No backups to import."
 		return 0
 	fi
@@ -2156,7 +2156,7 @@ t2b_import() {
 
 		# if reference link not set, search the last existing backup
 		if [ ${#backups[@]} -gt 0 ] ; then
-			if [ -z "$reference" ] || [ "$reference" == "$src" ] ; then
+			if [ -z "$reference" ] || [ "$reference" = "$src" ] ; then
 				for ((d=${#backups[@]}-1; d>=0; d--)) ; do
 					# avoid reference to be equal to the current item
 					if [ "${backups[d]}" != "$src" ] ; then
@@ -2215,7 +2215,7 @@ t2b_import() {
 			break
 		done
 
-		if [ $result == 0 ] ; then
+		if [ $result = 0 ] ; then
 			# change reference
 			reference=$src
 		else
@@ -2226,7 +2226,7 @@ t2b_import() {
 
 	# print report
 	lb_print
-	if [ ${#errors[@]} == 0 ] ; then
+	if [ ${#errors[@]} = 0 ] ; then
 		lb_print "Import finished"
 	else
 		lb_print "Some errors occurred while import:"
@@ -2311,7 +2311,7 @@ t2b_export() {
 	backups=($(get_backups))
 
 	# no backup found
-	if [ ${#backups[@]} == 0 ] ; then
+	if [ ${#backups[@]} = 0 ] ; then
 		lb_error "No backups to export."
 		return 0
 	fi
@@ -2328,7 +2328,7 @@ t2b_export() {
 
 		*)
 			# get destination path
-			if [ "$lb_current_os" == Windows ] ; then
+			if [ "$lb_current_os" = Windows ] ; then
 				# get UNIX format for Windows paths
 				export_destination=$(cygpath "$*")
 			else
@@ -2379,7 +2379,7 @@ t2b_export() {
 
 		# if reference link not set, search the last existing distant backup
 		if [ ${#existing_backups[@]} -gt 0 ] ; then
-			if [ -z "$reference" ] || [ "$reference" == "$src" ] ; then
+			if [ -z "$reference" ] || [ "$reference" = "$src" ] ; then
 				for ((d=${#existing_backups[@]}-1; d>=0; d--)) ; do
 					# avoid reference to be equal to the current item
 					if [ "${existing_backups[d]}" != "$src" ] ; then
@@ -2438,7 +2438,7 @@ t2b_export() {
 			break
 		done
 
-		if [ $result == 0 ] ; then
+		if [ $result = 0 ] ; then
 			# change reference
 			reference=$src
 		else
@@ -2449,7 +2449,7 @@ t2b_export() {
 
 	# print report
 	lb_print
-	if [ ${#errors[@]} == 0 ] ; then
+	if [ ${#errors[@]} = 0 ] ; then
 		lb_print "Export finished"
 	else
 		lb_print "Some errors occurred while export:"
@@ -2486,7 +2486,7 @@ t2b_install() {
 	done
 
 	# create a desktop file (Linux)
-	if [ "$lb_current_os" == Linux ] ; then
+	if [ "$lb_current_os" = Linux ] ; then
 
 		desktop_file=$lb_current_script_directory/time2backup.desktop
 
@@ -2522,7 +2522,7 @@ EOF
 	# if alias already exists,
 	if [ -e "$cmd_alias" ] ; then
 		# if the same path, do not recreate link
-		if [ "$(lb_realpath "$cmd_alias")" == "$(lb_realpath "$lb_current_script")" ] ; then
+		if [ "$(lb_realpath "$cmd_alias")" = "$(lb_realpath "$lb_current_script")" ] ; then
 			create_link=false
 		fi
 	fi
@@ -2536,7 +2536,7 @@ EOF
 			echo "You may have to run install command in sudo, or add an alias in your bashrc file."
 
 			# this exit code is less important
-			[ $lb_exitcode == 0 ] && lb_exitcode=4
+			[ $lb_exitcode = 0 ] && lb_exitcode=4
 		fi
 	fi
 
@@ -2547,7 +2547,7 @@ EOF
 		echo "Cannot install bash completion script. It's not critical, but you can retry in sudo."
 
 		# this exit code is less important
-		[ $lb_exitcode == 0 ] && lb_exitcode=5
+		[ $lb_exitcode = 0 ] && lb_exitcode=5
 	fi
 
 	# make completion working in the current session (does not need to create a new one)
@@ -2640,7 +2640,7 @@ t2b_uninstall() {
 	fi
 
 	# simple print
-	if [ $lb_exitcode == 0 ] ; then
+	if [ $lb_exitcode = 0 ] ; then
 		echo
 		echo "time2backup is uninstalled"
 	fi

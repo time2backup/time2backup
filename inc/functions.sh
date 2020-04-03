@@ -157,14 +157,14 @@ get_common_path() {
 	local path dir1=$(dirname "$1"/dummy) dir2=$(dirname "$2"/dummy)
 
 	# get absolute paths
-	[ "${dir1:0:1}" == / ] || dir1=$(lb_abspath "$dir1") || return 2
-	[ "${dir2:0:1}" == / ] || dir2=$(lb_abspath "$dir2") || return 2
+	[ "${dir1:0:1}" = / ] || dir1=$(lb_abspath "$dir1") || return 2
+	[ "${dir2:0:1}" = / ] || dir2=$(lb_abspath "$dir2") || return 2
 
 	# compare characters of paths one by one
 	local -i i=0
 
 	# if a character changes in the 2 paths,
-	while [ "${dir1:i:1}" == "${dir2:i:1}" ] ; do
+	while [ "${dir1:i:1}" = "${dir2:i:1}" ] ; do
 		i+=1
 	done
 
@@ -208,7 +208,7 @@ get_relative_path() {
 		relative_path+=../
 
 		# avoid infinite loop for root directory
-		[ "$dir1" == / ] && break
+		[ "$dir1" = / ] && break
 	done
 
 	# print relative path
@@ -268,7 +268,7 @@ url2path() {
 # Return: complete path
 url2ssh() {
 	# test URL
-	if [ "${1:0:6}" == 'ssh://' ] ; then
+	if [ "${1:0:6}" = 'ssh://' ] ; then
 		echo "$(url2host "$1"):$(url2path "$1")"
 	else
 		echo "$1"
@@ -394,7 +394,7 @@ test_hardlinks() {
 test_space_available() {
 
 	# if 0, always OK
-	[ "$1" == 0 ] && return 0
+	[ "$1" = 0 ] && return 0
 
 	local space_available=$(lb_df_space_left "$2")
 
@@ -432,7 +432,7 @@ get_backup_date() {
 	local format=$tr_readable_date
 
 	# get timestamp option
-	if [ "$1" == '-t' ] ; then
+	if [ "$1" = '-t' ] ; then
 		format='%s'
 		shift
 	fi
@@ -501,13 +501,13 @@ get_backup_history() {
 	done
 
 	# usage error
-	[ $# == 0 ] && return 1
+	[ $# = 0 ] && return 1
 
 	# get all backups
 	local all_backups=($(get_backups))
 
 	# no backups found
-	[ ${#all_backups[@]} == 0 ] && return 2
+	[ ${#all_backups[@]} = 0 ] && return 2
 
 	# get backup path
 	local gbh_backup_path
@@ -537,7 +537,7 @@ get_backup_history() {
 		# check if a backup is currently running
 
 		# ignore current backup (if running, it could contain errors)
-		[ "$(current_lock)" == "$gbh_date" ] && continue
+		[ "$(current_lock)" = "$gbh_date" ] && continue
 
 		# if get only non empty directories
 		if $not_empty && [ -d "$gbh_backup_file" ] ; then
@@ -630,7 +630,7 @@ get_backup_path() {
 	local path=$*
 
 	# if absolute path (first character is a /), return file path
-	if [ "${path:0:1}" == / ] ; then
+	if [ "${path:0:1}" = / ] ; then
 		echo /files"$path"
 		return 0
 	fi
@@ -760,7 +760,7 @@ rotate_backups() {
 	[ -n "$1" ] && limit=$1
 
 	# if unlimited, do not rotate
-	[ "$limit" == -1 ] && return 0
+	[ "$limit" = -1 ] && return 0
 
 	# remote destination
 	if lb_istrue $remote_destination ; then
@@ -815,7 +815,7 @@ rotate_backups() {
 	fi
 
 	# nothing to clean: quit
-	if [ ${#to_rotate[@]} == 0 ] ; then
+	if [ ${#to_rotate[@]} = 0 ] ; then
 		debug "Nothing to rotate"
 		return 0
 	fi
@@ -948,7 +948,7 @@ free_space() {
 
 		# display clean notification
 		# (just display the first notification, not for every clean)
-		if [ $i == 0 ] ; then
+		if [ $i = 0 ] ; then
 			notify "$tr_notify_cleaning_space"
 			lb_display --log "Not enough space on device. Clean old backups to free space..."
 		fi
@@ -966,7 +966,7 @@ free_space() {
 		fi
 
 		# do not delete the last clean backup that will be used for hard links
-		[ "${all_backups[0]}" == "$last_clean_backup" ] && continue
+		[ "${all_backups[0]}" = "$last_clean_backup" ] && continue
 
 		# clean oldest backup to free space
 		delete_backup ${all_backups[0]}
@@ -1022,7 +1022,7 @@ clean_empty_backup() {
 	fi
 
 	if $delete_infofile && \
-	   [ "$(ls "$destination/$1" 2> /dev/null)" == backup.info ] ; then
+	   [ "$(ls "$destination/$1" 2> /dev/null)" = backup.info ] ; then
 		debug "Clean info file of backup $1"
 		rm -f "$destination/$1/backup.info" &> /dev/null
 	fi
@@ -1180,7 +1180,7 @@ upgrade_config() {
 	fi
 
 	# if current version, OK
-	[ "$old_config_version" == "$version" ] && return 0
+	[ "$old_config_version" = "$version" ] && return 0
 
 	if ! lb_istrue $quiet_mode ; then
 		case $command in
@@ -1221,7 +1221,7 @@ upgrade_config() {
 		# remove remote_sudo option
 		local old_remote_sudo=$(grep '^remote_sudo' "$config_file" | cut -d= -f2- | tr -d '[:space:]')
 		# if defined in the old config,
-		if [ -n "$old_remote_sudo" ] && [ "$old_remote_sudo" == true ] ; then
+		if [ -n "$old_remote_sudo" ] && [ "$old_remote_sudo" = true ] ; then
 			# if rsync remote path is defined,
 			local new_rsync_remote_path=$(lb_get_config "$new_config" rsync_remote_path)
 			if [ -n "$new_rsync_remote_path" ] ; then
@@ -1328,7 +1328,7 @@ load_config() {
 			# normal destination
 
 			# samba shares
-			if [ "${destination:0:2}" == // ] ; then
+			if [ "${destination:0:2}" = // ] ; then
 				# test mount point
 				if [ -z "$backup_disk_mountpoint" ] ; then
 					lb_error "Destination is a SMB share but has no disk mountpoint. Please add it in configuration."
@@ -1341,7 +1341,7 @@ load_config() {
 			fi
 
 			# convert destination path for Windows systems
-			if [ "$lb_current_os" == Windows ] ; then
+			if [ "$lb_current_os" = Windows ] ; then
 				destination=$(cygpath "$destination")
 
 				if [ $? != 0 ] ; then
@@ -1388,7 +1388,7 @@ load_config() {
 	fi
 
 	# set default shutdown command or if custom commands not allowed
-	if [ ${#shutdown_cmd[@]} == 0 ] || lb_istrue $disable_custom_commands ; then
+	if [ ${#shutdown_cmd[@]} = 0 ] || lb_istrue $disable_custom_commands ; then
 		shutdown_cmd=("${default_shutdown_cmd[@]}")
 	fi
 }
@@ -1407,14 +1407,14 @@ crontab_config() {
 
 	local crontab crontab_opts=() crontab_enable=false
 
-	[ "$1" == enable ] && crontab_enable=true
+	[ "$1" = enable ] && crontab_enable=true
 
 	# prepare backup task in quiet mode
 	local crontask="\"$lb_current_script\" -q -c \"$config_directory\" backup --recurrent"
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
-	if [ "$lb_current_user" == root ] && [ "$user" != root ] ; then
+	if [ "$lb_current_user" = root ] && [ "$user" != root ] ; then
 		crontab_opts+=(-u $user)
 	fi
 
@@ -1576,7 +1576,7 @@ open_config() {
 	# run text editor and wait for it to close
 	if [ -n "$editor" ] ; then
 		# Windows: transform to Windows path like c:\...\time2backup.conf
-		if [ "$lb_current_os" == Windows ] ; then
+		if [ "$lb_current_os" = Windows ] ; then
 			edit_file=$(cygpath -w "$edit_file")
 		fi
 
@@ -1622,7 +1622,7 @@ create_logfile() {
 	local opts=()
 
 	# windows: write logs with good end of lines
-	[ "$lb_current_os" == Windows ] && opts+=(--win-format)
+	[ "$lb_current_os" = Windows ] && opts+=(--win-format)
 
 	# create log file
 	if ! lb_set_logfile "${opts[@]}" "$*" ; then
@@ -1713,7 +1713,7 @@ find_infofile_section() {
 		# get path of the backup
 		path=$(lb_get_config -s "$section" "$1" path)
 
-		if [ -n "$path" ] && [[ "$2" == "$path"* ]] ; then
+		if [ -n "$path" ] && [[ "$2" = "$path"* ]] ; then
 			echo $section
 			return 0
 		fi
@@ -1750,7 +1750,7 @@ check_infofile_rsync_result() {
 	if [ -f "$destination/$1/backup.info" ] ; then
 		# check if last backup failed or was cancelled
 		rsync_result $(get_infofile_value "$destination/$1/backup.info" "$2" rsync_result)
-		[ $? == 2 ] && return 1
+		[ $? = 2 ] && return 1
 	fi
 
 	return 0
@@ -1825,7 +1825,7 @@ mount_destination() {
 	local result=$?
 
 	# stupid Windows does not return error even if mount fails
-	if [ $result == 0 ] && [ "$lb_current_os" == Windows ] ; then
+	if [ $result = 0 ] && [ "$lb_current_os" = Windows ] ; then
 		# test if mountpoint is writable; if not, unmount and return error
 		if ! [ -w "$backup_disk_mountpoint" ] ; then
 			umount "$backup_disk_mountpoint" &> /dev/null
@@ -2136,7 +2136,7 @@ prepare_remote_destination() {
 	debug "Connect to remote server..."
 
 	# run distant command
-	if [ "$1" == backup ] ; then
+	if [ "$1" = backup ] ; then
 		response=$("${t2bserver_cmd[@]}" prepare "$@" 2> >(tee -a "$logfile" >&2))
 	else
 		response=$("${t2bserver_cmd[@]}" prepare "$@")
@@ -2296,7 +2296,7 @@ estimate_backup_time() {
 run_before() {
 
 	# nothing to do: quit
-	[ ${#exec_before[@]} == 0 ] && return 0
+	[ ${#exec_before[@]} = 0 ] && return 0
 
 	lb_display --log "Running before command..."
 
@@ -2314,7 +2314,7 @@ run_before() {
 	fi
 
 	result=$?
-	[ $result == 0 ] && return 0
+	[ $result = 0 ] && return 0
 
 	report_details+="
 Before script failed (exit code: $result)
@@ -2335,7 +2335,7 @@ Before script failed (exit code: $result)
 run_after() {
 
 	# nothing to do: quit
-	[ ${#exec_after[@]} == 0 ] && return 0
+	[ ${#exec_after[@]} = 0 ] && return 0
 
 	lb_display --log "Running after command..."
 
@@ -2353,13 +2353,13 @@ run_after() {
 	fi
 
 	result=$?
-	[ $result == 0 ] && return 0
+	[ $result = 0 ] && return 0
 
 	report_details+="
 After script failed (exit code: $result)
 "
 	# if error, do not overwrite rsync exit code
-	[ $lb_exitcode == 0 ] && lb_exitcode=16
+	[ $lb_exitcode = 0 ] && lb_exitcode=16
 
 	# option exit if error
 	if lb_istrue $exec_after_block ; then
@@ -2471,7 +2471,7 @@ prepare_trash() {
 
 		# prepare report and save exit code
 		errors+=("$src (write error)")
-		[ $lb_exitcode == 0 ] && lb_exitcode=7
+		[ $lb_exitcode = 0 ] && lb_exitcode=7
 
 		# clean directory but NOT the infofile
 		clean_empty_backup $backup_date "$path_dest"
@@ -2501,7 +2501,7 @@ create_latest_link() {
 
 	# create a new link
 	# in a sub-context to avoid confusion and do not care of output
-	if [ "$lb_current_os" == Windows ] ; then
+	if [ "$lb_current_os" = Windows ] ; then
 		dummy=$(cd "$destination" 2> /dev/null && rm -f latest 2> /dev/null && cmd /c mklink /j latest $backup_date 2> /dev/null)
 	else
 		dummy=$(cd "$destination" 2> /dev/null && ln -snf $backup_date latest 2> /dev/null)
@@ -2518,7 +2518,7 @@ notify_backup_end() {
 	lb_istrue $notifications || return 0
 
 	# Windows: display dialogs instead of notifications
-	if [ "$lb_current_os" == Windows ] ; then
+	if [ "$lb_current_os" = Windows ] ; then
 		# do not popup dialog that would prevent PC from shutdown
 		lb_istrue $shutdown || windows_ending_popup=$*
 	else
@@ -2568,7 +2568,7 @@ clean_exit() {
 	# delete backup lock
 	release_lock
 
-	if [ "$command" == backup ] ; then
+	if [ "$command" = backup ] ; then
 
 		clean_empty_backup -i $backup_date "$path_dest"
 
@@ -2577,7 +2577,7 @@ clean_exit() {
 			lb_display_critical --log "$tr_error_unmount"
 			lbg_critical "$tr_error_unmount"
 
-			[ $lb_exitcode == 0 ] && lb_exitcode=18
+			[ $lb_exitcode = 0 ] && lb_exitcode=18
 		fi
 
 		send_email_report
@@ -2649,7 +2649,7 @@ send_email_report() {
 			;;
 		on_error)
 			# if there was no error, do not send email
-			[ $lb_exitcode == 0 ] && return 0
+			[ $lb_exitcode = 0 ] && return 0
 			;;
 		*)
 			# email report not enabled
@@ -2676,7 +2676,7 @@ send_email_report() {
 
 	email_subject+="$tr_email_report_subject "
 
-	if [ $lb_exitcode == 0 ] ; then
+	if [ $lb_exitcode = 0 ] ; then
 		email_subject+=$(printf "$tr_email_report_subject_success" $lb_current_hostname)
 		email_content+=$(printf "$tr_email_report_success" $lb_current_hostname)
 	else
@@ -2807,7 +2807,7 @@ config_wizard() {
 			# detect changed hostname
 			if [ -d "$destination/backups" ] ; then
 				existing_hostname=($(ls "$destination/backups"))
-				if [ ${#existing_hostname[@]} == 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
+				if [ ${#existing_hostname[@]} = 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
 					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" ${existing_hostname[0]})" ; then
 						mv "$destination/backups/${existing_hostname[0]}" "$destination/backups/$lb_current_hostname"
 					fi
@@ -2886,7 +2886,7 @@ config_wizard() {
 
 			if [ -n "$chosen_directory" ] ; then
 				# edit source file
-				if [ ${#sources[@]} == 0 ] ; then
+				if [ ${#sources[@]} = 0 ] ; then
 					echo "$chosen_directory" >> $config_sources
 				else
 					lb_edit "s|^${sources[0]}[[:space:]]*$|$chosen_directory|" "$config_sources"
