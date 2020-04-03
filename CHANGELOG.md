@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.2 (2020-04-03)
+### Bugfixes
+- Fix bug when moving backed up files to a new path
+- Minor code improvements
+
 ## 1.7.1 (2020-01-29)
 ### Changes
 - Don't override excludes config file if it is empty
