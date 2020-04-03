@@ -1656,6 +1656,7 @@ t2b_mv() {
 	for b in "${file_history[@]}" ; do
 		lb_istrue $quiet_mode || echo "Moving file(s) for backup $b..."
 
+		mkdir -p "$(dirname "$destination/$b/$path_dest")" && \
 		mv "$destination/$b/$path_src" "$destination/$b/$path_dest"
 		if [ $? = 0 ] ; then
 			# get the infofile
