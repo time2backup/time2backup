@@ -68,7 +68,6 @@
 #     rsync_result
 #   Remote backups
 #     prepare_remote_destination
-#     read_remote_config
 #   Backup steps
 #     test_backup
 #     estimate_backup_time
@@ -2111,20 +2110,6 @@ rsync_result() {
 #  Remote backups
 #
 
-# Read server response from input line
-# Usage: read_remote_config PARAM FILE_CONTENT
-# Exit codes:
-#   0: OK
-#   1: param not found
-read_remote_config() {
-	local param=$1
-	shift
-
-	echo "$*" | grep -En "^\s*$param\s*=" | sed "s/.*$param[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//; s/^\"\(.*\)\"$/\1/; s/^'\(.*\)'$/\1/; s/\\\\\"/\"/g"
-	return ${PIPESTATUS[1]}
-}
-
-
 # Prepare remote destination
 # Usage: prepare_remote_destination COMMAND [ARGS]
 # Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
@@ -2174,26 +2159,26 @@ prepare_remote_destination() {
 	# get infos from server response
 
 	# save session token
-	t2bserver_token=$(read_remote_config token "$response")
+	t2bserver_token=$(echo "$response" | lb_get_config - token)
 	[ -z "$t2bserver_token" ] && return 1
 
 	# save remote backup destination
-	local remote_backup_path=$(read_remote_config destination "$response")
+	local remote_backup_path=$(echo "$response" | lb_get_config - destination)
 	[ -z "$remote_backup_path" ] && return 1
 	destination=$(remove_end_slash "$destination")$remote_backup_path
 
 	# hard links support is set by server and cannot be overwritten by client config
 	hard_links=false
 	force_hard_links=false
-	lb_istrue $(read_remote_config hard_links "$response") && hard_links=true
+	lb_istrue $(echo "$response" | lb_get_config - hard_links) && hard_links=true
 
 	# optionnal infos
 
-	last_clean_backup=$(read_remote_config trash "$response")
-	server_status=$(read_remote_config status "$response")
+	last_clean_backup=$(echo "$response" | lb_get_config - trash)
+	server_status=$(echo "$response" | lb_get_config - status)
 
-	rsync_result=$(read_remote_config rsync_result "$response")
-	src_type=$(read_remote_config src_type "$response")
+	rsync_result=$(echo "$response" | lb_get_config - rsync_result)
+	src_type=$(echo "$response" | lb_get_config - src_type)
 
 	return 0
 }
