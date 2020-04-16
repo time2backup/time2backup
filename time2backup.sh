@@ -329,18 +329,22 @@ if [ -z "$destination" ] ; then
 fi
 
 # display choose operation dialog if not set
-[ -z "$command" ] && choose_operation
+while [ -z "$command" ] ; do
+	choose_operation
+
+	# do not close time2backup when config is finished
+	case $command in
+		config)
+			t2b_config
+			command=""
+			;;
+		""|exit)
+			exit 0
+			;;
+	esac
+done
 
 case $command in
-	exit)
-		# user choosed to quit
-		exit
-		;;
-	"")
-		# error or no choice
-		print_help global
-		exit 1
-		;;
 	config)
 		# commands that do not need to load config: do nothing
 		;;

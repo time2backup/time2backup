@@ -43,6 +43,8 @@ tr_excludes_config="Excluded files"
 tr_includes_config="Included files (not used in most cases)"
 tr_run_config_wizard="Run configuration wizard"
 tr_confirm_reset_config="Do you really want to reset configuration?"
+tr_open_other_config="Create/open another config"
+tr_choose_config_directory="Choose the config directory:"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups:"

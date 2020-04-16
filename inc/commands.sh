@@ -1457,7 +1457,7 @@ t2b_config() {
 		if [ -z "$op_config" ] ; then
 			lbg_choose_option -d 1 -l "$tr_choose_config_file" \
 				"$tr_global_config" "$tr_sources_config" "$tr_excludes_config" \
-				"$tr_includes_config" "$tr_run_config_wizard" || return 0
+				"$tr_includes_config" "$tr_run_config_wizard" "$tr_open_other_config" || return 0
 
 			case $lbg_choose_option in
 				1)
@@ -1475,6 +1475,9 @@ t2b_config() {
 				5)
 					op_config=wizard
 					;;
+				6)
+					op_config=create
+					;;
 				*)
 					# bad choice
 					return 1
@@ -1485,6 +1488,21 @@ t2b_config() {
 
 	# operations to do on config
 	case $op_config in
+		create)
+			lbg_choose_directory -t "$tr_choose_config_directory"
+			[ -d "$lbg_choose_directory" ] || return 0
+
+			# get current global options
+			cmd_opts=()
+			lb_istrue $console_mode && cmd_opts+=(-C)
+			lb_istrue $debug_mode && cmd_opts+=(-D)
+
+			# clear bash & rerun time2backup
+			clear 2> /dev/null
+			"$lb_current_script" -u $user "${cmd_opts[@]}" -c "$lbg_choose_directory"
+			exit $?
+			;;
+
 		wizard)
 			# run config wizard
 			config_wizard
