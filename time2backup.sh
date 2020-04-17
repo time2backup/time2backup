@@ -10,7 +10,7 @@
 #  Version 1.7.2 (2020-04-03)
 #
 
-declare -r version=1.7.2
+declare -r version=1.8.0-beta.1
 
 
 #
@@ -227,14 +227,14 @@ case $command in
 	status|stop)
 		# if destination specified, do not load config
 		if [ -n "$destination" ] ; then
-			# run commands then exit
+			# run command then exit
 			t2b_$command "$@"
 			exit $?
 		fi
 		;;
 
 	install|uninstall)
-		# run commands not depending on configuration then exit
+		# not depending on configuration: run command then exit
 		t2b_$command "$@"
 		exit $?
 		;;
