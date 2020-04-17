@@ -1164,6 +1164,11 @@ t2b_restore() {
 # Usage: t2b_history [OPTIONS] PATH
 t2b_history() {
 
+	if lb_istrue $clone_mode ; then
+		echo "This command is disabled in clone mode."
+		return 255
+	fi
+
 	# default option values
 	local history_opts=() file abs_file
 
@@ -1275,6 +1280,16 @@ t2b_history() {
 # Usage: t2b_explore [OPTIONS] [PATH]
 t2b_explore() {
 
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
+	if lb_istrue $console_mode ; then
+		echo "This command is not available in console mode."
+		return 255
+	fi
+
 	# default options
 	backup_date=""
 	local explore_all=false
@@ -1313,16 +1328,6 @@ t2b_explore() {
 
 	path=$*
 
-	if lb_istrue $console_mode ; then
-		echo "This command is not available in console mode."
-		return 255
-	fi
-
-	if lb_istrue $remote_destination ; then
-		echo "This command is disabled for remote destinations."
-		return 255
-	fi
-
 	# if path specified, test it
 	if [ -n "$path" ] ; then
 		if ! [ -e "$path" ] ; then
@@ -1334,8 +1339,8 @@ t2b_explore() {
 	# test backup destination
 	prepare_destination || return 4
 
-	# if path is not specified, open the backup destination folder
-	if [ -z "$path" ] ; then
+	# if path is not specified or in clone mode, open the backup destination folder
+	if [ -z "$path" ] || lb_istrue $clone_mode ; then
 		echo "Exploring backups..."
 
 		if lbg_open_directory "$destination" ; then
@@ -1605,6 +1610,16 @@ t2b_config() {
 # Usage: t2b_mv [OPTIONS] PATH
 t2b_mv() {
 
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
+
+	if lb_istrue $remote_destination ; then
+		lb_error "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# default options
 	local mv_latest=false force_mode=false
 
@@ -1639,11 +1654,6 @@ t2b_mv() {
 	if lb_test_arguments -lt 2 $* ; then
 		print_help
 		return 1
-	fi
-
-	if lb_istrue $remote_destination ; then
-		lb_error "This command is disabled for remote destinations."
-		return 255
 	fi
 
 	# test backup destination
@@ -1740,6 +1750,16 @@ t2b_mv() {
 # Usage: t2b_clean [OPTIONS] PATH
 t2b_clean() {
 
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
+
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# default options
 	local keep=0 force_mode=false
 
@@ -1782,11 +1802,6 @@ t2b_clean() {
 	if [ $# = 0 ] ; then
 		print_help
 		return 1
-	fi
-
-	if lb_istrue $remote_destination ; then
-		echo "This command is disabled for remote destinations."
-		return 255
 	fi
 
 	# test backup destination
@@ -1846,6 +1861,11 @@ t2b_clean() {
 # Rotate backups manually
 # Usage: t2b_rotate [OPTIONS] [LIMIT]
 t2b_rotate() {
+
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
 
 	# default options
 	local force_mode=false
@@ -1910,6 +1930,11 @@ t2b_rotate() {
 # Check if a backup is currently running
 # Usage: t2b_status [OPTIONS]
 t2b_status() {
+
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
 
 	# get options
 	while [ $# -gt 0 ] ; do
@@ -2078,6 +2103,16 @@ t2b_stop() {
 # Usage: t2b_import [OPTIONS] PATH [DATE...]
 t2b_import() {
 
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
+
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# default options
 	local reference limit=0
 
@@ -2128,12 +2163,6 @@ t2b_import() {
 	if [ -z "$1" ] ; then
 		print_help
 		return 1
-	fi
-
-	# disable command for remote destinations
-	if lb_istrue $remote_destination ; then
-		lb_error "This command is disabled for remote destinations."
-		return 255
 	fi
 
 	# test backup destination
@@ -2298,6 +2327,16 @@ t2b_import() {
 # Usage: t2b_export [OPTIONS] PATH
 t2b_export() {
 
+	if lb_istrue $clone_mode ; then
+		lb_error "This command is disabled in clone mode."
+		return 255
+	fi
+
+	if lb_istrue $remote_destination ; then
+		echo "This command is disabled for remote destinations."
+		return 255
+	fi
+
 	# default options
 	local reference limit=0
 
@@ -2348,12 +2387,6 @@ t2b_export() {
 	if [ -z "$1" ] ; then
 		print_help
 		return 1
-	fi
-
-	# disable command for remote destinations
-	if lb_istrue $remote_destination ; then
-		lb_error "This command is disabled for remote destinations."
-		return 255
 	fi
 
 	# test backup destination
