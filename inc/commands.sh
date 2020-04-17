@@ -739,7 +739,7 @@ t2b_restore() {
 	prepare_destination || return 4
 
 	# get all backups
-	if ! lb_istrue $remote_destination ; then
+	if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
 		backups=($(get_backups))
 		# if no backups, exit
 		if [ ${#backups[@]} = 0 ] ; then
@@ -749,7 +749,10 @@ t2b_restore() {
 	fi
 
 	# get path from argument
-	local file=$1
+	local file=$1 choose_destination=false
+
+	# clone mode: force to choose restore destination
+	lb_istrue $clone_mode && choose_destination=true
 
 	# if no file specified, go to interactive mode
 	if [ ${#file} = 0 ] ; then
@@ -757,7 +760,9 @@ t2b_restore() {
 		# choose type of file to restore (file/directory)
 		local choices=("$tr_restore_existing_file" "$tr_restore_existing_directory")
 
-		lb_istrue $remote_destination || choices+=("$tr_restore_moved_file" "$tr_restore_moved_directory")
+		if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
+			choices+=("$tr_restore_moved_file" "$tr_restore_moved_directory")
+		fi
 
 		lbg_choose_option -d 1 -l "$tr_choose_restore" "${choices[@]}" || return 0
 
@@ -839,10 +844,7 @@ t2b_restore() {
 			esac
 
 			# TODO: translate
-			if lbg_yesno "Do you want to choose a place to restore your files?" ; then
-				# choose destination folder (if cancel, continue)
-				lbg_choose_directory -t "Choose a destination:" && restore_path=$lbg_choose_directory
-			fi
+			lbg_yesno "Do you want to choose a place to restore your files?" && choose_destination=true
 		fi
 	fi
 
@@ -851,8 +853,14 @@ t2b_restore() {
 		debug "Restore path destination: $2"
 		restore_path=$2
 	else
-		# restore at original path
-		restore_path=$file
+		if $choose_destination ; then
+			# choose destination folder
+			lbg_choose_directory -t "Choose a destination:" || return 0
+			restore_path=$lbg_choose_directory
+		else
+			# restore at original path
+			restore_path=$file
+		fi
 	fi
 
 	# remote path
@@ -875,7 +883,7 @@ t2b_restore() {
 		[ "${file:${#file}-1}" = / ] && directory_mode=true
 	fi
 
-	debug "Path to restore: $file"
+	debug "Source to restore: $file"
 
 	# case of symbolic links
 	if [ -L "$file" ] ; then
@@ -883,88 +891,92 @@ t2b_restore() {
 		return 12
 	fi
 
-	# get backup full path
-	backup_file_path=$(get_backup_path "$file")
-
-	# if error, exit
-	[ -z "$backup_file_path" ] && return 1
-
-	if lb_istrue $remote_destination ; then
-		# remote: get backup versions of the file
-		# be careful to send absolute path of the file and not $file that could be relative!
-		file_history=($("${t2bserver_cmd[@]}" history "${backup_file_path:6}"))
-		if [ $? != 0 ] ; then
-			lb_error "Remote server connection error"
-			return 4
-		fi
+	if lb_istrue $clone_mode ; then
+		src=$file
 	else
-		# get backup versions of the file
-		file_history=($(get_backup_history "$file"))
-	fi
+		# get backup full path
+		backup_file_path=$(get_backup_path "$file")
 
-	# if no backup found
-	if [ ${#file_history[@]} = 0 ] ; then
-		lbg_error "$tr_no_backups_for_file"
-		return 6
-	fi
+		# if error, exit
+		[ -z "$backup_file_path" ] && return 1
 
-	# search for dates
-	if [ "$backup_date" != latest ] ; then
-		# if date was specified but not here, error
-		if ! lb_in_array "$backup_date" "${file_history[@]}" ; then
-			lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
-			return 7
-		fi
-	fi
-
-	# if interactive mode and more than 1 backup,
-	# prompt user to choose a backup date
-	if $choose_date && [ ${#file_history[@]} -gt 1 ] ; then
-
-		# change dates to a user-friendly format
-		history_dates=(${file_history[@]})
-
-		for ((i=0; i<${#file_history[@]}; i++)) ; do
-			history_dates[i]=$(get_backup_date "${file_history[i]}")
-		done
-
-		# choose backup date
-		lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}" || return 0
-
-		# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-		backup_date=${file_history[lbg_choose_option-1]}
-	fi
-
-	# if latest backup wanted, get most recent date
-	[ "$backup_date" = latest ] && backup_date=${file_history[0]}
-
-	# remote: get infos from server
-	# be careful to send absolute path of the file and not $file that could be relative!
-	if lb_istrue $remote_destination ; then
-		prepare_remote_destination restore $backup_date "${backup_file_path:6}" || return 4
-	fi
-
-	# test if a backup is running
-	if ! lb_istrue $no_lock ; then
 		if lb_istrue $remote_destination ; then
-			[ "$server_status" = running ]
+			# remote: get backup versions of the file
+			# be careful to send absolute path of the file and not $file that could be relative!
+			file_history=($("${t2bserver_cmd[@]}" history "${backup_file_path:6}"))
+			if [ $? != 0 ] ; then
+				lb_error "Remote server connection error"
+				return 4
+			fi
 		else
-			current_lock -q
+			# get backup versions of the file
+			file_history=($(get_backup_history "$file"))
 		fi
 
-		if [ $? = 0 ] ; then
-			debug "Destination locked"
-
-			# display window error & quit
-			lbg_error "$tr_backup_already_running"
-			return 4
+		# if no backup found
+		if [ ${#file_history[@]} = 0 ] ; then
+			lbg_error "$tr_no_backups_for_file"
+			return 6
 		fi
-	fi
 
-	# set backup source for restore command
-	src=$(url2ssh "$destination/$backup_date/$backup_file_path")
+		# search for dates
+		if [ "$backup_date" != latest ] ; then
+			# if date was specified but not here, error
+			if ! lb_in_array "$backup_date" "${file_history[@]}" ; then
+				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
+				return 7
+			fi
+		fi
 
-	# if source is a directory
+		# if interactive mode and more than 1 backup,
+		# prompt user to choose a backup date
+		if $choose_date && [ ${#file_history[@]} -gt 1 ] ; then
+
+			# change dates to a user-friendly format
+			history_dates=(${file_history[@]})
+
+			for ((i=0; i<${#file_history[@]}; i++)) ; do
+				history_dates[i]=$(get_backup_date "${file_history[i]}")
+			done
+
+			# choose backup date
+			lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}" || return 0
+
+			# get chosen backup (= chosen ID - 1 because array ID starts from 0)
+			backup_date=${file_history[lbg_choose_option-1]}
+		fi
+
+		# if latest backup wanted, get most recent date
+		[ "$backup_date" = latest ] && backup_date=${file_history[0]}
+
+		# remote: get infos from server
+		# be careful to send absolute path of the file and not $file that could be relative!
+		if lb_istrue $remote_destination ; then
+			prepare_remote_destination restore $backup_date "${backup_file_path:6}" || return 4
+		fi
+
+		# test if a backup is running
+		if ! lb_istrue $no_lock ; then
+			if lb_istrue $remote_destination ; then
+				[ "$server_status" = running ]
+			else
+				current_lock -q
+			fi
+
+			if [ $? = 0 ] ; then
+				debug "Destination locked"
+
+				# display window error & quit
+				lbg_error "$tr_backup_already_running"
+				return 4
+			fi
+		fi
+
+		# set backup source for restore command
+		src=$(url2ssh "$destination/$backup_date/$backup_file_path")
+	fi # end of no clone mode
+
+	# if source is a directory (or if t2b server told us so)
 	if [ -d "$src" ] || [ "$src_type" = directory ] ; then
 		local warn_partial=false
 
@@ -974,10 +986,10 @@ t2b_restore() {
 		fi
 
 		# if rsync result was not good (backup failed or was incomplete)
-		lb_istrue $remote_destination || \
+		if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
 			rsync_result=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)
-
-		[ "$rsync_result" != 0 ] && warn_partial=true
+			[ "$rsync_result" != 0 ] && warn_partial=true
+		fi
 
 		# warn user & ask to confirm
 		if $warn_partial ; then
@@ -1001,6 +1013,8 @@ t2b_restore() {
 			dest=$restore_path
 			;;
 	esac
+
+	debug "Restore destination: $dest"
 
 	# prepare rsync command
 	prepare_rsync restore
