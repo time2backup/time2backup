@@ -343,6 +343,8 @@ folders_size() {
 # Dependencies: $debug_mode, $force_verbose_level, $force_log_level, $verbose_level, $log_level
 set_verbose_log_levels() {
 
+	[ "$verbose_level" = DEBUG ] && debug_mode=true
+
 	# debug mode: do nothing
 	lb_istrue $debug_mode && return 0
 

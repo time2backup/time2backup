@@ -848,6 +848,13 @@ t2b_restore() {
 		fi
 	fi
 
+	# test if path to restore is stored in the backup directory
+	if lb_istrue $clone_mode && [[ "$file" != "$destination"* ]] ; then
+		debug "Bad path to restore: $file"
+		lbg_error "$tr_path_is_not_backup"
+		return 1
+	fi
+
 	# specified restore destination path
 	if [ -n "$2" ] ; then
 		debug "Restore path destination: $2"
