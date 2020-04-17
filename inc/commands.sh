@@ -1089,10 +1089,24 @@ t2b_restore() {
 	lb_display --log "Restore $(lb_abspath "$dest") from backup $backup_date...\n"
 	debug "Run ${cmd[*]}\n"
 
+	local res=0
+
+	# create parent directory if not exists
+	case $(get_protocol "$restore_path") in
+		ssh)
+			# do nothing
+			;;
+		*)
+			mkdir -p "$(dirname "$dest")"
+			res=$?
+			;;
+	esac
+
 	# execute rsync command, print result into terminal and errors in logfile
+	[ $res = 0 ] && \
 	"${cmd[@]}" 2> >(tee -a "$logfile" >&2)
 	lb_result --log
-	local res=$?
+	res=$?
 
 	# if no errors,
 	if [ $res = 0 ] ; then
