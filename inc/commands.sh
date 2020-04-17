@@ -467,8 +467,15 @@ t2b_backup() {
 			cmd+=(-b --backup-dir "$trash" --suffix "_$backup_date")
 		fi
 
-		# add source and destination
-		cmd+=("$abs_src" "$(url2ssh "$destination/$backup_date/$path_dest")")
+		# add source
+		cmd+=("$abs_src")
+
+		# add destination
+		if lb_istrue $clone_mode ; then
+			cmd+=("$(url2ssh "$destination")")
+		else
+			cmd+=("$(url2ssh "$destination/$backup_date/$path_dest")")
+		fi
 
 		# prepare backup: testing space
 		if lb_istrue $test_destination ; then

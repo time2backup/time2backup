@@ -753,6 +753,9 @@ delete_backup() {
 #   3: delete error
 rotate_backups() {
 
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
+
 	local limit=$keep_limit
 
 	# limit specified
@@ -988,6 +991,9 @@ clean_empty_backup() {
 
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
+
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
 
 	local delete_infofile=false
 
@@ -1350,7 +1356,13 @@ load_config() {
 			fi
 
 			# define the default logs path
-			[ -z "$logs_directory" ] && logs_directory=$destination/logs
+			if [ -z "$logs_directory" ] ; then
+				if lb_istrue $clone_mode ; then
+					logs_directory=$config_directory/logs
+				else
+					logs_directory=$destination/logs
+				fi
+			fi
 			;;
 	esac
 
@@ -1380,6 +1392,16 @@ load_config() {
 
 	# trash mode: force mirror mode
 	lb_istrue $trash_mode && keep_limit=0
+
+	# if clone mode,
+	if lb_istrue $clone_mode ; then
+		# force mirror mode
+		keep_limit=0
+		# disable trash mode
+		trash_mode=false
+		# disable test destination
+		test_destination=false
+	fi
 
 	# set default rsync path if not defined or if custom commands not allowed
 	if [ -z "$rsync_path" ] || lb_istrue $disable_custom_commands ; then
@@ -1665,6 +1687,9 @@ create_infofile() {
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
+
 	# create directory
 	if ! mkdir -p "$destination/$backup_date" ; then
 		lb_display_error --log "Could not prepare backup destination. Please verify your access rights."
@@ -1945,6 +1970,9 @@ create_lock() {
 
 	# do not create lock if remote destination
 	lb_istrue $remote_destination && return 0
+
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
 
 	debug "Create lock..."
 
@@ -2383,6 +2411,9 @@ prepare_backup() {
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
+
 	# find the last backup of this source
 	last_clean_backup=$(get_backup_history -n -l "$src")
 
@@ -2481,6 +2512,9 @@ create_latest_link() {
 
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
+
+	# clone mode: do nothing
+	lb_istrue $clone_mode && return 0
 
 	debug "Create latest link..."
 
