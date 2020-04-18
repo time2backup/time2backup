@@ -8,7 +8,7 @@
 * [Restore your files](#restore)
 * [Upgrading time2backup](#upgrade)
 * [Uninstall time2backup](#uninstall)
-* [Troubleshootting](#troubleshootting)
+* [Frequently Asked Questions](#faq)
 
 ---------------------------------------------------------------
 
@@ -93,12 +93,20 @@ Run the following command in a terminal:
 ```
 See [command documentation](command.md#uninstall) for more information about options.
 
-<a name="troubleshootting"></a>
-## Troubleshootting
-Some common bugs or issues are reported here.
+<a name="faq"></a>
+## Frequently Asked Questions
 
-In case of problem, please report your bugs here: https://github.com/time2backup/time2backup/issues
+If you don't find answer to your question, please [open an issue here](https://github.com/time2backup/time2backup/issues)
 
 ### time2backup is stuck with message "a backup is already running"
 Sometimes, if time2backup was killed by force, a lock file may stay.
 To fix this, run the backup command with `--force-unlock` option.
+
+### How do I set up excludes in a multi-sources setup?
+If you backup multiple sources, excluded files are applying globally.
+But if you want to set custom excludes for a directory, create a file named `.rsyncingnore` at the root of your source directory
+and fill it with common exclude syntax.
+
+Note: This will not work for remote sources.
+
+Remember that you can also create multiple time2backup configs and call them with `time2backup -c path/to/config`.
