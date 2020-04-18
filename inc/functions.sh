@@ -1397,6 +1397,7 @@ load_config() {
 
 	# if clone mode,
 	if lb_istrue $clone_mode ; then
+		debug "Clone mode enabled"
 		# force mirror mode
 		keep_limit=0
 		# disable trash mode

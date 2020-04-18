@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.0 (2020-04-18)
+### New features
+- New clone mode: backup source to destination without versionning
+
+### Changes
+- Navigate in config windows do not quit time2backup when finished
+- Upgrade libbash.sh to 1.16.1
+- Improved documentation
+
+### Bugfixes
+- Fixed bug that prevented config migration to work on BSD/macOS since 1.6.0! (related to libbash.sh 1.14.2)
+- Fixed crash when restoring to a non-existant directory
+
 ## 1.7.2 (2020-04-03)
 ### Bugfixes
 - Fix bug when moving backed up files to a new path
