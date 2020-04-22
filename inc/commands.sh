@@ -278,8 +278,12 @@ t2b_backup() {
 
 				remote_source=true
 
-				# get full backup path
-				path_dest=$(get_backup_path "$src")
+				if lb_istrue $clone_mode ; then
+					path_dest=$(basename "$src")
+				else
+					# get full backup path
+					path_dest=$(get_backup_path "$src")
+				fi
 
 				# set absolute source path
 				abs_src=$(url2ssh "$src")
@@ -335,8 +339,12 @@ t2b_backup() {
 					continue
 				fi
 
-				# get backup path
-				path_dest=$(get_backup_path "$abs_src")
+				if lb_istrue $clone_mode ; then
+					path_dest=$(basename "$abs_src")
+				else
+					# get backup path
+					path_dest=$(get_backup_path "$abs_src")
+				fi
 				;;
 		esac
 
@@ -472,7 +480,13 @@ t2b_backup() {
 
 		# add destination
 		if lb_istrue $clone_mode ; then
-			cmd+=("$(url2ssh "$destination")")
+			# one source or source is a file: clone to destination
+			if [ ${#sources[@]} = 1 ] || [ "${abs_src:${#abs_src}-1}" != / ] ; then
+				cmd+=("$(url2ssh "$destination")")
+			else
+				# multiple sources: clone to destination/directory
+				cmd+=("$(url2ssh "$destination/$path_dest")")
+			fi
 		else
 			cmd+=("$(url2ssh "$destination/$backup_date/$path_dest")")
 		fi
