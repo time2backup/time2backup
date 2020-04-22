@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1 (2020-04-22)
+### Bugfixes
+- Add support for multi-sources in clone mode
+
 ## 1.8.0 (2020-04-18)
 ### New features
 - New clone mode: backup source to destination without versionning
