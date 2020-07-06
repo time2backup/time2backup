@@ -2302,9 +2302,7 @@ t2b_import() {
 		fi
 
 		while $import ; do
-			debug "Run ${cmd[*]}"
-
-			"${cmd[@]}"
+			debug_and_run "${cmd[@]}"
 			lb_result
 			result=$?
 
@@ -2353,7 +2351,7 @@ t2b_import() {
 	if lb_istrue $sync_all ; then
 		echo
 		echo "Import all backups..."
-		"${rsync_cmd[@]}" "$import_source/" "$destination"
+		debug_and_run "${rsync_cmd[@]}" "$import_source/" "$destination"
 		lb_result
 		result=$?
 
@@ -2568,9 +2566,7 @@ t2b_export() {
 		fi
 
 		while $export ; do
-			debug "Run ${cmd[*]}"
-
-			"${cmd[@]}"
+			debug_and_run "${cmd[@]}"
 			lb_result
 			result=$?
 
@@ -2619,7 +2615,7 @@ t2b_export() {
 	if lb_istrue $sync_all ; then
 		echo
 		echo "Export all backups..."
-		"${rsync_cmd[@]}" "$destination/" "$export_destination"
+		debug_and_run "${rsync_cmd[@]}" "$destination/" "$export_destination"
 		lb_result
 		result=$?
 

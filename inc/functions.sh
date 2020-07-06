@@ -39,6 +39,7 @@
 #     clean_empty_backup
 #     auto_exclude
 #     try_sudo
+#     debug_and_run
 #   Config functions
 #     create_config_from_template
 #     create_config
@@ -1097,6 +1098,14 @@ try_sudo() {
 	fi
 
 	return $result
+}
+
+
+# Debug and run command
+# Usage: debug_and_run COMMAND [ARGS]
+debug_and_run() {
+	debug "Run $*"
+	"$@"
 }
 
 
