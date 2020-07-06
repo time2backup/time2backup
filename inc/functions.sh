@@ -2082,10 +2082,6 @@ prepare_rsync() {
 			# add max size if specified
 			[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
 			;;
-
-		import|export)
-			rsync_cmd+=(--delete)
-			;;
 	esac
 }
 

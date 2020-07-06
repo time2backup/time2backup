@@ -2164,7 +2164,7 @@ t2b_import() {
 				shift
 				;;
 			-a|--all)
-				import_all=true
+				sync_all=true
 				;;
 			-f|--force)
 				force_mode=true
@@ -2260,7 +2260,7 @@ t2b_import() {
 		src=${existing_backups[b]}
 
 		# prepare rsync command
-		cmd=("${rsync_cmd[@]}")
+		cmd=("${rsync_cmd[@]}" --delete)
 
 		# if reference link not set, search the last existing backup
 		if [ ${#backups[@]} -gt 0 ] ; then
@@ -2283,17 +2283,20 @@ t2b_import() {
 		# add source and destination in rsync command
 		cmd+=("$import_source/$src/" "$destination/$src")
 
-		lb_print
-		lb_print "Import $src... ($((${#existing_backups[@]} - $b))/$total)"
+		echo
+		echo "Import $src... ($((${#existing_backups[@]} - $b))/$total)"
 
 		# reset status
 		import=true
 		result=0
 
-		if ! lb_istrue $import_all ; then
+		if lb_istrue $sync_all ; then
+			# sync all: only the latest
+			end_loop=true
+		else
 			# search if backup has already been imported
 			if lb_in_array $src "${backups[@]}" ; then
-				lb_print "... Already imported"
+				echo "... Already imported"
 				import=false
 			fi
 		fi
@@ -2316,8 +2319,20 @@ t2b_import() {
 
 				lb_display_error "$error"
 
-				# ask for retry import; or else quit loop
-				lb_istrue $force_mode || lb_yesno -y "Retry?" && continue
+				# ask for retry; or else quit loop
+				if ! lb_istrue $force_mode ; then
+					lb_yesno -y -c "Retry?"
+					case $? in
+						0)
+							# retry
+							continue
+							;;
+						3)
+							# cancel
+							end_loop=true
+							;;
+					esac
+				fi
 			fi
 
 			break
@@ -2330,17 +2345,41 @@ t2b_import() {
 			# append error message to report
 			errors+=("$error")
 		fi
+
+		lb_istrue $end_loop && break
 	done
 
+	# full import
+	if lb_istrue $sync_all ; then
+		echo
+		echo "Import all backups..."
+		"${rsync_cmd[@]}" "$import_source/" "$destination"
+		lb_result
+		result=$?
+
+		debug "Result: $result"
+
+		if [ $result != 0 ] ; then
+			if rsync_result $result ; then
+				error="Partial import (exit code: $result)"
+			else
+				error="Failed to import (exit code: $result)"
+			fi
+
+			lb_display_error "$error"
+			errors+=("$error")
+		fi
+	fi
+
 	# print report
-	lb_print
+	echo
 	if [ ${#errors[@]} = 0 ] ; then
-		lb_print "Import finished"
+		echo "Import finished"
 	else
-		lb_print "Some errors occurred while import:"
+		echo "Some errors occurred while import:"
 		local e
 		for e in "${errors[@]}" ; do
-			lb_print "   - $e"
+			echo "   - $e"
 		done
 
 		return 6
@@ -2388,7 +2427,7 @@ t2b_export() {
 				shift
 				;;
 			-a|--all)
-				export_all=true
+				sync_all=true
 				;;
 			-f|--force)
 				force_mode=true
@@ -2487,7 +2526,7 @@ t2b_export() {
 		src=${backups[b]}
 
 		# prepare rsync command
-		cmd=("${rsync_cmd[@]}")
+		cmd=("${rsync_cmd[@]}" --delete)
 
 		# if reference link not set, search the last existing distant backup
 		if [ ${#existing_backups[@]} -gt 0 ] ; then
@@ -2510,17 +2549,20 @@ t2b_export() {
 		# add source and destination in rsync command
 		cmd+=("$destination/$src/" "$export_destination/$src")
 
-		lb_print
-		lb_print "Export $src... ($((${#backups[@]} - $b))/$total)"
+		echo
+		echo "Export $src... ($((${#backups[@]} - $b))/$total)"
 
 		# reset status
 		export=true
 		result=0
 
-		if ! lb_istrue $export_all ; then
+		if lb_istrue $sync_all ; then
+			# sync all: only the latest
+			end_loop=true
+		else
 			# search if backup has already been exported
 			if lb_in_array $src "${existing_backups[@]}" ; then
-				lb_print "... Already exported"
+				echo "... Already exported"
 				export=false
 			fi
 		fi
@@ -2543,8 +2585,20 @@ t2b_export() {
 
 				lb_display_error "$error"
 
-				# ask for retry export; or else quit loop
-				lb_istrue $force_mode || lb_yesno -y "Retry?" && continue
+				# ask for retry; or else quit loop
+				if ! lb_istrue $force_mode ; then
+					lb_yesno -y -c "Retry?"
+					case $? in
+						0)
+							# retry
+							continue
+							;;
+						3)
+							# cancel
+							end_loop=true
+							;;
+					esac
+				fi
 			fi
 
 			break
@@ -2557,17 +2611,41 @@ t2b_export() {
 			# append error message to report
 			errors+=("$error")
 		fi
+
+		lb_istrue $end_loop && break
 	done
 
+	# full export
+	if lb_istrue $sync_all ; then
+		echo
+		echo "Export all backups..."
+		"${rsync_cmd[@]}" "$destination/" "$export_destination"
+		lb_result
+		result=$?
+
+		debug "Result: $result"
+
+		if [ $result != 0 ] ; then
+			if rsync_result $result ; then
+				error="Partial export (exit code: $result)"
+			else
+				error="Failed to export (exit code: $result)"
+			fi
+
+			lb_display_error "$error"
+			errors+=("$error")
+		fi
+	fi
+
 	# print report
-	lb_print
+	echo
 	if [ ${#errors[@]} = 0 ] ; then
-		lb_print "Export finished"
+		echo "Export finished"
 	else
-		lb_print "Some errors occurred while export:"
+		echo "Some errors occurred while export:"
 		local e
 		for e in "${errors[@]}" ; do
-			lb_print "   - $e"
+			echo "   - $e"
 		done
 
 		return 6
