@@ -939,12 +939,6 @@ prepare_destination() {
 #   1: not OK
 free_space() {
 
-	# if no clean old backups option in config, do nothing
-	lb_istrue $clean_old_backups || return 1
-
-	# if trash mode, do nothing
-	lb_istrue $trash_mode && return 1
-
 	local i all_backups=($(get_backups))
 	local nb_backups=${#all_backups[@]}
 
@@ -953,6 +947,11 @@ free_space() {
 
 		# if space ok, quit loop to continue backup
 		test_space_available $1 "$destination" && return 0
+
+		# if trash mode or no clean, return error
+		if lb_istrue $trash_mode || lb_istrue $clean_old_backups ; then
+			return 1
+		fi
 
 		# display clean notification
 		# (just display the first notification, not for every clean)
