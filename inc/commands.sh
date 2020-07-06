@@ -582,8 +582,12 @@ t2b_backup() {
 			fi
 		fi
 
-		# clean empty trash and infofile
-		clean_empty_backup -i $last_clean_backup "$path_dest"
+		if lb_istrue $trash_mode ; then
+			clean_empty_backup trash "$path_dest"
+		else
+			# clean empty old backup and infofile
+			clean_empty_backup -i $last_clean_backup "$path_dest"
+		fi
 
 		# write duration in infofile
 		lb_set_config -s src$(($s + 1)) "$infofile" duration $(( $(date +%s) - $src_timestamp ))

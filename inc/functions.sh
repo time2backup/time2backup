@@ -758,6 +758,9 @@ rotate_backups() {
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
 
+	# trash mode: do nothing
+	lb_istrue $trash_mode && return 0
+
 	local limit=$keep_limit
 
 	# limit specified
