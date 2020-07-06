@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.2 (2020-07-06)
+### Changes
+- Import/export all now does a full rsync command
+
+### Bugfixes
+- Clean empty trash in trash mode
+- Debug mode can now be set in config
+
 ## 1.8.1 (2020-04-22)
 ### Bugfixes
 - Add support for multi-sources in clone mode
