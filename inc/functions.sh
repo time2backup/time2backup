@@ -343,11 +343,6 @@ folders_size() {
 # Dependencies: $debug_mode, $force_verbose_level, $force_log_level, $verbose_level, $log_level
 set_verbose_log_levels() {
 
-	[ "$verbose_level" = DEBUG ] && debug_mode=true
-
-	# debug mode: do nothing
-	lb_istrue $debug_mode && return 0
-
 	# overwritten levels
 	[ -n "$force_log_level" ] && log_level=$force_log_level
 	[ -n "$force_verbose_level" ] && verbose_level=$force_verbose_level
@@ -359,6 +354,8 @@ set_verbose_log_levels() {
 	# defines verbose level
 	# if not set (unknown error), set to default level
 	lb_set_display_level "$verbose_level" || lb_set_display_level INFO
+
+	[ "$verbose_level" = DEBUG ] && debug_mode=true
 }
 
 
