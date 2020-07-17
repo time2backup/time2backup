@@ -21,4 +21,3 @@ script_directory=$(dirname "$current_script")
 
 # run time2backup with local config
 "$script_directory"/time2backup.sh -c "$script_directory"/config "$@"
-exit $?

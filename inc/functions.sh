@@ -771,7 +771,7 @@ rotate_backups() {
 	if lb_istrue $remote_destination ; then
 		debug "Rotate on remote server..."
 		"${t2bserver_cmd[@]}" rotate $1
-		return $?
+		return
 	fi
 
 	# get all backups
@@ -1027,7 +1027,7 @@ clean_empty_backup() {
 
 		if lb_is_dir_empty "$destination/$1/$d" ; then
 			debug "Clean empty backup: $1/$d"
-			dummy=$(cd "$destination" &> /dev/null && rmdir -p "$1/$d" &> /dev/null)
+			(cd "$destination" && rmdir -p "$1/$d") &> /dev/null
 		fi
 	fi
 
@@ -1043,7 +1043,7 @@ clean_empty_backup() {
 	debug "Clean empty backup: $1"
 
 	# delete and prevent loosing context
-	dummy=$(cd "$destination" &> /dev/null && rmdir "$1" &> /dev/null)
+	(cd "$destination" && rmdir "$1") &> /dev/null
 
 	return 0
 }
@@ -2531,9 +2531,9 @@ create_latest_link() {
 	# create a new link
 	# in a sub-context to avoid confusion and do not care of output
 	if [ "$lb_current_os" = Windows ] ; then
-		dummy=$(cd "$destination" 2> /dev/null && rm -f latest 2> /dev/null && cmd /c mklink /j latest $backup_date 2> /dev/null)
+		(cd "$destination" 2> /dev/null && rm -f latest 2> /dev/null && cmd /c mklink /j latest $backup_date 2> /dev/null)
 	else
-		dummy=$(cd "$destination" 2> /dev/null && ln -snf $backup_date latest 2> /dev/null)
+		(cd "$destination" 2> /dev/null && ln -snf $backup_date latest 2> /dev/null)
 	fi
 
 	return 0

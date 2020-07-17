@@ -1565,7 +1565,7 @@ t2b_config() {
 			# clear bash & rerun time2backup
 			clear 2> /dev/null
 			"$lb_current_script" -u $user "${cmd_opts[@]}" -c "$lbg_choose_directory"
-			exit $?
+			exit
 			;;
 
 		wizard)

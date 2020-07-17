@@ -229,14 +229,14 @@ case $command in
 		if [ -n "$destination" ] ; then
 			# run command then exit
 			t2b_$command "$@"
-			exit $?
+			exit
 		fi
 		;;
 
 	install|uninstall)
 		# not depending on configuration: run command then exit
 		t2b_$command "$@"
-		exit $?
+		exit
 		;;
 
 	*)
@@ -325,7 +325,7 @@ fi
 # if configuration is not set (destination empty), run first config wizard
 if [ -z "$destination" ] ; then
 	config_wizard
-	exit $?
+	exit
 fi
 
 # display choose operation dialog if not set
