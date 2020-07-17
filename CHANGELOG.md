@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.3 (2020-07-17)
+### Changes
+- Upgrade libbash.sh to 1.17.1, improving import config security
+- Minor code improvements
+
 ## 1.8.2 (2020-07-06)
 ### Changes
 - Import/export all now does a full rsync command
