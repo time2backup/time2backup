@@ -352,6 +352,8 @@ set_verbose_log_levels() {
 	# if not set (unknown error), set to default level
 	lb_set_log_level "$log_level" || lb_set_log_level INFO
 
+	lb_istrue $debug_mode && return 0
+
 	# defines verbose level
 	# if not set (unknown error), set to default level
 	lb_set_display_level "$verbose_level" || lb_set_display_level INFO
