@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.4 (2020-08-24)
+### Bugfixes
+- Fix bug that prevented debug mode to work
+- Apply crontab changes only when running config wizard or config command
+
 ## 1.8.3 (2020-07-17)
 ### Changes
 - Upgrade libbash.sh to 1.17.1, improving import config security
