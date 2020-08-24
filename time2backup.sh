@@ -358,9 +358,6 @@ case $command in
 
 		# (re)set verbose and log levels after config was loaded
 		set_verbose_log_levels
-
-		# apply configuration in a quiet mode; don't care of errors
-		apply_config &> /dev/null
 		;;
 esac
 

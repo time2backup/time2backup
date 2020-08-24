@@ -1609,8 +1609,8 @@ t2b_config() {
 					# config ok: reload it
 					load_config || return 3
 
-					# apply config
-					apply_config || return 4
+					# apply crontab config
+					apply_crontab_config || return 4
 					;;
 				3)
 					# errors in config

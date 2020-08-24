@@ -46,7 +46,7 @@
 #     upgrade_config
 #     load_config
 #     crontab_config
-#     apply_config
+#     apply_crontab_config
 #     open_config
 #   Log functions
 #     create_logfile
@@ -1514,13 +1514,13 @@ crontab_config() {
 }
 
 
-# Install configuration (recurrent tasks, ...)
-# Usage: apply_config
+# Enable or disable cron tasks
+# Usage: apply_crontab_config
 # Dependencies: $enable_recurrent, $recurrent
 # Exit codes:
 #   0: OK
 #   other: failed (exit code forwarded from crontab_config)
-apply_config() {
+apply_crontab_config() {
 
 	# if disabled, do not continue
 	lb_istrue $enable_recurrent || return 0
@@ -3037,7 +3037,7 @@ config_wizard() {
 	fi
 
 	# apply configuration
-	apply_config || lbg_warning "$tr_cannot_install_cronjobs"
+	apply_crontab_config || lbg_warning "$tr_cannot_install_cronjobs"
 
 	# ask for the first backup
 	lbg_yesno -y "$tr_ask_backup_now" || return 0
