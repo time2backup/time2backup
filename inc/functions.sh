@@ -1091,7 +1091,7 @@ try_sudo() {
 	# if failed, retry in sudo
 	if [ $result != 0 ] ; then
 		# if sudo exists and not root
-		if lb_command_exists sudo && [ "$lb_current_user" != root ] ; then
+		if lb_command_exists sudo && ! lb_ami_root ; then
 			debug "...Failed! Try with sudo..."
 			sudo "$@"
 			result=$?
@@ -1451,7 +1451,7 @@ crontab_config() {
 
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
-	if [ "$lb_current_user" = root ] && [ "$user" != root ] ; then
+	if ! lb_ami_root && [ "$(id -u $user 2> /dev/null)" != 0 ] ; then
 		crontab_opts+=(-u $user)
 	fi
 
