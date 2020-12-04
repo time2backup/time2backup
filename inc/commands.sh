@@ -767,13 +767,23 @@ t2b_restore() {
 	fi
 
 	# get path from argument
-	local file=$1 choose_destination=false
+	local file choose_destination=false
 
 	# clone mode: force to choose restore destination
 	lb_istrue $clone_mode && choose_destination=true
 
-	# if no file specified, go to interactive mode
-	if [ ${#file} = 0 ] ; then
+	# if path is specified:
+	if [ ${#1} -gt 0 ] ; then
+		# get it in absolute path
+		file=$(lb_abspath -n "$1")
+
+		if [ ${#file} = 0 ] ; then
+			lb_error "File does not exist."
+			lb_error "If you want to restore a deleted file, please specify an absolute path."
+			return 1
+		fi
+	else
+		# if no path specified, go to interactive mode
 
 		# choose type of file to restore (file/directory)
 		local choices=("$tr_restore_existing_file" "$tr_restore_existing_directory")
@@ -809,13 +819,13 @@ t2b_restore() {
 				;;
 		esac
 
-		# choose a directory to restore
+		# choose a directory to restore (return absolute path)
 		if $directory_mode ; then
-			lbg_choose_directory -t "$tr_choose_directory_to_restore" "$starting_path" || return 0
+			lbg_choose_directory -t "$tr_choose_directory_to_restore" -a "$starting_path" || return 0
 			file=$lbg_choose_directory
 		else
-			# choose a file to restore
-			lbg_choose_file -t "$tr_choose_file_to_restore" "$starting_path" || return 0
+			# choose a file to restore (return absolute path)
+			lbg_choose_file -t "$tr_choose_file_to_restore" -a "$starting_path" || return 0
 			file=$lbg_choose_file
 		fi
 

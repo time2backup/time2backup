@@ -511,9 +511,8 @@ get_backup_history() {
 	[ ${#all_backups[@]} = 0 ] && return 2
 
 	# get backup path
-	local gbh_backup_path
-	gbh_backup_path=$(get_backup_path "$*")
-	[ -z "$gbh_backup_path" ] && return 3
+	local gbh_backup_path=$(get_backup_path "$*")
+	[ ${#gbh_backup_path} = 0 ] && return 3
 
 	# subtility: path/to/symlink_dir/ is not detected as a link,
 	# but so does path/to/symlink_dir
@@ -636,11 +635,8 @@ get_backup_path() {
 		return 0
 	fi
 
-	# get protocol
-	local protocol
-	protocol=$(get_protocol "$path")
-
 	# if not absolute path, check protocols
+	local protocol=$(get_protocol "$path")
 	case $protocol in
 		ssh)
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
@@ -660,26 +656,14 @@ get_backup_path() {
 			;;
 	esac
 
-	# if file or directory (relative path)
+	# if path is a relative path to a file or directory,
+	# try to get absolute path
+	local abspath=$(lb_abspath -n "$path")
 
-	# if not exists (file moved or deleted), try to get parent directory path
-	if [ -e "$path" ] ; then
-		echo -n /files"$(lb_abspath "$path")"
+	# if cannot found absolute path, return error
+	[ ${#abspath} = 0 ] && return 1
 
-		# if it is a directory, add '/' at the end of the path
-		[ -d "$path" ] && echo /
-	else
-		if [ -d "$(dirname "$path")" ] ; then
-			echo /files"$(lb_abspath "$path")"
-		else
-			# if not exists, I cannot guess original path
-			lb_error "File does not exist."
-			lb_error "If you want to restore a deleted file, please specify an absolute path."
-			return 1
-		fi
-	fi
-
-	return 0
+	echo /files"$abspath"
 }
 
 
