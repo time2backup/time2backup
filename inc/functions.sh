@@ -149,8 +149,6 @@ check_backup_date() {
 #   1: usage error
 #   2: error with paths
 get_common_path() {
-
-	# usage error
 	[ $# -lt 2 ] && return 1
 
 	# get path and convert them to avoid multiple slashes
@@ -192,8 +190,6 @@ get_common_path() {
 #   2: error with paths
 #   3: unknown cd error (may be access rights issue)
 get_relative_path() {
-
-	# usage error
 	[ $# -lt 2 ] && return 1
 
 	# avoid comparison errors with double slashes or else
@@ -211,7 +207,6 @@ get_relative_path() {
 		[ "$dir1" = / ] && break
 	done
 
-	# print relative path
 	echo $relative_path
 }
 
@@ -220,11 +215,7 @@ get_relative_path() {
 # Usage: get_protocol URL
 # Return: protocol
 get_protocol() {
-
-	# get protocol
-	local protocol
-	protocol=$(echo $1 | cut -d: -f1)
-
+	local protocol=$(echo $1 | cut -d: -f1)
 	case $protocol in
 		ssh)
 			echo $protocol
@@ -250,7 +241,6 @@ url2host() {
 # Usage: url2path URL
 # Return: path
 url2path() {
-
 	# get ssh host
 	local ssh_host=$(url2host "$1")
 
@@ -267,7 +257,6 @@ url2path() {
 # Usage: url2ssh URL
 # Return: complete path
 url2ssh() {
-	# test URL
 	if [ "${1:0:6}" = 'ssh://' ] ; then
 		echo "$(url2host "$1"):$(url2path "$1")"
 	else
@@ -280,9 +269,8 @@ url2ssh() {
 # Usage: file_for_windows PATH
 # Exit codes:
 #   0: OK
-#   1: Usage error / Unknown error
+#   1: Usage/Unknown error
 file_for_windows() {
-
 	# not on Windows: do nothing
 	[ "$lb_current_os" != Windows ] && return 0
 
@@ -315,7 +303,6 @@ notify() {
 #   0: OK
 #   1: Usage error (path does not exists)
 folders_size() {
-
 	local nb_directories directory_size
 
 	# get number of subfolders
@@ -343,7 +330,6 @@ folders_size() {
 # Usage: set_verbose_log_levels
 # Dependencies: $debug_mode, $force_verbose_level, $force_log_level, $verbose_level, $log_level
 set_verbose_log_levels() {
-
 	# overwritten levels
 	[ -n "$force_log_level" ] && log_level=$force_log_level
 	[ -n "$force_verbose_level" ] && verbose_level=$force_verbose_level
@@ -369,17 +355,11 @@ set_verbose_log_levels() {
 #   1: cannot get filesystem type
 #   2: destination does not support hard links
 test_hardlinks() {
-
 	# supported filesystems on Linux, macOS and Windows
-	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs \
-		hfs hfsplus apfs \
-		ntfs)
+	local supported_fstypes=(ext2 ext3 ext4 btrfs aufs hfs hfsplus apfs ntfs)
 
 	# get destination filesystem
-	local fstype
-	fstype=$(lb_df_fstype "$*")
-
-	# filesystem not found: quit
+	local fstype=$(lb_df_fstype "$*")
 	[ -z "$fstype" ] && return 1
 
 	# if destination filesystem does not support hard links, return error
@@ -393,7 +373,6 @@ test_hardlinks() {
 #   0: space ok for backup
 #   1: not enough space
 test_space_available() {
-
 	# if 0, always OK
 	[ "$1" = 0 ] && return 0
 
@@ -429,7 +408,6 @@ test_space_available() {
 #   0: OK
 #   1: format error
 get_backup_date() {
-
 	local format=$tr_readable_date
 
 	# get timestamp option
@@ -472,7 +450,6 @@ get_backup_date() {
 #   2: no backups found
 #   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -626,7 +603,6 @@ get_backup_history() {
 #   0: OK
 #   1: cannot get original path (not absolute and parent directory does not exists)
 get_backup_path() {
-
 	local path=$*
 
 	# if absolute path (first character is a /), return file path
@@ -675,7 +651,6 @@ get_backup_path() {
 #   0: OK
 #   1: error for the path
 get_backups() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -708,8 +683,6 @@ get_backups() {
 #   1: usage error
 #   2: rm error
 delete_backup() {
-
-	# usage error
 	[ -z "$1" ] && return 1
 
 	# test mode: no delete
@@ -738,7 +711,6 @@ delete_backup() {
 #   2: nothing rotated
 #   3: delete error
 rotate_backups() {
-
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
 
@@ -829,7 +801,6 @@ rotate_backups() {
 # Dependencies: $current_timestamp, $tr_report_duration
 # Return: complete report with elapsed time in HH:MM:SS
 report_duration() {
-
 	# calculate duration
 	local duration=$(($(date +%s) - $current_timestamp))
 
@@ -848,7 +819,6 @@ report_duration() {
 #   1: destination not reachable
 #   2: destination not writable
 prepare_destination() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -924,7 +894,6 @@ prepare_destination() {
 #   0: OK
 #   1: not OK
 free_space() {
-
 	local i all_backups=($(get_backups))
 	local nb_backups=${#all_backups[@]}
 
@@ -979,7 +948,6 @@ free_space() {
 #   0: cleaned
 #   1: usage error or path is not a directory
 clean_empty_backup() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -1042,7 +1010,6 @@ clean_empty_backup() {
 #   0: path excluded (or no result)
 #   1: failed
 auto_exclude() {
-
 	# if destination not inside, quit
 	[[ "$destination" != "$1"* ]] && return 0
 
@@ -1106,7 +1073,6 @@ debug_and_run() {
 #   0: OK
 #   1: error
 create_config_from_template() {
-
 	local nonempty=false
 	if [ "$1" = "-n" ] ; then
 		nonempty=true
@@ -1142,7 +1108,6 @@ create_config_from_template() {
 #   0: OK
 #   1: error
 create_config() {
-
 	# create config directory
 	# default: ~/.config/time2backup
 	mkdir -p "$config_directory" &> /dev/null
@@ -1174,7 +1139,6 @@ create_config() {
 #   1: compatibility error
 #   2: write error
 upgrade_config() {
-
 	# get current config version
 	local old_config_version
 	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
@@ -1271,7 +1235,6 @@ upgrade_config() {
 #   1: cannot open config
 #   2: there are errors in config
 load_config() {
-
 	if ! lb_istrue $quiet_mode ; then
 		case $command in
 			""|backup|restore)
@@ -1425,7 +1388,6 @@ load_config() {
 #   3: cannot install new crontab
 #   4: cannot write into the temporary crontab file
 crontab_config() {
-
 	local crontab crontab_opts=() crontab_enable=false
 
 	[ "$1" = enable ] && crontab_enable=true
@@ -1505,7 +1467,6 @@ crontab_config() {
 #   0: OK
 #   other: failed (exit code forwarded from crontab_config)
 apply_crontab_config() {
-
 	# if disabled, do not continue
 	lb_istrue $enable_recurrent || return 0
 
@@ -1530,8 +1491,6 @@ apply_crontab_config() {
 #   3: failed to open configuration
 #   4: no editor found to open configuration file
 open_config() {
-
-	# default values
 	local editors=(nano vim vi)
 	local all_editors=()
 	local custom_editor=false
@@ -1683,7 +1642,6 @@ delete_logfile() {
 #   0: infofile created
 #   1: not created
 create_infofile() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -1725,7 +1683,6 @@ hard_links = $hard_links" > "$infofile"
 #   1: section not found
 #   2: file does not exists
 find_infofile_section() {
-
 	# if file does not exists, quit
 	[ -f "$1" ] || return 2
 
@@ -1798,7 +1755,6 @@ check_infofile_rsync_result() {
 #   5: no disk UUID set in config
 #   6: cannot delete mount point
 mount_destination() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -1833,7 +1789,6 @@ mount_destination() {
 
 	# create mountpoint
 	if ! [ -d "$backup_disk_mountpoint" ] ; then
-
 		lb_display --log "Create disk mountpoint..."
 		try_sudo mkdir -p "$backup_disk_mountpoint"
 
@@ -1880,7 +1835,6 @@ mount_destination() {
 #   2: umount error
 #   3: cannot delete mountpoint
 unmount_destination() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -1927,7 +1881,6 @@ unmount_destination() {
 #   0: lock exists
 #   1: lock does not exists
 current_lock() {
-
 	# remote destination: do nothing (return no lock exists)
 	lb_istrue $remote_destination && return 1
 
@@ -1967,7 +1920,6 @@ current_lock() {
 #   0: lock ok
 #   1: unknown error
 create_lock() {
-
 	# do not create lock if remote destination
 	lb_istrue $remote_destination && return 0
 
@@ -1990,7 +1942,6 @@ create_lock() {
 #   0: OK
 #   1: could not delete lock
 release_lock() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -2024,7 +1975,6 @@ release_lock() {
 # Usage: prepare_rsync COMMAND
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
-
 	# basic command
 	rsync_cmd=("$rsync_path" -rltDH)
 
@@ -2083,10 +2033,8 @@ prepare_rsync() {
 #               $t2bserver_path, $t2bserver_token, $t2bserver_pwd
 # Return: Remote command
 get_rsync_remote_command() {
-
-	# time2backup server path
 	if lb_istrue $remote_destination ; then
-
+		# time2backup server path
 		if [ "${#t2bserver_path[@]}" -gt 0 ] ; then
 			echo -n "${t2bserver_path[*]}"
 		else
@@ -2112,11 +2060,8 @@ get_rsync_remote_command() {
 #   1: usage error
 #   2: rsync error
 rsync_result() {
-
-	# usage error
 	lb_is_integer $1 || return 1
 
-	# manage results
 	case $1 in
 		0|23|24)
 			# OK or partial transfer
@@ -2139,7 +2084,6 @@ rsync_result() {
 # Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
 #               $destination, $hard_links, $last_clean_backup
 prepare_remote_destination() {
-
 	local response code=0
 
 	debug "Connect to remote server..."
@@ -2156,7 +2100,6 @@ prepare_remote_destination() {
 		0)
 			# OK: continue
 			;;
-
 		205)
 			# backup already running
 
@@ -2169,7 +2112,6 @@ prepare_remote_destination() {
 			fi
 			clean_exit 8
 			;;
-
 		*)
 			debug "Server returned error code: $code"
 			lb_display_error --log "Remote server not reachable or not ready. Read log for more details."
@@ -2220,7 +2162,6 @@ prepare_remote_destination() {
 #   0: OK
 #   1: rsync test command failed
 test_backup() {
-
 	lb_display --log "\nTesting backup..."
 
 	# we ignore the first argument (rsync command)
@@ -2259,7 +2200,6 @@ test_backup() {
 	# add a security margin of 1MB for logs and future backups
 	total_size=$(($total_size + 1000000))
 
-	# force exit code to 0
 	return 0
 }
 
@@ -2303,7 +2243,6 @@ estimate_backup_time() {
 # Usage: run_before
 # Dependencies: $disable_custom_commands, $exec_before, $exec_before_block
 run_before() {
-
 	# nothing to do: quit
 	[ ${#exec_before[@]} = 0 ] && return 0
 
@@ -2342,7 +2281,6 @@ Before script failed (exit code: $result)
 # Usage: run_after
 # Dependencies: $disable_custom_commands, $exec_after, $exec_after_block
 run_after() {
-
 	# nothing to do: quit
 	[ ${#exec_after[@]} = 0 ] && return 0
 
@@ -2385,7 +2323,6 @@ After script failed (exit code: $result)
 #   0: OK
 #   1: failed
 move_backup() {
-
 	local old=$destination/$1/$3 new=$(dirname "$destination/$2/$3")
 
 	# create parent directory and move it
@@ -2403,7 +2340,6 @@ move_backup() {
 # Dependencies: $remote_destination, $last_clean_backup, $src, $destination, $backup_date, $path_dest,
 #               $resume_last, $keep_limit, $hard_links
 prepare_backup() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -2465,7 +2401,6 @@ prepare_backup() {
 #   0: OK
 #   1: Failed
 prepare_trash() {
-
 	local trash_date=$last_clean_backup
 	lb_istrue $trash_mode && trash_date=trash
 
@@ -2505,7 +2440,6 @@ prepare_trash() {
 # Usage: create_latest_link
 # Dependencies: $destination, $backup_date
 create_latest_link() {
-
 	# remote destination: do nothing
 	lb_istrue $remote_destination && return 0
 
@@ -2571,7 +2505,6 @@ uncatch_kills() {
 # Usage: clean_exit [EXIT_CODE]
 # Dependencies: $path_dest, $unmount, $keep_logs, $logfile, $shutdown, $tr_*
 clean_exit() {
-
 	# clear all traps to avoid infinite loop if following commands takes some time
 	uncatch_kills
 
@@ -2584,7 +2517,6 @@ clean_exit() {
 	release_lock
 
 	if [ "$command" = backup ] ; then
-
 		clean_empty_backup -i $backup_date "$path_dest"
 
 		# unmount destination
@@ -2629,7 +2561,6 @@ clean_exit() {
 # Usage: cancel_exit
 # Dependencies: $command, $tr_*
 cancel_exit() {
-
 	echo
 	lb_info --log "Cancelled. Exiting..."
 
@@ -2657,7 +2588,6 @@ cancel_exit() {
 #   0: email sent, not enabled or no error
 #   1: email recipient not set
 send_email_report() {
-
 	case $email_report in
 		always)
 			# continue
@@ -2728,7 +2658,6 @@ time2backup"
 #   1: shutdown command does not exists
 #   2: error in shutdown command
 haltpc() {
-
 	# test shutdown command
 	if ! lb_command_exists "${shutdown_cmd[0]}" ; then
 		lb_display_error --log "No shutdown command found. PC will not halt."
@@ -2760,7 +2689,6 @@ haltpc() {
 # Usage: choose_operation
 # Dependencies: $console_mode, $command, $tr_*
 choose_operation() {
-
 	# prepare options
 	local choices=("$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
 	local commands=("" backup restore config)
@@ -2788,7 +2716,6 @@ choose_operation() {
 #   1: no destination chosen
 #   3: there are errors in configuration file
 config_wizard() {
-
 	local start_path recurrent_enabled=false
 
 	# set default destination directory

@@ -29,7 +29,6 @@
 # Perform backup
 # Usage: t2b_backup [OPTIONS] [PATH...]
 t2b_backup() {
-
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -696,7 +695,6 @@ Errors:
 # Restore a file
 # Usage: t2b_restore [OPTIONS] [PATH] [DESTINATION]
 t2b_restore() {
-
 	# default option values
 	backup_date=latest
 	local choose_date=true force_mode=false directory_mode=false \
@@ -1198,7 +1196,6 @@ t2b_restore() {
 # Get history/versions of a file
 # Usage: t2b_history [OPTIONS] PATH
 t2b_history() {
-
 	if lb_istrue $clone_mode ; then
 		echo "This command is disabled in clone mode."
 		return 255
@@ -1314,7 +1311,6 @@ t2b_history() {
 # Explore backups
 # Usage: t2b_explore [OPTIONS] [PATH]
 t2b_explore() {
-
 	if lb_istrue $remote_destination ; then
 		echo "This command is disabled for remote destinations."
 		return 255
@@ -1471,7 +1467,6 @@ t2b_explore() {
 # Configure time2backup
 # Usage: t2b_config [OPTIONS]
 t2b_config() {
-
 	# default options
 	local file op_config cmd_opts=()
 
@@ -1644,7 +1639,6 @@ t2b_config() {
 # Move backup files
 # Usage: t2b_mv [OPTIONS] PATH
 t2b_mv() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -1784,7 +1778,6 @@ t2b_mv() {
 # Clean files in backups
 # Usage: t2b_clean [OPTIONS] PATH
 t2b_clean() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -1896,7 +1889,6 @@ t2b_clean() {
 # Rotate backups manually
 # Usage: t2b_rotate [OPTIONS] [LIMIT]
 t2b_rotate() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -1965,7 +1957,6 @@ t2b_rotate() {
 # Check if a backup is currently running
 # Usage: t2b_status [OPTIONS]
 t2b_status() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -2030,7 +2021,6 @@ t2b_status() {
 # Stop a running backup
 # Usage: t2b_stop [OPTIONS]
 t2b_stop() {
-
 	# default options
 	local force_mode=false
 
@@ -2137,7 +2127,6 @@ t2b_stop() {
 # Import backups
 # Usage: t2b_import [OPTIONS] PATH [DATE...]
 t2b_import() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -2398,7 +2387,6 @@ t2b_import() {
 # Export backups
 # Usage: t2b_export [OPTIONS] PATH
 t2b_export() {
-
 	if lb_istrue $clone_mode ; then
 		lb_error "This command is disabled in clone mode."
 		return 255
@@ -2662,7 +2650,6 @@ t2b_export() {
 # Install time2backup
 # Usage: t2b_install [OPTIONS]
 t2b_install() {
-
 	# get options
 	while [ $# -gt 0 ] ; do
 		case $1 in
@@ -2758,7 +2745,6 @@ EOF
 # Uninstall time2backup
 # Usage: t2b_uninstall [OPTIONS]
 t2b_uninstall() {
-
 	# default options
 	local delete_files=false force_mode=false
 
