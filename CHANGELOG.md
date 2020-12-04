@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.5 (2020-12-04)
+### Bugfixes
+- Fix false incomplete warning when restoring a relative path directory
+
+### Changes
+- Upgrade libbash.sh to 1.18.0
+- Minor code improvements and cleaning
+
 ## 1.8.4 (2020-08-24)
 ### Bugfixes
 - Fix bug that prevented debug mode to work
@@ -272,6 +280,6 @@
 time2backup is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for the full license text.
 
 ## Credits
-Author: Jean Prunneaux  http://jean.prunneaux.com
+Author: Jean Prunneaux  https://jean.prunneaux.com
 
 Website: https://time2backup.org
