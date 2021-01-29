@@ -772,13 +772,17 @@ t2b_restore() {
 
 	# if path is specified:
 	if [ ${#1} -gt 0 ] ; then
-		# get it in absolute path
-		file=$(lb_abspath -n "$1")
+		if [ "$(get_protocol "$1")" = ssh ] ; then
+			file=$1
+		else
+			# get it in absolute path
+			file=$(lb_abspath -n "$1")
 
-		if [ ${#file} = 0 ] ; then
-			lb_error "File does not exist."
-			lb_error "If you want to restore a deleted file, please specify an absolute path."
-			return 1
+			if [ ${#file} = 0 ] ; then
+				lb_error "File does not exist."
+				lb_error "If you want to restore a deleted file, please specify an absolute path."
+				return 1
+			fi
 		fi
 	else
 		# if no path specified, go to interactive mode
