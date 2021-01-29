@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.6 (2021-01-29)
+### Bugfixes
+- Fix regressive bug that prenvented restore ssh files
+- Upgrade libbash.sh to 1.18.1, fixing a bug that prevented emails to be sent in some configurations
+
 ## 1.8.5 (2020-12-04)
 ### Bugfixes
 - Fix false incomplete warning when restoring a relative path directory
