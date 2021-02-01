@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.7 (2021-02-01)
+### Changes
+- Open time2backup in terminal
+
 ## 1.8.6 (2021-01-29)
 ### Bugfixes
 - Fix regressive bug that prenvented restore ssh files
