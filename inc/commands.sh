@@ -2677,8 +2677,7 @@ t2b_install() {
 
 		desktop_file=$lb_current_script_directory/time2backup.desktop
 
-		cat > "$desktop_file" <<EOF
-[Desktop Entry]
+		echo "[Desktop Entry]
 Version=1.0
 Name=time2backup
 GenericName=Files backup
@@ -2688,9 +2687,9 @@ Comment[fr]=Sauvegardez et restaurez vos données
 Type=Application
 Exec=$(lb_realpath "$lb_current_script") $*
 Icon=$(lb_realpath "$lb_current_script_directory"/resources/icon.png)
-Terminal=false
+Terminal=true
 Categories=System;Utility;Filesystem;
-EOF
+" > "$desktop_file"
 
 		# copy desktop file to /usr/share/applications
 		if [ -d /usr/share/applications ] ; then
