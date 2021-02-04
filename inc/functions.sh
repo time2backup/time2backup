@@ -1249,9 +1249,8 @@ load_config() {
 		return 1
 	fi
 
-	# analyse the default config template and load config
-	lb_read_config -a "$lb_current_script_directory"/config/time2backup.example.conf && \
-	lb_import_config "$config_file" "${lb_read_config[@]}"
+	# load config from template
+	lb_import_config -t "$lb_current_script_directory"/config/time2backup.example.conf "$config_file"
 	if [ $? != 0 ] ; then
 		lb_display_error "$tr_error_read_config"
 		return 1

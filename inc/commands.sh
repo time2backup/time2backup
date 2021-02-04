@@ -1684,7 +1684,7 @@ t2b_mv() {
 	done
 
 	# usage errors
-	if lb_test_arguments -lt 2 $* ; then
+	if [ $# -lt 2 ] ; then
 		print_help
 		return 1
 	fi
