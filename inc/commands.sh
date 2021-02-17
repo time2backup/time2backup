@@ -198,8 +198,8 @@ $tr_verify_media"
 
 	# test if a backup is running
 	local existing_lock=$(current_lock)
-	if [ -n "$existing_lock" ] ; then
 
+	if [ -n "$existing_lock" ] ; then
 		debug "Lock found: $existing_lock"
 
 		# force mode: delete old lock
@@ -975,7 +975,7 @@ $tr_run_to_show_history $lb_current_script history $file"
 		if $choose_date && [ ${#file_history[@]} -gt 1 ] ; then
 
 			# change dates to a user-friendly format
-			history_dates=(${file_history[@]})
+			history_dates=("${file_history[@]}")
 
 			for ((i=0; i<${#file_history[@]}; i++)) ; do
 				history_dates[i]=$(get_backup_date "${file_history[i]}")
@@ -1441,17 +1441,17 @@ $tr_run_to_show_history $lb_current_script history $path"
 			if [ ${#path_history[@]} -ge 10 ] ; then
 				lbg_yesno "Warning: You are about to open ${#path_history[@]} windows! Are you sure to continue?" || return 0
 			fi
-			backup_date=${path_history[@]}
+			backup_date=("${path_history[@]}")
 
 		else
 			# if only one backup, no need to choose one
 			if [ ${#path_history[@]} = 1 ] ; then
-				backup_date=${path_history[0]}
+				backup_date=("${path_history[0]}")
 			else
 				# prompt user to choose a backup date
 
 				# change dates to a user-friendly format
-				history_dates=(${path_history[@]})
+				history_dates=("${path_history[@]}")
 
 				for ((i=0; i<${#path_history[@]}; i++)) ; do
 					history_dates[i]=$(get_backup_date "${path_history[i]}")
@@ -1461,7 +1461,7 @@ $tr_run_to_show_history $lb_current_script history $path"
 				lbg_choose_option -d 1 -l "$tr_choose_backup_date" "${history_dates[@]}" || return 0
 
 				# get chosen backup (= chosen ID - 1 because array ID starts from 0)
-				backup_date=${path_history[lbg_choose_option-1]}
+				backup_date=("${path_history[lbg_choose_option-1]}")
 			fi
 		fi
 	fi
@@ -1752,7 +1752,7 @@ t2b_mv() {
 		lb_istrue $quiet_mode || echo "You are about to move ${#file_history[@]} backups from '$1' to '$2'."
 
 		# warn user if destination already exists
-		[ -e "$destination/$file_history/$path_dest" ] && \
+		[ -e "$destination/${file_history[0]}/$path_dest" ] && \
 			lb_warning "Destination already exists! This action may erase files."
 
 		lb_yesno "Do you want to continue?" || return 0
@@ -1884,7 +1884,6 @@ t2b_clean() {
 
 	local b result=0
 	for ((i=$keep; i<${#file_history[@]}; i++)) ; do
-
 		b=${file_history[i]}
 
 		lb_istrue $quiet_mode || echo "Deleting backup $b ($(($i + 1 - $keep))/$((${#file_history[@]} - $keep)))..."
@@ -2210,7 +2209,7 @@ t2b_import() {
 	shift
 
 	while [ $# -gt 0 ] ; do
-		check_backup_date $1 && existing_backups+=($1)
+		check_backup_date "$1" && existing_backups+=("$1")
 		shift
 	done
 

@@ -1362,7 +1362,7 @@ crontab_config() {
 	# if root, use crontab -u option
 	# Note: macOS does supports -u option only if current user is root
 	if ! lb_ami_root && [ "$(id -u $user 2> /dev/null)" != 0 ] ; then
-		crontab_opts+=(-u $user)
+		crontab_opts+=(-u "$user")
 	fi
 
 	# check if crontab exists
@@ -1650,11 +1650,9 @@ find_infofile_section() {
 	# if file does not exists, quit
 	[ -f "$1" ] || return 2
 
-	local section path
-
 	# search in sections, ignoring global sections
+	local section path
 	for section in $(grep -Eo "^\[src.*\]" "$1" 2> /dev/null | tr -d '[]') ; do
-
 		# get path of the backup
 		path=$(lb_get_config -s "$section" "$1" path)
 
@@ -1978,7 +1976,6 @@ prepare_rsync() {
 	esac
 
 	# command-specific options
-
 	case $1 in
 		backup)
 			# delete newer files
@@ -2635,7 +2632,6 @@ haltpc() {
 # Usage: choose_operation
 # Dependencies: $console_mode, $command, $tr_*
 choose_operation() {
-	# prepare options
 	local choices=("$tr_backup_files" "$tr_restore_file" "$tr_configure_time2backup")
 	local commands=("" backup restore config)
 
@@ -2683,7 +2679,6 @@ config_wizard() {
 
 		# if destination changed (or first run)
 		if [ "$chosen_directory" != "$destination" ] ; then
-
 			# update destination config
 			if lb_set_config "$config_file" destination "$chosen_directory" ; then
 				# reset destination variable
@@ -2793,85 +2788,80 @@ $tr_default_source"
 	fi
 
 	# activate recurrent backups
-	if lb_istrue $enable_recurrent ; then
-		if lbg_yesno "$tr_ask_activate_recurrent" ; then
+	if lb_istrue $enable_recurrent && lbg_yesno "$tr_ask_activate_recurrent" ; then
+		# default custom frequency
+		case $frequency in
+			hourly|1h|60m)
+				default_frequency=1
+				;;
+			""|daily|1d|24h)
+				default_frequency=2
+				;;
+			weekly|7d)
+				default_frequency=3
+				;;
+			monthly|30d)
+				default_frequency=4
+				;;
+			*)
+				default_frequency=5
+				;;
+		esac
 
-			# default custom frequency
-			case $frequency in
-				hourly|1h|60m)
-					default_frequency=1
+		# choose frequency
+		if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
+			recurrent_enabled=true
+
+			# set recurrence frequency
+			case $lbg_choose_option in
+				1)
+					lb_set_config "$config_file" frequency hourly
 					;;
-				""|daily|1d|24h)
-					default_frequency=2
+				2)
+					lb_set_config "$config_file" frequency daily
 					;;
-				weekly|7d)
-					default_frequency=3
+				3)
+					lb_set_config "$config_file" frequency weekly
 					;;
-				monthly|30d)
-					default_frequency=4
+				4)
+					lb_set_config "$config_file" frequency monthly
 					;;
-				*)
-					default_frequency=5
+				5)
+					# default custom frequency
+					case $frequency in
+						hourly)
+							frequency=1h
+							;;
+						weekly)
+							frequency=7d
+							;;
+						monthly)
+							frequency=31d
+							;;
+						'')
+							# default is 24h
+							frequency=24h
+							;;
+					esac
+
+					# display dialog to enter custom frequency
+					if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
+						if test_period $lbg_input_text ; then
+							lb_set_config "$config_file" frequency $lbg_input_text
+						else
+							lbg_error "$tr_frequency_syntax_error
+$tr_please_retry"
+						fi
+					fi
 					;;
 			esac
 
-			# choose frequency
-			if lbg_choose_option -l "$tr_choose_backup_frequency" -d $default_frequency "$tr_frequency_hourly" "$tr_frequency_daily" "$tr_frequency_weekly" "$tr_frequency_monthly" "$tr_frequency_custom"; then
-
-				recurrent_enabled=true
-
-				# set recurrence frequency
-				case $lbg_choose_option in
-					1)
-						lb_set_config "$config_file" frequency hourly
-						;;
-					2)
-						lb_set_config "$config_file" frequency daily
-						;;
-					3)
-						lb_set_config "$config_file" frequency weekly
-						;;
-					4)
-						lb_set_config "$config_file" frequency monthly
-						;;
-					5)
-						# default custom frequency
-						case $frequency in
-							hourly)
-								frequency=1h
-								;;
-							weekly)
-								frequency=7d
-								;;
-							monthly)
-								frequency=31d
-								;;
-							'')
-								# default is 24h
-								frequency=24h
-								;;
-						esac
-
-						# display dialog to enter custom frequency
-						if lbg_input_text -d "$frequency" "$tr_enter_frequency $tr_frequency_examples" ; then
-							if test_period $lbg_input_text ; then
-								lb_set_config "$config_file" frequency $lbg_input_text
-							else
-								lbg_error "$tr_frequency_syntax_error
-$tr_please_retry"
-							fi
-						fi
-						;;
-				esac
-
-				[ $? != 0 ] && lb_warning "Cannot set config: frequency"
-			fi
+			[ $? != 0 ] && lb_warning "Cannot set config: frequency"
 		fi
 	fi
 
 	# ask to edit config
 	if lbg_yesno "$tr_ask_edit_config" ; then
-
 		if open_config "$config_file" && [ "$lb_current_os" != Windows ] ; then
 			# display window to wait until user has finished
 			lb_istrue $console_mode || lbg_info "$tr_finished_edit"
