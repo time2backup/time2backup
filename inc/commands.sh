@@ -98,7 +98,8 @@ t2b_backup() {
 
 	# if no sources to backup, exit
 	if [ ${#sources[@]} = 0 ] ; then
-		lbg_warning "$tr_nothing_to_backup\n$tr_please_configure_sources"
+		lbg_warning "$tr_nothing_to_backup
+$tr_please_configure_sources"
 		clean_exit 4
 	fi
 
@@ -185,7 +186,8 @@ t2b_backup() {
 	case $? in
 		1)
 			# destination not reachable: display error if not recurrent backup
-			lb_istrue $recurrent_backup || lbg_error "$tr_backup_unreachable\n$tr_verify_media"
+			lb_istrue $recurrent_backup || lbg_error "$tr_backup_unreachable
+$tr_verify_media"
 			return 6
 			;;
 		2)
@@ -549,7 +551,8 @@ t2b_backup() {
 			lb_info "$info_estimated_time"
 			echo
 
-			notification_started_backup+="\n$info_estimated_time"
+			notification_started_backup+="
+$info_estimated_time"
 		fi
 
 		# display start notification
@@ -641,7 +644,8 @@ t2b_backup() {
 
 	if [ $lb_exitcode = 0 ] ; then
 		lb_display --log "Backup finished successfully."
-		notify "$tr_backup_finished\n$(report_duration)"
+		notify "$tr_backup_finished
+$(report_duration)"
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
@@ -665,7 +669,8 @@ Warnings:
 			done
 
 			# do not display warning message if there are critical errors to display after that
-			[ ${#errors[@]} = 0 ] && notify "$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
+			[ ${#errors[@]} = 0 ] && notify "$tr_backup_finished_warnings $tr_see_logfile_for_details
+$(report_duration)"
 		fi
 
 		if [ ${#errors[@]} -gt 0 ] ; then
@@ -677,7 +682,8 @@ Errors:
 "
 			done
 
-			notify "$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
+			notify "$tr_backup_failed $tr_see_logfile_for_details
+$(report_duration)"
 		fi
 
 		lb_display --log "$report_details"
@@ -958,7 +964,8 @@ t2b_restore() {
 		if [ "$backup_date" != latest ] ; then
 			# if date was specified but not here, error
 			if ! lb_in_array "$backup_date" "${file_history[@]}" ; then
-				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $file"
+				lbg_error "$tr_no_backups_on_date
+$tr_run_to_show_history $lb_current_script history $file"
 				return 7
 			fi
 		fi
@@ -1029,7 +1036,8 @@ t2b_restore() {
 		# warn user & ask to confirm
 		if $warn_partial ; then
 			lb_istrue $console_mode || lb_warning "$tr_warn_restore_partial"
-			lbg_yesno "$tr_warn_restore_partial\n$tr_confirm_restore_2" || return 0
+			lbg_yesno "$tr_warn_restore_partial
+$tr_confirm_restore_2" || return 0
 		fi
 
 		# add mandatory / at the end of path
@@ -1083,7 +1091,8 @@ t2b_restore() {
 			# test rsync to check newer files
 			if "${cmd[@]}" | grep -q "^deleting " ; then
 				# ask to keep new files
-				lbg_yesno "$tr_ask_keep_newer_files_1\n$tr_ask_keep_newer_files_2" || delete_newer_files=true
+				lbg_yesno "$tr_ask_keep_newer_files_1
+$tr_ask_keep_newer_files_2" || delete_newer_files=true
 			fi
 		else
 			# if restore a file, always delete new
@@ -1093,7 +1102,9 @@ t2b_restore() {
 
 	# confirm restore
 	if ! $force_mode ; then
-		if ! lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_date $backup_date)")\n$tr_confirm_restore_2" ; then
+		lbg_yesno "$(printf "$tr_confirm_restore_1" "$file" "$(get_backup_date $backup_date)")
+$tr_confirm_restore_2"
+		if [ $? != 0 ] ; then
 			notify "$tr_restore_cancelled"
 			return 0
 		fi
@@ -1417,7 +1428,8 @@ t2b_explore() {
 		else
 			# test if specified date exists
 			if ! lb_in_array "$backup_date" "${path_history[@]}" ; then
-				lbg_error "$tr_no_backups_on_date\n$tr_run_to_show_history $lb_current_script history $path"
+				lbg_error "$tr_no_backups_on_date
+$tr_run_to_show_history $lb_current_script history $path"
 				return 7
 			fi
 		fi

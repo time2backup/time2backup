@@ -869,7 +869,8 @@ prepare_destination() {
 			# don't popup in recurrent mode
 			lb_display_error "$tr_write_error_destination\n$tr_verify_access_rights"
 		else
-			lbg_error "$tr_write_error_destination\n$tr_verify_access_rights"
+			lbg_error "$tr_write_error_destination
+$tr_verify_access_rights"
 		fi
 		return 2
 	fi
@@ -2546,7 +2547,8 @@ cancel_exit() {
 	# display notification and exit
 	case $command in
 		backup)
-			notify "$(printf "$tr_backup_cancelled_at" "$(date +%H:%M:%S)")\n$(report_duration)"
+			notify "$(printf "$tr_backup_cancelled_at" "$(date +%H:%M:%S)")
+$(report_duration)"
 			clean_exit 17
 			;;
 		restore)
@@ -2722,16 +2724,17 @@ config_wizard() {
 				# reset destination variable
 				destination=$chosen_directory
 			else
-				lbg_error "$tr_error_set_destination\n$tr_edit_config_manually"
+				lbg_error "$tr_error_set_destination
+$tr_edit_config_manually"
 			fi
 
 			# detect changed hostname
 			if [ -d "$destination/backups" ] ; then
 				existing_hostname=($(ls "$destination/backups"))
 				if [ ${#existing_hostname[@]} = 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
-					if lbg_yesno "$(printf "$tr_change_hostname\n$tr_change_hostname_no" ${existing_hostname[0]})" ; then
+					lbg_yesno "$(printf "$tr_change_hostname
+$tr_change_hostname_no" ${existing_hostname[0]})" && \
 						mv "$destination/backups/${existing_hostname[0]}" "$destination/backups/$lb_current_hostname"
-					fi
 				fi
 			fi
 		fi
@@ -2768,8 +2771,9 @@ config_wizard() {
 		if lb_istrue $hard_links && lb_istrue $force_hard_links && ! test_hardlinks "$destination" ; then
 
 			# ask user to keep or not the force mode
-			if ! lbg_yesno "$tr_force_hard_links_confirm\n$tr_not_sure_say_no" ; then
-
+			lbg_yesno "$tr_force_hard_links_confirm
+$tr_not_sure_say_no"
+			if [ $? != 0 ] ; then
 				# set config
 				lb_set_config "$config_file" force_hard_links false || \
 					lb_warning "Cannot set config: force_hard_links"
@@ -2787,8 +2791,10 @@ config_wizard() {
 	fi
 
 	# edit sources to backup
-	if lbg_yesno "$tr_ask_edit_sources\n$tr_default_source" ; then
+	lbg_yesno "$tr_ask_edit_sources
+$tr_default_source"
 
+	if [ $? = 0 ] ; then
 		local advanced_mode=false
 		lb_istrue $console_mode && advanced_mode=true
 
@@ -2896,7 +2902,8 @@ config_wizard() {
 							if test_period $lbg_input_text ; then
 								lb_set_config "$config_file" frequency $lbg_input_text
 							else
-								lbg_error "$tr_frequency_syntax_error\n$tr_please_retry"
+								lbg_error "$tr_frequency_syntax_error
+$tr_please_retry"
 							fi
 						fi
 						;;

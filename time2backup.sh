@@ -179,7 +179,6 @@ shift
 # set console mode
 if lb_istrue $console_mode ; then
 	lbg_set_gui console
-	# disable notifications
 	notifications=false
 else
 	# try to find display (if into a cron job on Linux)
@@ -265,7 +264,8 @@ else
 	else
 		config_directory=$(lb_homepath $user)/.config/time2backup/
 		if [ $? != 0 ] ; then
-			lbg_error "$tr_error_getting_homepath_1\n$tr_error_getting_homepath_2"
+			lbg_error "$tr_error_getting_homepath_1
+$tr_error_getting_homepath_2"
 			exit 3
 		fi
 	fi
@@ -312,7 +312,8 @@ fi
 
 # test if rsync command is available
 if ! lb_command_exists "$rsync_path" ; then
-	lbg_critical "$tr_error_no_rsync_1\n$tr_error_no_rsync_2"
+	lbg_critical "$tr_error_no_rsync_1
+$tr_error_no_rsync_2"
 	exit 1
 fi
 
