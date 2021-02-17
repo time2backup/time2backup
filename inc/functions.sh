@@ -78,7 +78,6 @@
 #     prepare_backup
 #     prepare_trash
 #     create_latest_link
-#     notify_backup_end
 #   Exit functions
 #     catch_kills
 #     uncatch_kills
@@ -2459,22 +2458,6 @@ create_latest_link() {
 }
 
 
-# Display notification at the end of the backup
-# Usage: notify_backup_end MESSAGE
-notify_backup_end() {
-	# notifications disabled: do nothing
-	lb_istrue $notifications || return 0
-
-	# Windows: display dialogs instead of notifications
-	if [ "$lb_current_os" = Windows ] ; then
-		# do not popup dialog that would prevent PC from shutdown
-		lb_istrue $shutdown || windows_ending_popup=$*
-	else
-		notify "$*"
-	fi
-}
-
-
 #
 #  Exit functions
 #
@@ -2545,9 +2528,6 @@ clean_exit() {
 
 		# if shutdown after backup, execute it
 		lb_istrue $shutdown && haltpc
-
-		# Windows end backup notification popup
-		[ ${#windows_ending_popup} -gt 0 ] && lbg_info "$windows_ending_popup"
 	fi
 
 	debug "Exited with code: $lb_exitcode"

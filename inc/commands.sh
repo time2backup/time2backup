@@ -641,7 +641,7 @@ t2b_backup() {
 
 	if [ $lb_exitcode = 0 ] ; then
 		lb_display --log "Backup finished successfully."
-		notify_backup_end "$tr_backup_finished\n$(report_duration)"
+		notify "$tr_backup_finished\n$(report_duration)"
 	else
 		lb_display --log "Backup finished with some errors. Check report below and see log files for more details.\n"
 
@@ -665,9 +665,7 @@ Warnings:
 			done
 
 			# do not display warning message if there are critical errors to display after that
-			if [ ${#errors[@]} = 0 ] ; then
-				notify_backup_end "$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
-			fi
+			[ ${#errors[@]} = 0 ] && notify "$tr_backup_finished_warnings $tr_see_logfile_for_details\n$(report_duration)"
 		fi
 
 		if [ ${#errors[@]} -gt 0 ] ; then
@@ -679,7 +677,7 @@ Errors:
 "
 			done
 
-			notify_backup_end "$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
+			notify "$tr_backup_failed $tr_see_logfile_for_details\n$(report_duration)"
 		fi
 
 		lb_display --log "$report_details"
