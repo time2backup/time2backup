@@ -1181,41 +1181,6 @@ upgrade_config() {
 		return 2
 	fi
 
-	# custom upgrade process
-
-	# version < 1.7.0 (including pre-releases)
-	if lb_compare_versions "$old_config_version" -le 1.7.0 ; then
-
-		# remove remote_sudo option
-		local old_remote_sudo=$(grep '^remote_sudo' "$config_file" | cut -d= -f2- | tr -d '[:space:]')
-		# if defined in the old config,
-		if [ -n "$old_remote_sudo" ] && [ "$old_remote_sudo" = true ] ; then
-			# if rsync remote path is defined,
-			local new_rsync_remote_path=$(lb_get_config "$new_config" rsync_remote_path)
-			if [ -n "$new_rsync_remote_path" ] ; then
-				# append 'sudo ' to existing remote path
-				[ "${new_rsync_remote_path:0:5}" != "sudo " ] && \
-					lb_set_config "$new_config" rsync_remote_path "sudo $new_rsync_remote_path"
-			else
-				lb_set_config "$new_config" rsync_remote_path "sudo rsync"
-			fi
-		fi
-
-		# migrate ssh options field
-		local old_ssh_options=$(grep '^ssh_options' "$config_file" | cut -d= -f2-)
-		# if defined and not migrated yet
-		if [ -n "$old_ssh_options" ] && ! echo "$old_ssh_options" | grep -Eq '^[[:space:]]*\(' ; then
-			# remove quotes, delete ssh command
-			old_ssh_options=$(echo "$old_ssh_options" | sed 's/^[[:space:]]*"[[:space:]]*//; s/[[:space:]]*"[[:space:]]*$//; s/ssh[[:space:]]*//')
-			# replace config with array syntax
-			lb_edit "s|^ssh_options.*|ssh_options = ($old_ssh_options)|" "$new_config"
-			if [ $? != 0 ] ; then
-				lb_display_error "$tr_error_upgrade_config"
-				return 2
-			fi
-		fi
-	fi
-
 	# install new config
 	# Note: we avoid to create new files every time
 	cat "$new_config" > "$config_file" && rm -f "$new_config"
@@ -2726,16 +2691,6 @@ config_wizard() {
 			else
 				lbg_error "$tr_error_set_destination
 $tr_edit_config_manually"
-			fi
-
-			# detect changed hostname
-			if [ -d "$destination/backups" ] ; then
-				existing_hostname=($(ls "$destination/backups"))
-				if [ ${#existing_hostname[@]} = 1 ] && [ "${existing_hostname[0]}" != "$lb_current_hostname" ] ; then
-					lbg_yesno "$(printf "$tr_change_hostname
-$tr_change_hostname_no" ${existing_hostname[0]})" && \
-						mv "$destination/backups/${existing_hostname[0]}" "$destination/backups/$lb_current_hostname"
-				fi
 			fi
 		fi
 

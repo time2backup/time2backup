@@ -48,8 +48,6 @@ tr_choose_config_directory="Choisissez le dossier de configuration :"
 
 # Config wizard
 tr_choose_backup_destination="Choisissez le dossier de destination des sauvegardes :"
-tr_change_hostname="Des sauvegardes provenant d'un PC nommé '%s' ont été trouvées. Voulez-vous les utiliser?"
-tr_change_hostname_no="Choisissez 'non' si vous n'êtes pas le propriétaire de ces données."
 tr_error_set_destination="Erreur lors de l'enregistrement de la destination."
 tr_edit_config_manually="Veuillez éditer le fichier de configuration manuellement."
 tr_force_hard_links_confirm="Vous aviez choisi précédemment de forcer les liens physiques. Conserver ce choix ?"
@@ -69,7 +67,7 @@ tr_frequency_examples="ex: 4h pour 4 heures, 2d pour 2 jours"
 tr_frequency_syntax_error="Il y a une erreur de syntaxe dans votre choix."
 tr_errors_in_config="Il y a des erreurs dans votre configuration. Veuillez les corriger dans les fichiers de configuration."
 tr_ask_edit_config="Voulez-vous éditer les fichiers de configuration ? (en anglais)"
-tr_cannot_install_cronjobs="Impossible d'activer les sauvegardes récurrentes.\nVeuillez la configurer manuellement dans votre crontab."
+tr_cannot_install_cronjobs="Impossible d'activer les sauvegardes récurrentes. Veuillez la configurer manuellement dans votre crontab."
 tr_ask_backup_now="time2backup est prêt ! Voulez-vous lancer une sauvegarde maintenant ?"
 
 # Backup

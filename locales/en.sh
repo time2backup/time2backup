@@ -48,8 +48,6 @@ tr_choose_config_directory="Choose the config directory:"
 
 # Config wizard
 tr_choose_backup_destination="Choose a destination for backups:"
-tr_change_hostname="Backups from another PC named '%s' were found. Do you want to use them?"
-tr_change_hostname_no="Choose 'no' if you are not owner of those backups."
 tr_error_set_destination="Error while setting destination."
 tr_edit_config_manually="Please edit configuration file manually."
 tr_force_hard_links_confirm="Previously you chose to force using hard links. Keep this choice?"
@@ -69,7 +67,7 @@ tr_frequency_examples="e.g. 4h for 4 hours, 2d for 2 days"
 tr_frequency_syntax_error="Syntax error in your custom frequency."
 tr_errors_in_config="There are errors in your configuration. Please correct it in configuration files."
 tr_ask_edit_config="Do you want to edit the configuration files?"
-tr_cannot_install_cronjobs="Cannot activate recurrent backups.\nPlease set it manually in your crontab."
+tr_cannot_install_cronjobs="Cannot activate recurrent backups. Please set it manually in your crontab."
 tr_ask_backup_now="time2backup is ready! Do you want to run a backup now?"
 
 # Backup
