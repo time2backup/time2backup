@@ -67,7 +67,8 @@
 #     prepare_rsync
 #     get_rsync_remote_command
 #     rsync_result
-#   Remote backups
+#   time2backup server
+#     server_run
 #     prepare_remote_destination
 #   Backup steps
 #     test_backup
@@ -727,7 +728,7 @@ rotate_backups() {
 	# remote destination
 	if lb_istrue $remote_destination ; then
 		debug "Rotate on remote server..."
-		"${t2bserver_cmd[@]}" rotate $1
+		server_run rotate $1
 		return
 	fi
 
@@ -2037,13 +2038,21 @@ rsync_result() {
 
 
 #
-#  Remote backups
+#  time2backup server
 #
+
+# Call time2backup server to run command
+# Usage: server_run ARGS
+# Dependencies: $t2bserver_cmd
+server_run() {
+	"${t2bserver_cmd[@]}" "$@"
+}
+
 
 # Prepare remote destination
 # Usage: prepare_remote_destination COMMAND [ARGS]
-# Dependencies: $t2bserver_cmd, $t2bserver_token, $logfile,
-#               $destination, $hard_links, $last_clean_backup
+# Dependencies: $t2bserver_token, $logfile, $destination
+#               $hard_links, $last_clean_backup
 prepare_remote_destination() {
 	local response code=0
 
@@ -2051,9 +2060,9 @@ prepare_remote_destination() {
 
 	# run distant command
 	if [ "$1" = backup ] ; then
-		response=$("${t2bserver_cmd[@]}" prepare "$@" 2> >(tee -a "$logfile" >&2))
+		response=$(server_run prepare "$@" 2> >(tee -a "$logfile" >&2))
 	else
-		response=$("${t2bserver_cmd[@]}" prepare "$@")
+		response=$(server_run prepare "$@")
 	fi
 
 	code=$?

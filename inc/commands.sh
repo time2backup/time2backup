@@ -944,7 +944,7 @@ t2b_restore() {
 		if lb_istrue $remote_destination ; then
 			# remote: get backup versions of the file
 			# be careful to send absolute path of the file and not $file that could be relative!
-			file_history=($("${t2bserver_cmd[@]}" history "${backup_file_path:6}"))
+			file_history=($(server_run history "${backup_file_path:6}"))
 			if [ $? != 0 ] ; then
 				lb_error "Remote server connection error"
 				return 4
@@ -1261,7 +1261,7 @@ t2b_history() {
 
 	if lb_istrue $remote_destination ; then
 		# remote: get backup versions of the file
-		file_history=($("${t2bserver_cmd[@]}" history "${history_opts[@]}" "$file"))
+		file_history=($(server_run history "${history_opts[@]}" "$file"))
 		if [ $? != 0 ] ; then
 			lb_error "Remote server connection error"
 			return 4
@@ -2694,7 +2694,7 @@ Comment=Backup and restore your files
 GenericName[fr]=Sauvegarde de fichiers
 Comment[fr]=Sauvegardez et restaurez vos données
 Type=Application
-Exec=$(lb_realpath "$lb_current_script") $*
+Exec=$(lb_realpath "$lb_current_script")
 Icon=$(lb_realpath "$lb_current_script_directory"/resources/icon.png)
 Terminal=true
 Categories=System;Utility;Filesystem;
