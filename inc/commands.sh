@@ -942,7 +942,7 @@ t2b_restore() {
 		[ -z "$backup_file_path" ] && return 1
 
 		if lb_istrue $remote_destination ; then
-			# remote: get backup versions of the file
+			# time2backup server: get backup versions of the file
 			# be careful to send absolute path of the file and not $file that could be relative!
 			file_history=($(server_run history "${backup_file_path:6}"))
 			if [ $? != 0 ] ; then
@@ -991,7 +991,7 @@ $tr_run_to_show_history $lb_current_script history $file"
 		# if latest backup wanted, get most recent date
 		[ "$backup_date" = latest ] && backup_date=${file_history[0]}
 
-		# remote: get infos from server
+		# time2backup server: get infos from server
 		# be careful to send absolute path of the file and not $file that could be relative!
 		if lb_istrue $remote_destination ; then
 			prepare_remote_destination restore $backup_date "${backup_file_path:6}" || return 4
@@ -1113,10 +1113,19 @@ $tr_confirm_restore_2"
 	# prepare rsync restore command
 	cmd=("${rsync_cmd[@]}")
 
+	# remote options
+	if lb_istrue $remote_source || lb_istrue $remote_destination ; then
+		# enables network compression
+		lb_istrue $network_compression && cmd+=(-z)
+
+		# add ssh options
+		[ "${#ssh_options[@]}" -gt 0 ] && cmd+=(-e "ssh ${ssh_options[*]}")
+	fi
+
 	# delete new files
 	$delete_newer_files && cmd+=(--delete)
 
-	# remote server
+	# time2backup server: add options
 	lb_istrue $remote_destination && \
 		cmd+=(--rsync-path "$(get_rsync_remote_command) restore $(lb_istrue $no_lock && echo --t2b-nolock)")
 
@@ -1158,12 +1167,12 @@ $tr_confirm_restore_2"
 
 	local res=0
 
-	# create parent directory if not exists
 	case $(get_protocol "$restore_path") in
 		ssh)
 			# do nothing
 			;;
 		*)
+			# (re)create parent directory if not exists
 			mkdir -p "$(dirname "$dest")"
 			res=$?
 			;;
