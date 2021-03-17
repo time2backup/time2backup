@@ -270,7 +270,7 @@ $tr_verify_media"
 			ssh)
 				# test if we don't have double remotes
 				# (rsync does not support ssh to ssh copy)
-				if lb_istrue $remote_destination ; then
+				if lb_istrue $t2bserver ; then
 					lb_display_error --log "You cannot backup a remote path to a remote destination."
 					errors+=("$src (cannot backup a remote path on a remote destination)")
 					lb_exitcode=3
@@ -368,7 +368,7 @@ $tr_verify_media"
 		[ -f "$abs_src"/.rsyncignore ] && cmd+=(--exclude-from "$abs_src"/.rsyncignore)
 
 		# remote options
-		if lb_istrue $remote_source || lb_istrue $remote_destination ; then
+		if lb_istrue $remote_source || lb_istrue $t2bserver ; then
 			# enables network compression
 			lb_istrue $network_compression && cmd+=(-z)
 
@@ -391,7 +391,7 @@ $tr_verify_media"
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
 		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result -1
 
-		if lb_istrue $remote_destination ; then
+		if lb_istrue $t2bserver ; then
 			# prepare remote backup
 			local remote_opts=()
 			lb_istrue $force_unlock && remote_opts+=(--unlock)
@@ -402,7 +402,7 @@ $tr_verify_media"
 			fi
 
 			# add server path (with token provided)
-			prepare_remote_destination backup "${remote_opts[@]}" $backup_date "$src" && \
+			prepare_server backup "${remote_opts[@]}" $backup_date "$src" && \
 				cmd+=(--rsync-path "$(get_rsync_remote_command) backup --t2b-rotate $keep_limit --t2b-keep $clean_keep $(! lb_istrue $trash_mode || echo --t2b-trash)")
 		else
 			# prepare backup folder
@@ -442,7 +442,7 @@ $tr_verify_media"
 				if [ -n "$linkdest" ] ; then
 					linkdest+=$last_clean_backup
 
-					if lb_istrue $remote_destination ; then
+					if lb_istrue $t2bserver ; then
 						# the case of spaces in remote path
 						linkdest+=$(echo "$path_dest" | sed 's/ /\\ /g')
 					else
@@ -611,7 +611,7 @@ $info_estimated_time"
 		lb_exitcode=22
 	fi
 
-	if ! lb_istrue $remote_destination ; then
+	if ! lb_istrue $t2bserver ; then
 		if [ -d "$destination" ] ; then
 			# final cleanup
 			clean_empty_backup -i $backup_date
@@ -759,7 +759,7 @@ t2b_restore() {
 	prepare_destination || return 4
 
 	# get all backups
-	if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
+	if ! lb_istrue $t2bserver && ! lb_istrue $clone_mode ; then
 		backups=($(get_backups))
 		# if no backups, exit
 		if [ ${#backups[@]} = 0 ] ; then
@@ -794,7 +794,7 @@ t2b_restore() {
 		# choose type of file to restore (file/directory)
 		local choices=("$tr_restore_existing_file" "$tr_restore_existing_directory")
 
-		if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
+		if ! lb_istrue $t2bserver && ! lb_istrue $clone_mode ; then
 			choices+=("$tr_restore_moved_file" "$tr_restore_moved_directory")
 		fi
 
@@ -908,7 +908,7 @@ t2b_restore() {
 	if [ "$(get_protocol "$restore_path")" = ssh ] ; then
 		# test if we don't have double remotes
 		# (rsync does not support ssh to ssh copy)
-		if lb_istrue $remote_destination ; then
+		if lb_istrue $t2bserver ; then
 			lbg_display_error "You cannot restore a remote backup to a remote destination."
 			return 1
 		fi
@@ -941,7 +941,7 @@ t2b_restore() {
 		# if error, exit
 		[ -z "$backup_file_path" ] && return 1
 
-		if lb_istrue $remote_destination ; then
+		if lb_istrue $t2bserver ; then
 			# time2backup server: get backup versions of the file
 			# be careful to send absolute path of the file and not $file that could be relative!
 			file_history=($(server_run history "${backup_file_path:6}"))
@@ -993,13 +993,13 @@ $tr_run_to_show_history $lb_current_script history $file"
 
 		# time2backup server: get infos from server
 		# be careful to send absolute path of the file and not $file that could be relative!
-		if lb_istrue $remote_destination ; then
-			prepare_remote_destination restore $backup_date "${backup_file_path:6}" || return 4
+		if lb_istrue $t2bserver ; then
+			prepare_server restore $backup_date "${backup_file_path:6}" || return 4
 		fi
 
 		# test if a backup is running
 		if ! lb_istrue $no_lock ; then
-			if lb_istrue $remote_destination ; then
+			if lb_istrue $t2bserver ; then
 				[ "$server_status" = running ]
 			else
 				current_lock -q
@@ -1028,7 +1028,7 @@ $tr_run_to_show_history $lb_current_script history $file"
 		fi
 
 		# if rsync result was not good (backup failed or was incomplete)
-		if ! lb_istrue $remote_destination && ! lb_istrue $clone_mode ; then
+		if ! lb_istrue $t2bserver && ! lb_istrue $clone_mode ; then
 			rsync_result=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)
 			[ "$rsync_result" != 0 ] && warn_partial=true
 		fi
@@ -1077,6 +1077,19 @@ $tr_confirm_restore_2" || return 0
 	# search in source if exclude conf file is set
 	[ -f "$src"/.rsyncignore ] && rsync_cmd+=(--exclude-from "$src"/.rsyncignore)
 
+	# remote options
+	if lb_istrue $remote_source || lb_istrue $t2bserver ; then
+		# enables network compression
+		lb_istrue $network_compression && rsync_cmd+=(-z)
+
+		# add ssh options
+		[ "${#ssh_options[@]}" -gt 0 ] && rsync_cmd+=(-e "ssh ${ssh_options[*]}")
+	fi
+
+	# time2backup server: add rsync path
+	lb_istrue $t2bserver && \
+		rsync_cmd+=(--rsync-path "$(get_rsync_remote_command) restore $(lb_istrue $no_lock && echo --t2b-nolock)")
+
 	# test newer files
 	if ! $delete_newer_files ; then
 		if $directory_mode ; then
@@ -1113,22 +1126,10 @@ $tr_confirm_restore_2"
 	# prepare rsync restore command
 	cmd=("${rsync_cmd[@]}")
 
-	# remote options
-	if lb_istrue $remote_source || lb_istrue $remote_destination ; then
-		# enables network compression
-		lb_istrue $network_compression && cmd+=(-z)
-
-		# add ssh options
-		[ "${#ssh_options[@]}" -gt 0 ] && cmd+=(-e "ssh ${ssh_options[*]}")
-	fi
-
-	# delete new files
+	# delete new files option
 	$delete_newer_files && cmd+=(--delete)
 
-	# time2backup server: add options
-	lb_istrue $remote_destination && \
-		cmd+=(--rsync-path "$(get_rsync_remote_command) restore $(lb_istrue $no_lock && echo --t2b-nolock)")
-
+	# rsync source and destination
 	cmd+=("$src" "$dest")
 
 	# catch term signals
@@ -1136,7 +1137,7 @@ $tr_confirm_restore_2"
 
 	if ! lb_istrue $no_lock ; then
 		# retest if a backup is running
-		if lb_istrue $remote_destination ; then
+		if lb_istrue $t2bserver ; then
 			[ "$server_status" = running ]
 		else
 			current_lock -q
@@ -1268,8 +1269,8 @@ t2b_history() {
 	abs_file=$(lb_abspath "$file")
 	[ -n "$abs_file" ] && file=$abs_file
 
-	if lb_istrue $remote_destination ; then
-		# remote: get backup versions of the file
+	if lb_istrue $t2bserver ; then
+		# time2backup server: get backup versions of the file
 		file_history=($(server_run history "${history_opts[@]}" "$file"))
 		if [ $? != 0 ] ; then
 			lb_error "Remote server connection error"
@@ -1291,8 +1292,8 @@ t2b_history() {
 
 	# print backup versions
 	for b in "${file_history[@]}" ; do
-		# quiet mode or remote destination: just print the version
-		if lb_istrue $quiet_mode || lb_istrue $remote_destination ; then
+		# quiet mode or time2backup server: just print the version
+		if lb_istrue $quiet_mode || lb_istrue $t2bserver ; then
 			echo "$b"
 		else
 			# complete result: print details
@@ -1333,7 +1334,7 @@ t2b_history() {
 # Explore backups
 # Usage: t2b_explore [OPTIONS] [PATH]
 t2b_explore() {
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1667,7 +1668,7 @@ t2b_mv() {
 		return 255
 	fi
 
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		lb_error "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -1806,7 +1807,7 @@ t2b_clean() {
 		return 255
 	fi
 
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -2154,7 +2155,7 @@ t2b_import() {
 		return 255
 	fi
 
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi
@@ -2414,7 +2415,7 @@ t2b_export() {
 		return 255
 	fi
 
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		echo "This command is disabled for remote destinations."
 		return 255
 	fi

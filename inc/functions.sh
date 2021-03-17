@@ -69,7 +69,7 @@
 #     rsync_result
 #   time2backup server
 #     server_run
-#     prepare_remote_destination
+#     prepare_server
 #   Backup steps
 #     test_backup
 #     estimate_backup_time
@@ -442,7 +442,7 @@ get_backup_date() {
 #   -l  get only last version
 #   -n  get non-empty directories
 #   -z  except latest backup
-# Dependencies: $remote_destination, $destination
+# Dependencies: $t2bserver, $destination
 # Return: dates (YYYY-MM-DD-HHMMSS format)
 # Exit codes:
 #   0: OK
@@ -450,8 +450,8 @@ get_backup_date() {
 #   2: no backups found
 #   3: cannot found backups (no absolute path, deleted parent directory)
 get_backup_history() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# default options
 	local all_versions=false last_version=false not_empty=false not_latest=false
@@ -645,14 +645,14 @@ get_backup_path() {
 
 # Get all backup dates
 # Usage: get_backups [PATH]
-# Dependencies: $remote_destination, $destination, $backup_date_format, $ssh_options
+# Dependencies: $t2bserver, $destination, $backup_date_format, $ssh_options
 # Return: dates list (format YYYY-MM-DD-HHMMSS)
 # Exit codes:
 #   0: OK
 #   1: error for the path
 get_backups() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# default options
 	local path=$destination
@@ -725,8 +725,8 @@ rotate_backups() {
 	# if unlimited, do not rotate
 	[ "$limit" = -1 ] && return 0
 
-	# remote destination
-	if lb_istrue $remote_destination ; then
+	# time2backup server
+	if lb_istrue $t2bserver ; then
 		debug "Rotate on remote server..."
 		server_run rotate $1
 		return
@@ -811,7 +811,7 @@ report_duration() {
 
 # Test if destination is reachable and mount it if needed
 # Usage: prepare_destination
-# Dependencies: $remote_destination, $destination, $smb_destination, $config_file,
+# Dependencies: $t2bserver, $destination, $smb_destination, $config_file,
 #               $mount, $mounted, $backup_disk_mountpoint, $unmount_auto,
 #               $recurrent_backup, $hard_links, $force_hard_links, $tr_*
 # Exit codes:
@@ -819,8 +819,8 @@ report_duration() {
 #   1: destination not reachable
 #   2: destination not writable
 prepare_destination() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	debug "Testing destination on: $destination..."
 
@@ -949,8 +949,8 @@ free_space() {
 #   0: cleaned
 #   1: usage error or path is not a directory
 clean_empty_backup() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
@@ -1233,8 +1233,8 @@ load_config() {
 
 	case $(get_protocol "$destination") in
 		ssh)
-			# remote destination
-			remote_destination=true
+			# time2backup server as backup destination
+			t2bserver=true
 
 			# get time2backup server command
 			t2bserver_cmd=(ssh "${ssh_options[@]}" "$(url2host "$destination")")
@@ -1601,14 +1601,14 @@ delete_logfile() {
 
 # Create infofile
 # Usage: create_infofile
-# Dependencies: $remote_destination, $destination, $backup_date, $infofile
+# Dependencies: $t2bserver, $destination, $backup_date, $infofile
 #               $version, $recurrent_backup, $backup_comment
 # Exit codes:
 #   0: infofile created
 #   1: not created
 create_infofile() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
@@ -1707,7 +1707,7 @@ check_infofile_rsync_result() {
 
 # Mount destination
 # Usage: mount_destination
-# Dependencies: $remote_destination, $backup_disk_uuid, $backup_disk_mountpoint,
+# Dependencies: $t2bserver, $backup_disk_uuid, $backup_disk_mountpoint,
 #               $smb_destination
 # Exit codes:
 #   0: mount OK
@@ -1718,8 +1718,8 @@ check_infofile_rsync_result() {
 #   5: no disk UUID set in config
 #   6: cannot delete mount point
 mount_destination() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	lb_display --log "Trying to mount backup disk..."
 
@@ -1791,15 +1791,15 @@ mount_destination() {
 
 # Unmount destination
 # Usage: unmount_destination
-# Dependencies: $destination, $remote_destination
+# Dependencies: $destination, $t2bserver
 # Exit codes:
 #   0: OK
 #   1: cannot get destination mountpoint
 #   2: umount error
 #   3: cannot delete mountpoint
 unmount_destination() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# no unmount: do nothing
 	lb_istrue $unmount || return 0
@@ -1838,14 +1838,14 @@ unmount_destination() {
 #   -f  Get the lock file path
 #   -p  Get the process PID instead of lock date
 #   -q  Quiet mode
-# Dependencies: $remote_destination, $destination
+# Dependencies: $t2bserver, $destination
 # Return: date of lock, empty if no lock
 # Exit code:
 #   0: lock exists
 #   1: lock does not exists
 current_lock() {
-	# remote destination: do nothing (return no lock exists)
-	lb_istrue $remote_destination && return 1
+	# time2backup server: do nothing (returns that no lock exists)
+	lb_istrue $t2bserver && return 1
 
 	# get lock file
 	local current_lock_file=$(ls "$destination"/.lock_* 2> /dev/null)
@@ -1878,13 +1878,13 @@ current_lock() {
 
 # Create lock
 # Usage: create_lock
-# Dependencies: $remote_destination, $destination, $backup_date
+# Dependencies: $t2bserver, $destination, $backup_date
 # Exit code:
 #   0: lock ok
 #   1: unknown error
 create_lock() {
-	# do not create lock if remote destination
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
@@ -1900,13 +1900,13 @@ create_lock() {
 # Usage: release_lock [OPTIONS]
 # Options:
 #   -f  Force unlock
-# Dependencies: $remote_destination, $destination, $backup_date, $recurrent_backup, $tr_*
+# Dependencies: $t2bserver, $destination, $backup_date, $recurrent_backup, $tr_*
 # Exit codes:
 #   0: OK
 #   1: could not delete lock
 release_lock() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	local lock=$destination/.lock_
 
@@ -1936,7 +1936,8 @@ release_lock() {
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
 # Usage: prepare_rsync COMMAND
-# Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress, $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
+# Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress,
+#               $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_rsync() {
 	# basic command
 	rsync_cmd=("$rsync_path" -rltDH)
@@ -1991,26 +1992,29 @@ prepare_rsync() {
 
 # Generate rsync remote command
 # Usage: get_rsync_remote_command
-# Dependencies: $remote_destination, $rsync_remote_path,
+# Dependencies: $t2bserver, $rsync_remote_path,
 #               $t2bserver_path, $t2bserver_token, $t2bserver_pwd
 # Return: Remote command
 get_rsync_remote_command() {
-	if lb_istrue $remote_destination ; then
-		# time2backup server path
-		if [ "${#t2bserver_path[@]}" -gt 0 ] ; then
-			echo -n "${t2bserver_path[*]}"
-		else
-			echo -n time2backup-server
-		fi
-
-		if [ -n "$t2bserver_token" ] ; then
-			echo " -t $t2bserver_token"
-		else
-			[ -n "$t2bserver_pwd" ] && echo " -p $t2bserver_pwd"
-		fi
-	else
-		# custom rsync remote path
+	if ! lb_istrue $t2bserver ; then
+		# return custom rsync remote path if defined
 		[ -n "$rsync_remote_path" ] && echo "$rsync_remote_path"
+		return 0
+	fi
+
+	# return time2backup server path
+	if [ "${#t2bserver_path[@]}" -gt 0 ] ; then
+		echo -n "${t2bserver_path[*]}"
+	else
+		echo -n time2backup-server
+	fi
+
+	# add time2backup server token if created
+	if [ -n "$t2bserver_token" ] ; then
+		echo " -t $t2bserver_token"
+	else
+		# or password if defined
+		[ -n "$t2bserver_pwd" ] && echo " -p $t2bserver_pwd"
 	fi
 }
 
@@ -2050,10 +2054,10 @@ server_run() {
 
 
 # Prepare remote destination
-# Usage: prepare_remote_destination COMMAND [ARGS]
+# Usage: prepare_server COMMAND [ARGS]
 # Dependencies: $t2bserver_token, $logfile, $destination
 #               $hard_links, $last_clean_backup
-prepare_remote_destination() {
+prepare_server() {
 	local response code=0
 
 	debug "Connect to remote server..."
@@ -2307,11 +2311,11 @@ move_backup() {
 
 # Prepare backup folder
 # Usage: prepare_backup
-# Dependencies: $remote_destination, $last_clean_backup, $src, $destination, $backup_date, $path_dest,
+# Dependencies: $t2bserver, $last_clean_backup, $src, $destination, $backup_date, $path_dest,
 #               $resume_last, $keep_limit, $hard_links
 prepare_backup() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
@@ -2365,7 +2369,7 @@ prepare_backup() {
 
 # Prepare trash
 # Usage: prepare_trash
-# Dependencies: $destination, $last_clean_backup, $path_dest, $remote_destination
+# Dependencies: $destination, $last_clean_backup, $path_dest, $t2bserver
 #               $src, $backup_date, $errors, $trash
 # Exit codes:
 #   0: OK
@@ -2377,7 +2381,7 @@ prepare_trash() {
 	# backups with a "trash" folder that contains older revisions
 	trash=$destination/$trash_date/$path_dest
 
-	if lb_istrue $remote_destination ; then
+	if lb_istrue $t2bserver ; then
 		trash=$(url2path "$destination/$trash_date/$path_dest")
 		return 0
 	fi
@@ -2410,8 +2414,8 @@ prepare_trash() {
 # Usage: create_latest_link
 # Dependencies: $destination, $backup_date
 create_latest_link() {
-	# remote destination: do nothing
-	lb_istrue $remote_destination && return 0
+	# time2backup server: do nothing
+	lb_istrue $t2bserver && return 0
 
 	# clone mode: do nothing
 	lb_istrue $clone_mode && return 0
