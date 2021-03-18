@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.0 (2021-03-19)
+### Changes
+- **WARNING:** if you upgrade time2backup from a version prior to 1.7.0, please upgrade to **1.8.7**
+  before upgrade to **1.9.0**
+- Upgrade libbash.sh to 1.20.0, adding native notifications on Windows
+- Drop 32-bits support for Windows
+- Minor code improvements
+
+### Bugfixes
+- Add missing SSH options when restoring remote sources
+
 ## 1.8.7 (2021-02-01)
 ### Changes
 - Open time2backup in terminal
