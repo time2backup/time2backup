@@ -2148,10 +2148,10 @@ test_backup() {
 	# rsync test
 	# option dry-run makes a simulation for rsync
 	# then we get the last line with the total amount of bytes to be copied
-	# which is in format 999,999,999 so then we delete the commas
+	# which is in format 999,999,999 so then we delete commas and dots
 	debug "Testing rsync in dry-run mode: ${test_cmd[*]}..."
 
-	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/,//g')
+	total_size=$("${test_cmd[@]}" 2> >(tee -a "$logfile" >&2) | grep "Total transferred file size" | awk '{ print $5 }' | sed 's/[[:punct:]]//g')
 
 	# if rsync command not ok, error
 	if ! lb_is_integer $total_size ; then
