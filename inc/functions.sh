@@ -767,7 +767,7 @@ rotate_backups() {
 			# time limit reached: stop iterate
 			[ $t -ge $time_limit ] && break
 
-			debug "Clean old backup $b because < $limit"
+			debug "Clean old backup $b because > $limit"
 
 			# add backup to list to clean
 			to_rotate+=("$b")
