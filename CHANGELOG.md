@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.1 (2022-10-07)
+### Bugfixes
+- Fixed a bug when testing backup size in other languages
+- Minor changes in display messages
+
+### Changes
+- Upgrade libbash.sh to 1.21.0
+
 ## 1.9.0 (2021-03-19)
 ### Changes
 - **WARNING:** if you upgrade time2backup from a version prior to 1.7.0, please upgrade to **1.8.7**

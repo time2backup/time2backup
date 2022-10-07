@@ -4,8 +4,6 @@
 #  It's time to backup your files!
 #
 #  Website: https://time2backup.org
-#  MIT License
-#  Copyright (c) 2017-2021 Jean Prunneaux
 #
 
 # get real path of the script
