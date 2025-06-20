@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.3 (2025-06-20)
+## 1.9.4 (2025-06-20)
 ## New features
 - New deb & rpm packages automatic builder for GitHub
 
