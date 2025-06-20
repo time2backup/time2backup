@@ -1,0 +1,89 @@
+name: Build rpm package on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install RPM build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm rpm2cpio build-essential
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Set version and app name
+        run: |
+          APP_NAME=time2backup
+          # get release version without the "v"
+          VERSION="$(echo ${GITHUB_REF##*/} | sed 's/^v//')"
+          INSTALL_DIR=usr/src/$APP_NAME
+
+          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Set up RPM build structure
+        run: |
+          mkdir -p rpm/{BUILD,RPMS,SOURCES,SPECS,SRPMS,tmp}
+          tar -czf rpm/SOURCES/${APP_NAME}-${VERSION}.tar.gz --transform "s/^./${APP_NAME}-${VERSION}/" \
+            $(find . -maxdepth 1 -mindepth 1 ! -name ".git*" ! -name "rpm" ! -name "examples" ! -name "tests")
+
+      - name: Create SPEC file
+        run: |
+          cat > rpm/SPECS/${APP_NAME}.spec <<EOF
+          Name:           ${APP_NAME}
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        Backup tool
+
+          License:        MIT
+          URL:            https://github.com/${{ github.repository }}
+          Source0:        %{name}-%{version}.tar.gz
+
+          BuildArch:      noarch
+          BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+
+          %description
+          Simple but powerful backup tool using bash.
+
+          %prep
+          %setup -q
+
+          %build
+
+          %install
+          mkdir -p %{buildroot}/usr/src/%{name}
+          cp -a * %{buildroot}/usr/src/%{name}
+          /usr/src/time2backup/time2backup.sh install > /dev/null || true
+
+          %preun
+          rm -f /usr/src/time2backup.desktop
+          /usr/src/time2backup.sh uninstall --yes > /dev/null || true
+
+          %files
+          /usr/src/%{name}
+
+          %changelog
+          * $(date +"%a %b %d %Y") Jean Prunneaux <jean@prunneaux.com> - ${VERSION}-1
+          - Initial RPM release
+          EOF
+
+      - name: Build RPM
+        run: |
+          rpmbuild --define "_topdir $PWD/rpm" -ba rpm/SPECS/${APP_NAME}.spec
+
+      - name: Upload RPM to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            rpm/RPMS/noarch/${{ env.APP_NAME }}-${{ env.VERSION }}-1.noarch.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

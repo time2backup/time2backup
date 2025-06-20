@@ -63,6 +63,7 @@ jobs:
           cat <<EOF > debian/install
           *.md $INSTALL_DIR/
           *.sh $INSTALL_DIR/
+          config $INSTALL_DIR/
           docs $INSTALL_DIR/
           inc $INSTALL_DIR/
           locales $INSTALL_DIR/
