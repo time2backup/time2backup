@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.2 (2025-06-20)
+## New features
+- New deb packages automatic builder for GitHub
+
 ## 1.9.1 (2022-10-07)
 ### Bugfixes
 - Fixed a bug when testing backup size in other languages
