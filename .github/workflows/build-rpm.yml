@@ -48,6 +48,10 @@ jobs:
           URL:            https://github.com/${{ github.repository }}
           Source0:        %{name}-%{version}.tar.gz
 
+          Requires: bash
+          Requires: hostname
+          Requires: rsync
+
           BuildArch:      noarch
           BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
