@@ -66,11 +66,13 @@ jobs:
           %install
           mkdir -p %{buildroot}/usr/src/%{name}
           cp -a * %{buildroot}/usr/src/%{name}
-          /usr/src/time2backup/time2backup.sh install > /dev/null || true
+
+          %post
+          /usr/src/time2backup/time2backup.sh install || true
 
           %preun
           rm -f /usr/src/time2backup.desktop
-          /usr/src/time2backup.sh uninstall --yes > /dev/null || true
+          /usr/src/time2backup.sh uninstall --yes || true
 
           %files
           /usr/src/%{name}

@@ -76,9 +76,8 @@ jobs:
           # Create the postinstall script
           cat <<EOF > debian/time2backup.postinst
           #!/bin/bash
-          /usr/src/time2backup/time2backup.sh install > /dev/null
-          # do not break install process if the previous command fails
-          true
+          # run install command, ignore errors
+          /usr/src/time2backup/time2backup.sh install || true
           EOF
 
           # Create the prerm script (before uninstall)
@@ -86,10 +85,8 @@ jobs:
           #!/bin/bash
           # delete application icon
           rm -f "/$INSTALL_DIR/time2backup.desktop"
-          # run uninstall command
-          "/$INSTALL_DIR/time2backup.sh" uninstall --yes > /dev/null
-          # do not break uninstall process if the previous command fails
-          true
+          # run uninstall command, ignore errors
+          "/$INSTALL_DIR/time2backup.sh" uninstall --yes || true
           EOF
 
           # Gives exec permissions to scripts
