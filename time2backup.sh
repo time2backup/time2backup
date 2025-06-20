@@ -4,13 +4,11 @@
 #  It's time to backup your files!
 #
 #  Website: https://time2backup.org
-#  MIT License
-#  Copyright (c) 2017-2025 Jean Prunneaux
 #
-#  Version 1.9.4 (2025-06-20)
+#  Version 1.9.5 (2025-06-20)
 #
 
-declare -r version=1.9.4
+declare -r version=1.9.5
 
 
 #

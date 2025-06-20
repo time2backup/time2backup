@@ -63,4 +63,4 @@ Author: Jean Prunneaux https://jean.prunneaux.com
 
 Website: https://time2backup.org
 
-Source code: https://github.com/time2backup/time2backup
+Sources: https://github.com/time2backup/time2backup
