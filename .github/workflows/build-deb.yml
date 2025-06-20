@@ -1,0 +1,107 @@
+name: Build deb package on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper fakeroot lintian
+
+      - name: Set up Debian packaging
+        run: |
+          APP_NAME=time2backup
+          # get release version without the "v"
+          VERSION="$(echo ${GITHUB_REF##*/} | sed 's/^v//')"
+          INSTALL_DIR=usr/src/$APP_NAME
+
+          mkdir -p debian/source
+          
+          # Create control file (adjust fields accordingly)
+          cat <<EOF > debian/control
+          Source: $APP_NAME
+          Section: base
+          Priority: optional
+          Maintainer: Jean Prunneaux <jean@prunneaux.com>
+          Homepage: https://github.com/${{ github.repository }}
+          Build-Depends: debhelper-compat (= 13)
+          Standards-Version: 4.5.1
+
+          Package: $APP_NAME
+          Architecture: all
+          Depends: bash, rsync
+          Description: Simple but powerful backup tool using bash.
+          EOF
+
+          # Minimal rules file
+          cat <<EOF > debian/rules
+          #!/usr/bin/make -f
+          %:
+          	dh \$@
+          EOF
+          chmod +x debian/rules
+
+          # Other required files
+          echo 1.0 > debian/source/format
+
+          # Changelog
+          dch --create -v "$VERSION" --package time2backup "Release $VERSION"
+
+          # Copy files instructions
+          cat <<EOF > debian/install
+          *.md $INSTALL_DIR/
+          *.sh $INSTALL_DIR/
+          docs $INSTALL_DIR/
+          inc $INSTALL_DIR/
+          locales $INSTALL_DIR/
+          resources $INSTALL_DIR/
+          libbash/*.sh $INSTALL_DIR/libbash/
+          libbash/inc $INSTALL_DIR/libbash/
+          libbash/locales $INSTALL_DIR/libbash/
+          EOF
+
+          # Create the postinstall script
+          cat <<EOF > debian/time2backup.postinst
+          #!/bin/bash
+          /usr/src/time2backup/time2backup.sh install > /dev/null
+          # do not break install process if the previous command fails
+          true
+          EOF
+
+          # Create the prerm script (before uninstall)
+          cat <<EOF > debian/time2backup.prerm
+          #!/bin/bash
+          # delete application icon
+          rm -f "/$INSTALL_DIR/time2backup.desktop"
+          # run uninstall command
+          "/$INSTALL_DIR/time2backup.sh" uninstall --yes > /dev/null
+          # do not break uninstall process if the previous command fails
+          true
+          EOF
+
+          # Gives exec permissions to scripts
+          chmod +x debian/time2backup.postinst debian/time2backup.prerm
+
+      - name: Build the deb package
+        run: |
+          # build without signing
+          dpkg-buildpackage -us -uc
+
+      - name: Upload .deb to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ../time2backup_*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
