@@ -16,7 +16,7 @@ a library of functions for Bash scripts.
 
 
 ## Download and install
-1. [Download time2backup here](https://time2backup.org)
+1. [Download time2backup here](https://github.com/time2backup/time2backup/releases)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. Then follow the instructions.
@@ -60,7 +60,5 @@ time2backup is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for 
 
 ## Credits
 Author: Jean Prunneaux https://jean.prunneaux.com
-
-Website: https://time2backup.org
 
 Sources: https://github.com/time2backup/time2backup

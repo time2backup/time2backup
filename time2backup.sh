@@ -3,7 +3,7 @@
 #  time2backup
 #  It's time to backup your files!
 #
-#  Website: https://time2backup.org
+#  Source code: https://github.com/time2backup/time2backup
 #
 #  Version 1.9.5 (2025-06-20)
 #

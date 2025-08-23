@@ -1,7 +1,7 @@
 #
 #  time2backup help functions
 #
-#  This file is part of time2backup (https://time2backup.org)
+#  This file is part of time2backup (https://github.com/time2backup/time2backup)
 #
 
 # Print help for users in console

@@ -3,7 +3,7 @@
 #  time2backup portable
 #  It's time to backup your files!
 #
-#  Website: https://time2backup.org
+#  Sources: https://github.com/time2backup/time2backup
 #
 
 # get real path of the script

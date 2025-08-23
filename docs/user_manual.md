@@ -24,18 +24,18 @@ Linux Mint, Debian, openSuse, Mageia, macOS, ...
 <a name="install"></a>
 ## How to install time2backup
 ### Debian/Ubuntu
-1. Download time2backup [deb package here](https://time2backup.org/download/time2backup/stable)
+1. Download [deb package here](https://github.com/time2backup/time2backup/releases)
 2. Install package: `dpkg -i time2backup-X.X.X.deb`
 
 ### Windows
 [Read instructions here](https://github.com/time2backup/windows/tree/master/package).
 
 ### macOS
-1. Download time2backup [macOS app package here](https://time2backup.org/download/time2backup/stable)
+1. Download [macOS app package here](https://github.com/time2backup/time2backup/releases)
 2. Unzip file and drag/drop the `time2backup.app` file in your `Applications` folder
 
 ### Manual install
-1. Download time2backup [zip or tar.gz archive here](https://time2backup.org/download/time2backup/stable)
+1. Download [zip or tar.gz archive here](https://github.com/time2backup/time2backup/releases)
 2. Uncompress archive where you want
 3. Run the `time2backup.sh` file in a terminal or just by clicking on it in your file explorer
 4. (optionnal) To install time2backup globally (having a link in the terminal), run the following command:
@@ -72,8 +72,7 @@ Then you will get your file(s) exactly at backup state.
 
 <a name="upgrade"></a>
 ## Upgrading time2backup
-To upgrade time2backup, download the last version on the [official website](https://time2backup.org)
-and reinstall it (see [instructions above](#install)).
+To upgrade time2backup, download the latest version and reinstall it (see [instructions above](#install)).
 
 <a name="uninstall"></a>
 ## Uninstall time2backup

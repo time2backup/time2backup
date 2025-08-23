@@ -308,13 +308,3 @@
 
 # 1.0.0 RC 1 (2017-03-06)
 - First release on Github
-
----------------------------------------------------------------
-
-# License
-time2backup is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for the full license text.
-
-# Credits
-Author: Jean Prunneaux  https://jean.prunneaux.com
-
-Website: https://time2backup.org
