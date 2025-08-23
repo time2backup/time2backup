@@ -1,5 +1,9 @@
 # Changelog
 
+# 1.10.0 (20XX-XX-XX)
+## Changes
+- Drop support of time2backup server, unused. Prefer to use sshfs
+
 # 1.9.5 (2025-06-20)
 ## New features
 - New deb & rpm packages automatic builder for GitHub
