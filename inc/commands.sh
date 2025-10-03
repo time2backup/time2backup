@@ -535,7 +535,7 @@ $info_estimated_time"
 			success+=("$src")
 		else
 			# determine between warnings and errors
-			if rsync_result $res ; then
+			if cmd_result $res ; then
 				# rsync minor errors (partial transfers)
 				warnings+=("$src (some files were not backed up; code: $res)")
 				lb_exitcode=15
@@ -1118,7 +1118,7 @@ $tr_confirm_restore_2"
 	fi
 
 	# if the was errors,
-	if rsync_result $res ; then
+	if cmd_result $res ; then
 		# rsync minor errors (partial transfers)
 		lbg_warning "$tr_restore_finished_warnings"
 		res=10
@@ -2226,7 +2226,7 @@ t2b_import() {
 			debug "Result: $result"
 
 			if [ $result != 0 ] ; then
-				if rsync_result $result ; then
+				if cmd_result $result ; then
 					error="Partial import $src (exit code: $result)"
 				else
 					error="Failed to import $src (exit code: $result)"
@@ -2275,7 +2275,7 @@ t2b_import() {
 		debug "Result: $result"
 
 		if [ $result != 0 ] ; then
-			if rsync_result $result ; then
+			if cmd_result $result ; then
 				error="Partial import (exit code: $result)"
 			else
 				error="Failed to import (exit code: $result)"
@@ -2484,7 +2484,7 @@ t2b_export() {
 			debug "Result: $result"
 
 			if [ $result != 0 ] ; then
-				if rsync_result $result ; then
+				if cmd_result $result ; then
 					error="Partial export $src (exit code: $result)"
 				else
 					error="Failed to export $src (exit code: $result)"
@@ -2533,7 +2533,7 @@ t2b_export() {
 		debug "Result: $result"
 
 		if [ $result != 0 ] ; then
-			if rsync_result $result ; then
+			if cmd_result $result ; then
 				error="Partial export (exit code: $result)"
 			else
 				error="Failed to export (exit code: $result)"

@@ -5,7 +5,7 @@
 #
 #   prepare_rsync
 #   get_rsync_remote_command
-#   rsync_result
+#   cmd_result
 #
 
 
@@ -76,12 +76,12 @@ get_rsync_remote_command() {
 
 
 # Manage rsync exit codes
-# Usage: rsync_result EXIT_CODE
+# Usage: cmd_result EXIT_CODE
 # Exit codes:
 #   0: rsync was OK
 #   1: usage error
 #   2: rsync error
-rsync_result() {
+cmd_result() {
 	lb_is_integer $1 || return 1
 
 	case $1 in

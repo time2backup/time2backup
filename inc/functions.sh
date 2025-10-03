@@ -1631,7 +1631,7 @@ check_infofile_rsync_result() {
 	# check only if file exists
 	if [ -f "$destination/$1/backup.info" ] ; then
 		# check if last backup failed or was cancelled
-		rsync_result $(get_infofile_value "$destination/$1/backup.info" "$2" rsync_result)
+		cmd_result $(get_infofile_value "$destination/$1/backup.info" "$2" rsync_result)
 		[ $? = 2 ] && return 1
 	fi
 
