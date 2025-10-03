@@ -374,7 +374,7 @@ $tr_verify_media"
 
 		# write new source section to info file
 		lb_set_config -s src$(($s + 1)) "$infofile" path "$src"
-		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result -1
+		lb_set_config -s src$(($s + 1)) "$infofile" result -1
 
 		# prepare backup folder
 		prepare_backup
@@ -526,8 +526,8 @@ $info_estimated_time"
 		# get backup result and prepare report
 		res=${PIPESTATUS[0]}
 
-		# save rsync result in info file and delete temporary file
-		lb_set_config -s src$(($s + 1)) "$infofile" rsync_result $res
+		# save result in info file and delete temporary file
+		lb_set_config -s src$(($s + 1)) "$infofile" result $res
 
 		if [ $res = 0 ] ; then
 			# backup succeeded
@@ -959,10 +959,12 @@ $tr_run_to_show_history $lb_current_script history $file"
 			warn_partial=true
 		fi
 
-		# if rsync result was not good (backup failed or was incomplete)
+		# if result was not good (backup failed or was incomplete)
 		if ! lb_istrue $clone_mode ; then
-			rsync_result=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)
-			[ "$rsync_result" != 0 ] && warn_partial=true
+			local res=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" result)
+			# compatibility with versions < 1.10.0
+			[ -n "$res" ] || res=$(get_infofile_value "$destination/$backup_date/backup.info" "$file" rsync_result)
+			[ "$res" != 0 ] && warn_partial=true
 		fi
 
 		# warn user & ask to confirm

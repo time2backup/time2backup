@@ -52,7 +52,6 @@
 #     create_infofile
 #     find_infofile_section
 #     get_infofile_value
-#     check_infofile_rsync_result
 #   Mount functions
 #     mount_destination
 #     unmount_destination
@@ -1623,22 +1622,6 @@ get_infofile_value() {
 }
 
 
-# Usage: check_infofile_rsync_result BACKUP_DATE SRC
-# Exit codes:
-#   0: OK
-#   1: backup failed
-check_infofile_rsync_result() {
-	# check only if file exists
-	if [ -f "$destination/$1/backup.info" ] ; then
-		# check if last backup failed or was cancelled
-		cmd_result $(get_infofile_value "$destination/$1/backup.info" "$2" rsync_result)
-		[ $? = 2 ] && return 1
-	fi
-
-	return 0
-}
-
-
 #
 #  Mount functions
 #
@@ -2061,7 +2044,17 @@ prepare_backup() {
 	# check status of the last backup (only if infofile exists)
 	if ! lb_istrue $resume ; then
 		# if last backup failed or was cancelled, resume
-		check_infofile_rsync_result $last_clean_backup "$src" || resume=true
+		if [ -f "$destination/$last_clean_backup/backup.info" ] ; then
+			# check if last backup failed or was cancelled
+			cmd_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" result)
+			if [ $? = 2 ] ; then
+				resume=true
+			else
+				# compatibility with versions < 1.10
+				cmd_result $(get_infofile_value "$destination/$last_clean_backup/backup.info" "$src" rsync_result)
+				[ $? = 2 ] && resume=true
+			fi
+		fi
 	fi
 
 	# if hard links, no mirror more and no resume, quit
