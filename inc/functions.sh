@@ -76,6 +76,7 @@
 #     send_email_report
 #     haltpc
 #   Wizards
+#     choose_config_profile
 #     choose_operation
 #     config_wizard
 
@@ -2345,6 +2346,26 @@ haltpc() {
 #
 #  Wizards
 #
+
+# Choose a config profile
+# Usage: choose_config_profile
+# Dependencies: $config_profiles
+# Exit codes:
+#   0: OK
+#   1: error
+choose_config_profile() {
+	lbg_choose_option -d 2 -l "Choose a config profile" "Create a new profile" "${config_profiles[@]}" || return 1
+
+	if [ $lbg_choose_option = 1 ] ; then
+		lbg_input_text "Choose a profile name" || return 1
+		config_profile=$lbg_input_text
+	else
+		config_profile=${config_profiles[lbg_choose_option-2]}
+	fi
+
+	debug "Using config profile: $config_profile"
+}
+
 
 # Choose an operation to execute (time2backup commands)
 # Usage: choose_operation

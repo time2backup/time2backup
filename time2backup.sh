@@ -265,9 +265,9 @@ if [ -n "$config_directory" ] ; then
 else
 	# default config directory
 	if [ -n "$default_config_directory" ] ; then
-		config_directory=$default_config_directory/default
+		config_directory=$default_config_directory
 	else
-		config_directory=$(lb_homepath $user)/.config/time2backup/default
+		config_directory=$(lb_homepath $user)/.config/time2backup
 		if [ $? != 0 ] ; then
 			lbg_error "$tr_error_getting_homepath_1
 $tr_error_getting_homepath_2"
@@ -278,16 +278,35 @@ $tr_error_getting_homepath_2"
 	# migrate config files to default profile for v1.10.0 and newer
 	for f in time2backup.conf sources.conf excludes.conf includes.conf .lastbackup ; do
 		# if config exists in parent directory,
-		if [ -f "$(dirname "$config_directory")/$f" ] && ! [ -f "$config_directory/$f" ] ; then
-			# create config directory
-			if ! mkdir -p "$config_directory" &> /dev/null ; then
+		if [ -f "$config_directory/$f" ] && ! [ -f "$config_directory/default/$f" ] ; then
+			# create default config directory
+			if ! mkdir -p "$config_directory/default" &> /dev/null ; then
 				lb_error "Cannot create config directory. Please verify your access rights or home path."
 				return 1
 			fi
 			# move file to subdirectory
-			mv "$config_directory/../$f" "$config_directory/"
+			mv "$config_directory/$f" "$config_directory/default/"
 		fi
 	done
+
+	# search for config profiles
+	config_profiles=()
+	for profile in "$config_directory"/* ; do
+		# test if a profile exists
+		[ -f "$profile/time2backup.conf" ] && config_profiles+=("$(basename "$profile")")
+	done
+
+	config_profile=default
+	if [ ${#config_profiles[@]} -gt 0 ] ; then
+		if [ ${#config_profiles[@]} -gt 1 ] ; then
+			choose_config_profile || exit 1
+		else
+			# one profile
+			config_profile=${config_profiles[0]}
+		fi
+	fi
+
+	config_directory=$config_directory/$config_profile
 fi
 
 # define config files
