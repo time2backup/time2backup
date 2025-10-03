@@ -234,8 +234,7 @@ $tr_verify_media"
 	lb_istrue $hard_links || hard_links=false
 	lb_istrue $recurrent_backup || recurrent_backup=false
 
-	# prepare rsync command
-	prepare_rsync backup
+	prepare_cmd backup
 
 	create_infofile
 
@@ -993,8 +992,7 @@ $tr_confirm_restore_2" || return 0
 
 	debug "Restore destination: $dest"
 
-	# prepare rsync command
-	prepare_rsync restore
+	prepare_cmd restore
 
 	# of course, we exclude the backup destination itself if it is included
 	# into the destination path
@@ -2170,8 +2168,7 @@ t2b_import() {
 	# confirm action
 	lb_istrue $force_mode || lb_yesno "Proceed to import?" || return 0
 
-	# prepare rsync command
-	prepare_rsync import
+	prepare_cmd import
 
 	local b d src cmd import result error errors=()
 	for ((b=${#existing_backups[@]}-1; b>=$limit; b--)) ; do
@@ -2428,8 +2425,7 @@ t2b_export() {
 	# confirm action
 	lb_istrue $force_mode || lb_yesno "Proceed to export?" || return 0
 
-	# prepare rsync command
-	prepare_rsync export
+	prepare_cmd export
 
 	local b d src cmd export result error errors=()
 	for ((b=${#backups[@]}-1; b>=$limit; b--)) ; do

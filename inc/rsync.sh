@@ -3,17 +3,17 @@
 #
 #  Index
 #
-#   prepare_rsync
+#   prepare_cmd
 #   get_rsync_remote_command
 #   cmd_result
 #
 
 
 # Prepare rsync command and arguments in the $rsync_cmd variable
-# Usage: prepare_rsync COMMAND
+# Usage: prepare_cmd COMMAND
 # Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress,
 #               $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
-prepare_rsync() {
+prepare_cmd() {
 	# basic command
 	rsync_cmd=("$rsync_path" -rltDH)
 
