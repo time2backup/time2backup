@@ -263,7 +263,7 @@ $tr_verify_media"
 
 		# get source path
 		case $(get_protocol "$src") in
-			ssh)
+			rsync|ssh)
 				remote_source=true
 
 				if lb_istrue $clone_mode ; then
@@ -982,7 +982,7 @@ $tr_confirm_restore_2" || return 0
 
 	# prepare destination path
 	case $(get_protocol "$restore_path") in
-		ssh)
+		rsync|ssh)
 			dest=$(url2remote "$restore_path")
 			;;
 		*)
@@ -1093,7 +1093,7 @@ $tr_confirm_restore_2"
 	local res=0
 
 	case $(get_protocol "$restore_path") in
-		ssh)
+		rsync|ssh)
 			# do nothing
 			;;
 		*)
@@ -2117,7 +2117,7 @@ t2b_import() {
 
 	# prepare export destination
 	case $(get_protocol "$path") in
-		ssh)
+		rsync|ssh)
 			import_source=$(url2remote "$path")
 			remote_source=true
 
@@ -2371,7 +2371,7 @@ t2b_export() {
 
 	# prepare export destination
 	case $(get_protocol "$1") in
-		ssh)
+		rsync|ssh)
 			export_destination=$(url2remote "$*")
 			remote_source=true
 

@@ -5,6 +5,7 @@
 ## New features
 - Multiple configuration profiles
 - Show global progress
+- Add support for rsync remote protocol
 ## Changes
 - **WARNING: Drop support of Windows and macOS**. You can still use it manually or keep the **1.9.1** version
 - Drop support of time2backup server, unused. Prefer to use sshfs to mount remote destinations.

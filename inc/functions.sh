@@ -207,7 +207,7 @@ get_relative_path() {
 get_protocol() {
 	local protocol=$(echo $1 | cut -d: -f1)
 	case $protocol in
-		ssh)
+		rsync|ssh)
 			echo $protocol
 			;;
 		*)
@@ -217,7 +217,7 @@ get_protocol() {
 }
 
 
-# Transform URLs to SSH hosts
+# Get remote host from URL
 # e.g. ssh://user@host/path/to/file -> user@host
 # Usage: url2host URL
 # Return: host
@@ -226,32 +226,32 @@ url2host() {
 }
 
 
-# Transform URLs to SSH path
+# Transform URL to path
 # e.g. ssh://user@host/path/to/file -> /path/to/file
 # Usage: url2path URL
 # Return: path
 url2path() {
-	# get ssh host
-	local ssh_host=$(url2host "$1")
-
 	# prepare prefix to ignore
-	local ssh_prefix=ssh://$ssh_host
+	local prefix=$(get_protocol "$1")://$(url2host "$1")
 
 	# return path without prefix with bugfix for path with spaces
-	echo "${1#$ssh_prefix}" | sed 's/ /\\ /g'
+	echo "${1#$prefix}" | sed 's/ /\\ /g'
 }
 
 
-# Transform URLs to SSH complete
+# Transform URL to remote path
 # e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
 # Usage: url2remote URL
 # Return: complete path
 url2remote() {
-	if [ "${1:0:6}" = 'ssh://' ] ; then
-		echo "$(url2host "$1"):$(url2path "$1")"
-	else
-		echo "$1"
-	fi
+	case $(get_protocol "$1") in
+		rsync|ssh)
+			echo "$(url2host "$1"):$(url2path "$1")"
+			;;
+		*)
+			echo "$1"
+			;;
+	esac
 }
 
 
@@ -601,7 +601,7 @@ get_backup_path() {
 	# if not absolute path, check protocols
 	local protocol=$(get_protocol "$path")
 	case $protocol in
-		ssh)
+		rsync|ssh)
 			# transform ssh://user@hostname/path/to/file -> /ssh/hostname/path/to/file
 
 			# get ssh user@host
