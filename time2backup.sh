@@ -65,6 +65,13 @@ if [ $? != 0 ] ; then
 	exit 1
 fi
 
+# load rsync functions
+source "$script_directory"/inc/rsync.sh
+if [ $? != 0 ] ; then
+	lb_error "[ERROR] cannot load rsync functions"
+	exit 1
+fi
+
 # load commands
 source "$script_directory"/inc/commands.sh
 if [ $? != 0 ] ; then
