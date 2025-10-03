@@ -1108,7 +1108,7 @@ create_config() {
 #   2: write error
 upgrade_config() {
 	# get current config version
-	local old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
+	local old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
 	if [ -z "$old_config_version" ] ; then
 		lb_display_error "Cannot get config version."
 		return 1
