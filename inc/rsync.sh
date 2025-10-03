@@ -21,7 +21,15 @@ prepare_cmd() {
 
 	if ! lb_istrue $quiet_mode ; then
 		backup_cmd+=(-v)
-		lb_istrue $files_progress && backup_cmd+=(--progress)
+		
+		if lb_istrue $files_progress ; then
+			backup_cmd+=(--progress)
+		else
+			# show global progress (works with rsync > 3.1.0)
+			if lb_compare_versions $("$rsync_path" -V 2> /dev/null | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+") -ge 3.1.0 ; then
+				backup_cmd+=("--info=progress2")
+			fi
+		fi
 	fi
 
 	# test mode
