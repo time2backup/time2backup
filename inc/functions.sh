@@ -986,8 +986,7 @@ auto_exclude() {
 
 	# get common path of the backup directory and source
 	# e.g. /media
-	local common_path
-	common_path=$(get_common_path "$destination" "$1") || return 1
+	local common_path=$(get_common_path "$destination" "$1") || return 1
 
 	# get relative exclude directory
 	# e.g. /user/device/path/to/backups
@@ -1111,8 +1110,7 @@ create_config() {
 #   2: write error
 upgrade_config() {
 	# get current config version
-	local old_config_version
-	old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
+	local old_config_version=$(grep "time2backup configuration file v" "$config_file" | grep -o "[0-9].[0-9].[0-9]")
 	if [ -z "$old_config_version" ] ; then
 		lb_display_error "Cannot get config version."
 		return 1
@@ -1332,8 +1330,7 @@ crontab_config() {
 	fi
 
 	# test if task exists (get line number)
-	local line
-	line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
+	local line=$(echo "$crontab" | grep -n "^\* \* \* \* \*\s*$crontask" | cut -d: -f1)
 	if [ -n "$line" ] ; then
 		if $crontab_enable ; then
 			# do nothing
@@ -1342,7 +1339,6 @@ crontab_config() {
 			# disable: delete crontab entry lines
 			crontab=$(echo "$crontab" | sed "/^\# time2backup recurrent backups/d ; ${line}d") || return 4
 		fi
-
 	else
 		# if cron task does not exists,
 		# if old entry exists, rename it

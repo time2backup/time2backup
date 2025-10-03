@@ -1919,8 +1919,7 @@ t2b_status() {
 	fi
 
 	# get process PID
-	local pid
-	pid=$(current_lock -p)
+	local pid=$(current_lock -p)
 
 	debug "File lock contains: $pid"
 
@@ -1997,10 +1996,8 @@ t2b_stop() {
 			;;
 	esac
 
-	local t2b_pid
-
 	# get time2backup PID
-	t2b_pid=$(current_lock -p)
+	local t2b_pid=$(current_lock -p)
 	if ! lb_is_integer $t2b_pid ; then
 		lb_istrue $quiet_mode || lb_error "PID not found"
 		return 7
@@ -2013,17 +2010,14 @@ t2b_stop() {
 
 	# send kill signal to time2backup
 	if kill $t2b_pid ; then
+		# search for a current backup PID
+		local pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
 
-		local rsync_pid
+		if lb_is_integer $pid ; then
+			debug "Backup command PID found: $pid"
 
-		# search for a current rsync command
-		rsync_pid=$(ps -ef | grep -w $t2b_pid | grep "$rsync_path" | head -1 | awk '{print $2}')
-
-		if lb_is_integer $rsync_pid ; then
-			debug "Found rsync PID: $rsync_pid"
-
-			# send the kill signal to rsync
-			kill $rsync_pid || lb_warning "Failed to kill rsync PID $rsync_pid"
+			# send the kill signal to PID
+			kill $pid || lb_warning "Failed to kill PID $pid"
 		fi
 
 		# wait 30 sec max until time2backup is really stopped
