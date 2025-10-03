@@ -5,10 +5,10 @@
 #
 #  Source code: https://github.com/time2backup/time2backup
 #
-#  Version 1.9.5 (2025-06-20)
+#  Version 1.10.0 (2025-10-04)
 #
 
-declare -r version=1.9.5
+declare -r version=1.10.0-beta.1
 
 
 #
@@ -265,15 +265,29 @@ if [ -n "$config_directory" ] ; then
 else
 	# default config directory
 	if [ -n "$default_config_directory" ] ; then
-		config_directory=$default_config_directory
+		config_directory=$default_config_directory/default
 	else
-		config_directory=$(lb_homepath $user)/.config/time2backup/default/
+		config_directory=$(lb_homepath $user)/.config/time2backup/default
 		if [ $? != 0 ] ; then
 			lbg_error "$tr_error_getting_homepath_1
 $tr_error_getting_homepath_2"
 			exit 3
 		fi
 	fi
+
+	# migrate config files to default profile for v1.10.0 and newer
+	for f in time2backup.conf sources.conf excludes.conf includes.conf .lastbackup ; do
+		# if config exists in parent directory,
+		if [ -f "$(dirname "$config_directory")/$f" ] && ! [ -f "$config_directory/$f" ] ; then
+			# create config directory
+			if ! mkdir -p "$config_directory" &> /dev/null ; then
+				lb_error "Cannot create config directory. Please verify your access rights or home path."
+				return 1
+			fi
+			# move file to subdirectory
+			mv "$config_directory/../$f" "$config_directory/"
+		fi
+	done
 fi
 
 # define config files
