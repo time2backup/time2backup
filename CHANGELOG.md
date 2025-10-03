@@ -1,13 +1,22 @@
 # Changelog
 
 # 1.10.0 (20XX-XX-XX)
+## WARNING: drop support of Windows and macOS! See details below.
+## New features
+- Multiple configuration profiles
+- Show global progress
 ## Changes
-- Drop support of time2backup server, unused. Prefer to use sshfs
+- **WARNING: Drop support of Windows and macOS**. You can still use it manually or keep the **1.9.1** version
+- Drop support of time2backup server, unused. Prefer to use sshfs to mount remote destinations.
+- Default config moved from ~/.config/time2backup to ~/.config/time2backup/default (for multiple profiles)
+- Add some CI tests
+- Some code refactoring and simplifications
+## Bugfixes
+- Fixed a bug in getting configuration version when numbers > 9
 
 # 1.9.5 (2025-06-20)
 ## New features
 - New deb & rpm packages automatic builder for GitHub
-
 ## Changes
 - Update libbash.sh 1.22.9
 
@@ -15,18 +24,16 @@
 ## Bugfixes
 - Fixed a bug when testing backup size in other languages
 - Minor changes in display messages
-
 ## Changes
 - Upgrade libbash.sh to 1.21.0
 
 # 1.9.0 (2021-03-19)
 ## Changes
-- **WARNING:** if you upgrade time2backup from a version prior to 1.7.0, please upgrade to **1.8.7**
-  before upgrade to **1.9.0**
+- **WARNING:** if you upgrade time2backup from a version prior to 1.7.0,
+  please upgrade to **1.8.7** before upgrade to **1.9.0**
 - Upgrade libbash.sh to 1.20.0, adding native notifications on Windows
 - Drop 32-bits support for Windows
 - Minor code improvements
-
 ## Bugfixes
 - Add missing SSH options when restoring remote sources
 
@@ -42,7 +49,6 @@
 # 1.8.5 (2020-12-04)
 ## Bugfixes
 - Fix false incomplete warning when restoring a relative path directory
-
 ## Changes
 - Upgrade libbash.sh to 1.18.0
 - Minor code improvements and cleaning
@@ -60,7 +66,6 @@
 # 1.8.2 (2020-07-06)
 ## Changes
 - Import/export all now does a full rsync command
-
 ## Bugfixes
 - Clean empty trash in trash mode
 - Debug mode can now be set in config
@@ -72,12 +77,10 @@
 # 1.8.0 (2020-04-18)
 ## New features
 - New clone mode: backup source to destination without versionning
-
 ## Changes
 - Navigate in config windows do not quit time2backup when finished
 - Upgrade libbash.sh to 1.16.1
 - Improved documentation
-
 ## Bugfixes
 - Fixed bug that prevented config migration to work on BSD/macOS since 1.6.0! (related to libbash.sh 1.14.2)
 - Fixed crash when restoring to a non-existant directory
@@ -100,7 +103,6 @@
 - New sources selector in config wizard
 - New `--all` option for `import` and `export` commands
 - New `--test` option for `rotate` command
-
 ## Changes
 - Removed compatibility for old subdirectories destinations (deprecated since 1.3.0)
 - Removed compatibility for old restore `--force-lock` options (deprecated since 1.3.1)
@@ -132,7 +134,6 @@
 - SMB destinations are now supported
 - BSD systems are now supported
 - Windows: new portable version (bat script)
-
 ## Changes
 - Permit restore directories in trash mode
 - Improvements in `export` command
@@ -141,7 +142,6 @@
 - Configuration upgrade is now simplier and better
 - Logs on Windows are formatted with good end of lines
 - libbash.sh upgraded to version 1.14.2
-
 ## Bugfixes
 - Fixed a bug that prevent calling remote rsync path when restoring remote source
 - Fixed a bug for ssh when `ssh_options` rewrites ssh command
@@ -159,14 +159,12 @@
 - New `--keep` option to `clean` command to keep the N latest backups
 - The `keep_limit` config value can now be set as a period of minutes, hours or days
 - New config entry to execute remote rsync with sudo
-
 ## Changes
 - Improve status/stop commands with PID written in backup lock file
 - Various messages display improvements
 - libbash.sh upgraded to version 1.12.1
 - Various code improvements for a better organization
 - Improvements in documentation and help
-
 ## Bugfixes
 - Fix a bug that could empty the log file
 - Various bugfixes

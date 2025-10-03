@@ -274,7 +274,7 @@ $tr_verify_media"
 				fi
 
 				# set absolute source path
-				abs_src=$(url2ssh "$src")
+				abs_src=$(url2remote "$src")
 				;;
 
 			*)
@@ -444,13 +444,13 @@ $tr_verify_media"
 		if lb_istrue $clone_mode ; then
 			# one source or source is a file: clone to destination
 			if [ ${#sources[@]} = 1 ] || [ "${abs_src:${#abs_src}-1}" != / ] ; then
-				cmd+=("$(url2ssh "$destination")")
+				cmd+=("$(url2remote "$destination")")
 			else
 				# multiple sources: clone to destination/directory
-				cmd+=("$(url2ssh "$destination/$path_dest")")
+				cmd+=("$(url2remote "$destination/$path_dest")")
 			fi
 		else
-			cmd+=("$(url2ssh "$destination/$backup_date/$path_dest")")
+			cmd+=("$(url2remote "$destination/$backup_date/$path_dest")")
 		fi
 
 		# prepare backup: testing space
@@ -946,7 +946,7 @@ $tr_run_to_show_history $lb_current_script history $file"
 		fi
 
 		# set backup source for restore command
-		src=$(url2ssh "$destination/$backup_date/$backup_file_path")
+		src=$(url2remote "$destination/$backup_date/$backup_file_path")
 	fi # end of no clone mode
 
 	# if source is a directory
@@ -983,7 +983,7 @@ $tr_confirm_restore_2" || return 0
 	# prepare destination path
 	case $(get_protocol "$restore_path") in
 		ssh)
-			dest=$(url2ssh "$restore_path")
+			dest=$(url2remote "$restore_path")
 			;;
 		*)
 			dest=$restore_path
@@ -2118,7 +2118,7 @@ t2b_import() {
 	# prepare export destination
 	case $(get_protocol "$path") in
 		ssh)
-			import_source=$(url2ssh "$path")
+			import_source=$(url2remote "$path")
 			remote_source=true
 
 			# get backups to import
@@ -2372,7 +2372,7 @@ t2b_export() {
 	# prepare export destination
 	case $(get_protocol "$1") in
 		ssh)
-			export_destination=$(url2ssh "$*")
+			export_destination=$(url2remote "$*")
 			remote_source=true
 
 			# search for a backup reference

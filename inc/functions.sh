@@ -16,7 +16,7 @@
 #     get_protocol
 #     url2host
 #     url2path
-#     url2ssh
+#     url2remote
 #     file_for_windows
 #     debug
 #     notify
@@ -244,9 +244,9 @@ url2path() {
 
 # Transform URLs to SSH complete
 # e.g. ssh://user@host/path/to/file -> user@host:/path/to/file
-# Usage: url2ssh URL
+# Usage: url2remote URL
 # Return: complete path
-url2ssh() {
+url2remote() {
 	if [ "${1:0:6}" = 'ssh://' ] ; then
 		echo "$(url2host "$1"):$(url2path "$1")"
 	else
