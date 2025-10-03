@@ -9,46 +9,46 @@
 #
 
 
-# Prepare rsync command and arguments in the $rsync_cmd variable
+# Prepare rsync command and arguments in the $backup_cmd variable
 # Usage: prepare_cmd COMMAND
-# Dependencies: $rsync_cmd, $rsync_path, $quiet_mode, $files_progress,
+# Dependencies: $backup_cmd, $rsync_path, $quiet_mode, $files_progress,
 #               $preserve_permissions, $config_includes, $config_excludes, $rsync_options, $max_size
 prepare_cmd() {
 	# basic command
-	rsync_cmd=("$rsync_path" -rltDH)
+	backup_cmd=("$rsync_path" -rltDH)
 
 	# options depending on configuration
 
 	if ! lb_istrue $quiet_mode ; then
-		rsync_cmd+=(-v)
-		lb_istrue $files_progress && rsync_cmd+=(--progress)
+		backup_cmd+=(-v)
+		lb_istrue $files_progress && backup_cmd+=(--progress)
 	fi
 
 	# test mode
-	lb_istrue $test_mode && rsync_cmd+=(--dry-run)
+	lb_istrue $test_mode && backup_cmd+=(--dry-run)
 
 	# remote rsync path
 	if lb_istrue $remote_source ; then
 		local rsync_remote_command=$(get_rsync_remote_command)
-		[ -n "$rsync_remote_command" ] && rsync_cmd+=(--rsync-path "$rsync_remote_command")
+		[ -n "$rsync_remote_command" ] && backup_cmd+=(--rsync-path "$rsync_remote_command")
 	fi
 
 	case $1 in
 		import|export)
 			# force preserve permissions
-			rsync_cmd+=(-pog)
+			backup_cmd+=(-pog)
 			;;
 
 		*)
 			# preserve permissions
-			lb_istrue $preserve_permissions && rsync_cmd+=(-pog)
+			lb_istrue $preserve_permissions && backup_cmd+=(-pog)
 
 			# includes & excludes
-			[ -f "$config_includes" ] && rsync_cmd+=(--include-from "$config_includes")
-			[ -f "$config_excludes" ] && rsync_cmd+=(--exclude-from "$config_excludes")
+			[ -f "$config_includes" ] && backup_cmd+=(--include-from "$config_includes")
+			[ -f "$config_excludes" ] && backup_cmd+=(--exclude-from "$config_excludes")
 
 			# user defined options
-			[ ${#rsync_options[@]} -gt 0 ] && rsync_cmd+=("${rsync_options[@]}")
+			[ ${#rsync_options[@]} -gt 0 ] && backup_cmd+=("${rsync_options[@]}")
 			;;
 	esac
 
@@ -56,10 +56,10 @@ prepare_cmd() {
 	case $1 in
 		backup)
 			# delete newer files
-			rsync_cmd+=(--delete)
+			backup_cmd+=(--delete)
 
 			# add max size if specified
-			[ -n "$max_size" ] && rsync_cmd+=(--max-size "$max_size")
+			[ -n "$max_size" ] && backup_cmd+=(--max-size "$max_size")
 			;;
 	esac
 }

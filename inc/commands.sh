@@ -247,7 +247,7 @@ $tr_verify_media"
 	for ((s=0; s < ${#sources[@]}; s++)) ; do
 
 		# reset variables
-		cmd=("${rsync_cmd[@]}")
+		cmd=("${backup_cmd[@]}")
 		src=${sources[s]}
 		total_size=""
 		estimated_time=""
@@ -1000,29 +1000,29 @@ $tr_confirm_restore_2" || return 0
 	exclude_backup_dir=$(auto_exclude "$dest")
 	if [ $? = 0 ] ; then
 		# if there is something to exclude, do it
-		[ -n "$exclude_backup_dir" ] && rsync_cmd+=(--exclude "$exclude_backup_dir")
+		[ -n "$exclude_backup_dir" ] && backup_cmd+=(--exclude "$exclude_backup_dir")
 	else
 		lbg_error "$tr_restore_unknown_error"
 		return 8
 	fi
 
 	# search in source if exclude conf file is set
-	[ -f "$src"/.rsyncignore ] && rsync_cmd+=(--exclude-from "$src"/.rsyncignore)
+	[ -f "$src"/.rsyncignore ] && backup_cmd+=(--exclude-from "$src"/.rsyncignore)
 
 	# remote options
 	if lb_istrue $remote_source ; then
 		# enables network compression
-		lb_istrue $network_compression && rsync_cmd+=(-z)
+		lb_istrue $network_compression && backup_cmd+=(-z)
 
 		# add ssh options
-		[ "${#ssh_options[@]}" -gt 0 ] && rsync_cmd+=(-e "ssh ${ssh_options[*]}")
+		[ "${#ssh_options[@]}" -gt 0 ] && backup_cmd+=(-e "ssh ${ssh_options[*]}")
 	fi
 
 	# test newer files
 	if ! $delete_newer_files ; then
 		if $directory_mode ; then
 			# prepare test command
-			cmd=("${rsync_cmd[@]}")
+			cmd=("${backup_cmd[@]}")
 			cmd+=(--delete --dry-run "$src" "$dest")
 
 			notify "$tr_notify_prepare_restore"
@@ -1052,7 +1052,7 @@ $tr_confirm_restore_2"
 	fi
 
 	# prepare rsync restore command
-	cmd=("${rsync_cmd[@]}")
+	cmd=("${backup_cmd[@]}")
 
 	# delete new files option
 	$delete_newer_files && cmd+=(--delete)
@@ -2176,7 +2176,7 @@ t2b_import() {
 		src=${existing_backups[b]}
 
 		# prepare rsync command
-		cmd=("${rsync_cmd[@]}" --delete)
+		cmd=("${backup_cmd[@]}" --delete)
 
 		# if reference link not set, search the last existing backup
 		if [ ${#backups[@]} -gt 0 ] ; then
@@ -2267,7 +2267,7 @@ t2b_import() {
 	if lb_istrue $sync_all ; then
 		echo
 		echo "Import all backups..."
-		debug_and_run "${rsync_cmd[@]}" "$import_source/" "$destination"
+		debug_and_run "${backup_cmd[@]}" "$import_source/" "$destination"
 		lb_result
 		result=$?
 
@@ -2433,7 +2433,7 @@ t2b_export() {
 		src=${backups[b]}
 
 		# prepare rsync command
-		cmd=("${rsync_cmd[@]}" --delete)
+		cmd=("${backup_cmd[@]}" --delete)
 
 		# if reference link not set, search the last existing distant backup
 		if [ ${#existing_backups[@]} -gt 0 ] ; then
@@ -2524,7 +2524,7 @@ t2b_export() {
 	if lb_istrue $sync_all ; then
 		echo
 		echo "Export all backups..."
-		debug_and_run "${rsync_cmd[@]}" "$destination/" "$export_destination"
+		debug_and_run "${backup_cmd[@]}" "$destination/" "$export_destination"
 		lb_result
 		result=$?
 
