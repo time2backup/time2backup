@@ -1079,7 +1079,7 @@ create_config_from_template() {
 #   1: error
 create_config() {
 	# create config directory
-	# default: ~/.config/time2backup
+	# default: ~/.config/time2backup/default
 	mkdir -p "$config_directory" &> /dev/null
 	if [ $? != 0 ] ; then
 		lb_error "Cannot create config directory. Please verify your access rights or home path."

@@ -267,7 +267,7 @@ else
 	if [ -n "$default_config_directory" ] ; then
 		config_directory=$default_config_directory
 	else
-		config_directory=$(lb_homepath $user)/.config/time2backup/
+		config_directory=$(lb_homepath $user)/.config/time2backup/default/
 		if [ $? != 0 ] ; then
 			lbg_error "$tr_error_getting_homepath_1
 $tr_error_getting_homepath_2"
