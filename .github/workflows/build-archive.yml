@@ -1,0 +1,31 @@
+name: Build tar.gz archive on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # needed for submodules
+          fetch-depth: 0
+
+      - name: Create archive
+        run: |
+          # get release version without the "v"
+          VERSION="$(echo ${GITHUB_REF##*/} | sed 's/^v//')"
+
+          tar czf time2backup_$VERSION.tar.gz .
+
+      - name: Upload archive to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: time2backup_*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
