@@ -5,10 +5,10 @@
 #
 #  Source code: https://github.com/time2backup/time2backup
 #
-#  Version 1.10.0 (2025-10-04)
+#  Version 1.10.0 (2026-05-09)
 #
 
-declare -r version=1.10.0-beta.1
+declare -r version=1.10.0
 
 
 #

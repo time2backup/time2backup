@@ -1,6 +1,6 @@
 # Changelog
 
-# 1.10.0 (20XX-XX-XX)
+# 1.10.0 (2026-05-09)
 ## WARNING: drop support of Windows and macOS! See details below.
 ## New features
 - Multiple configuration profiles
