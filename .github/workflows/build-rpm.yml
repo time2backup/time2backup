@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout repo with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
           # needed for submodules
@@ -88,7 +88,7 @@ jobs:
           rpmbuild --define "_topdir $PWD/rpm" -ba rpm/SPECS/${APP_NAME}.spec
 
       - name: Upload RPM to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             rpm/RPMS/noarch/${{ env.APP_NAME }}-${{ env.VERSION }}-1.noarch.rpm

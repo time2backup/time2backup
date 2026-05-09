@@ -1,5 +1,9 @@
 # Changelog
 
+# 1.10.1 (2026-05-09)
+## Bugfixes
+- GitHub actions for build archives
+
 # 1.10.0 (2026-05-09)
 ## WARNING: drop support of Windows and macOS! See details below.
 ## New features
@@ -12,6 +16,7 @@
 - Default config moved from ~/.config/time2backup to ~/.config/time2backup/default (for multiple profiles)
 - Add some CI tests
 - Some code refactoring and simplifications
+- Update libbash.sh 1.22.10
 ## Bugfixes
 - Fixed a bug in getting configuration version when numbers > 9
 

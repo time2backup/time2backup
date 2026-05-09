@@ -5,12 +5,12 @@ on:
     types: [published]
 
 jobs:
-  build-deb:
+  build-archive:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
           # needed for submodules
@@ -21,11 +21,11 @@ jobs:
           # get release version without the "v"
           VERSION="$(echo ${GITHUB_REF##*/} | sed 's/^v//')"
 
-          tar czf time2backup_$VERSION.tar.gz .
+          tar czf /tmp/time2backup_$VERSION.tar.gz .
 
       - name: Upload archive to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
-          files: time2backup_*.tar.gz
+          files: /tmp/time2backup_*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
